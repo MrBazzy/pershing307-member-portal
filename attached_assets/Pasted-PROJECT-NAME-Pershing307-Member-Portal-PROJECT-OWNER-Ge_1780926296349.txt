@@ -1,0 +1,363 @@
+PROJECT NAME
+
+Pershing307 Member Portal
+
+PROJECT OWNER
+
+General John J. Pershing Lodge No. 307
+
+PROJECT PURPOSE
+
+Build a secure, maintainable, GDPR-conscious member portal for a Masonic Lodge.
+
+The system must be operable by non-technical administrators and remain sustainable for decades.
+
+The portal shall support future deployment for additional lodges without source code modifications.
+
+====================================================
+
+IMPORTANT DEVELOPMENT PRINCIPLES
+
+====================================================
+
+This project shall prioritize:
+
+1. Security
+2. Privacy
+3. Governance
+4. Continuity
+5. Maintainability
+6. Simplicity
+7. Mobile Usability
+
+The project shall NOT prioritize:
+
+- Fancy animations
+- Complex visual effects
+- Technology experimentation
+- Vendor lock-in
+
+====================================================
+
+TECHNOLOGY STACK
+
+====================================================
+
+Frontend
+
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+
+Backend
+
+- Node.js
+- TypeScript
+
+Database
+
+- PostgreSQL
+
+ORM
+
+- Prisma
+
+Authentication
+
+- Auth.js (NextAuth)
+
+Deployment
+
+- Docker
+- Docker Compose
+
+====================================================
+
+SECURITY REQUIREMENTS
+
+====================================================
+
+Mandatory:
+
+- Deny By Default authorization
+- Least Privilege
+- Protected Domains
+- Audit Logging
+- Password Hashing
+- HTTPS
+- Secure Cookies
+- SQL Injection Protection
+- XSS Protection
+- CSRF Protection
+
+Mandatory 2FA:
+
+- PM Super Administrators
+- Site Administrators
+
+Recommended 2FA:
+
+- Administrators
+
+====================================================
+
+ROLE MODEL
+
+====================================================
+
+Roles must be configurable.
+
+Initial roles:
+
+Visitor
+
+Member
+
+Secretary
+Treasurer
+Junior Warden
+Senior Warden
+Worshipful Master
+
+Administrator
+Site Administrator
+PM Super Administrator
+
+No role names shall be hardcoded.
+
+====================================================
+
+PROTECTED DOMAINS
+
+====================================================
+
+Protected domains must be configurable.
+
+Initial domains:
+
+Members
+Officers
+Administration
+Financial
+Past Masters
+
+Protected Domains override ordinary administrative permissions.
+
+====================================================
+
+RELEASE STRATEGY
+
+====================================================
+
+Build ONLY Release 1.
+
+Do NOT implement Release 2+ features unless explicitly requested.
+
+====================================================
+
+RELEASE 1 FEATURES
+
+====================================================
+
+Authentication
+
+- Login
+- Logout
+- Password Reset
+- Invitation Acceptance
+
+User Management
+
+- Invitation-Based Registration
+- User Accounts
+- Roles
+- Degrees
+- Membership Status
+
+Profiles
+
+- Profile Management
+- Privacy Settings
+- Profile Photos
+
+Member Directory
+
+Birthday Calendar
+
+Masonic Anniversary Recognition
+
+Roadmap Page
+
+Help System
+
+Administration
+
+Portal Health Dashboard
+
+Appearance Administration
+
+Quote Of The Day
+
+Memorial Banner System
+
+====================================================
+
+VISUAL DESIGN REQUIREMENTS
+
+====================================================
+
+Style:
+
+English Gentlemen's Club
+
+Traditional Masonic Lodge
+
+Private Members Society
+
+Avoid:
+
+Corporate Intranet Styling
+
+Use:
+
+Elegant Typography
+Deep Navy Blue
+Gold Accents
+Ivory Backgrounds
+
+Support:
+
+Light Mode
+Dark Mode
+
+Appearance must be configurable by Site Administrators.
+
+====================================================
+
+ADMINISTRATIVE REQUIREMENTS
+
+====================================================
+
+Site Administrators shall be able to modify:
+
+- Colours
+- Fonts
+- Logos
+- Homepage Banner
+- Background Images
+- Welcome Messages
+- Quote Collection
+
+No code changes required.
+
+====================================================
+
+CONTINUITY REQUIREMENTS
+
+====================================================
+
+Generate documentation during development.
+
+Required:
+
+README.md
+
+INSTALLATION_GUIDE.md
+
+DEPLOYMENT_GUIDE.md
+
+USER_GUIDE.md
+
+ADMINISTRATOR_GUIDE.md
+
+SITE_ADMINISTRATOR_GUIDE.md
+
+PM_SUPER_ADMINISTRATOR_GUIDE.md
+
+SECURITY_GUIDE.md
+
+PRIVACY_GUIDE.md
+
+BACKUP_RESTORE_GUIDE.md
+
+OPERATIONS_MANUAL.md
+
+RUNBOOKS.md
+
+CONTINUITY_MANUAL.md
+
+OFFICER_TRANSITION_GUIDE.md
+
+====================================================
+
+MULTI-LODGE REQUIREMENT
+
+====================================================
+
+Separate:
+
+Portal Engine
+
+from
+
+Lodge Configuration
+
+Branding, colours, logos, roles and configuration must be stored in configuration tables whenever practical.
+
+Do not hardcode lodge-specific information.
+
+====================================================
+
+IMPORTANT DEVELOPMENT PROCESS
+
+====================================================
+
+DO NOT BUILD EVERYTHING AT ONCE.
+
+Implement incrementally.
+
+Start with:
+
+Sprint 1
+
+Authentication
+Invitation System
+Bootstrap Wizard
+Roles
+Permissions
+Database Foundation
+
+When Sprint 1 is complete:
+
+Stop.
+
+Provide:
+
+- Project structure
+- Database schema
+- Completed files
+- Testing instructions
+
+Wait for review before continuing.
+
+====================================================
+
+SUCCESS CRITERIA
+
+====================================================
+
+A non-technical administrator shall be able to:
+
+- Invite members
+- Manage members
+- Manage roles
+- Change branding
+- Change colours
+- Change fonts
+- Upload banners
+- Manage roadmap items
+
+without modifying code.
+
+The portal must remain secure, maintainable and transferable.
