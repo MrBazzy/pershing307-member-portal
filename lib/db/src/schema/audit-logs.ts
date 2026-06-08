@@ -18,6 +18,8 @@ export const auditLogsTable = pgTable("audit_logs", {
   index("idx_audit_logs_actor").on(t.actorId),
   index("idx_audit_logs_action").on(t.action),
   index("idx_audit_logs_created").on(t.createdAt),
+  index("idx_audit_logs_actor_email").on(t.actorEmail),
+  index("idx_audit_logs_target_type").on(t.targetType),
 ]);
 
 export type AuditLog = typeof auditLogsTable.$inferSelect;
@@ -28,9 +30,13 @@ export type AuditAction =
   | "LOGIN_FAILED"
   | "LOGIN_LOCKED"
   | "LOGOUT"
+  | "TOTP_FAILED"
+  | "TOTP_LOCKED"
+  | "RATE_LIMIT_HIT"
   | "PASSWORD_RESET_REQUESTED"
   | "PASSWORD_RESET_COMPLETED"
   | "PASSWORD_CHANGED"
+  | "PASSWORD_HISTORY_VIOLATION"
   | "INVITATION_CREATED"
   | "INVITATION_ACCEPTED"
   | "INVITATION_REVOKED"
@@ -38,5 +44,10 @@ export type AuditAction =
   | "ROLE_REVOKED"
   | "USER_ACTIVATED"
   | "USER_DEACTIVATED"
+  | "DOMAIN_ACCESS_GRANTED"
+  | "DOMAIN_ACCESS_REVOKED"
+  | "DEGREE_RECORDED"
+  | "DEGREE_REMOVED"
   | "BOOTSTRAP_COMPLETED"
-  | "CONFIG_CHANGED";
+  | "CONFIG_CHANGED"
+  | "SMTP_TEST";

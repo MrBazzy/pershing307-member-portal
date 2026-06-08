@@ -1,4 +1,5 @@
 export * from "./lodges";
+export * from "./password-history";
 export * from "./configuration";
 export * from "./roles";
 export * from "./protected-domains";

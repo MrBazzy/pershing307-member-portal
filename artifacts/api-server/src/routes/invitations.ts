@@ -8,6 +8,7 @@ import { writeAuditLog, getClientIp } from "../lib/audit";
 import { sendEmail, invitationEmailHtml } from "../lib/email";
 import { getConfig, getConfigNumber, getLodgeId } from "../lib/config";
 import { hashPassword, passwordSchema } from "../lib/password";
+import { recordPasswordHistory } from "../lib/password-history";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 

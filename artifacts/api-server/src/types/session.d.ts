@@ -6,6 +6,8 @@ declare module "express-session" {
     lodgeId?: string;
     twoFactorVerified?: boolean;
     pendingTwoFactorUserId?: string;
+    failedTotpAttempts?: number;
+    totpLockedUntil?: string;
   }
 }
 

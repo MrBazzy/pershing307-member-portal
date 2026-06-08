@@ -1,13 +1,25 @@
 import { Router } from "express";
+import { z } from "zod";
 import { db } from "@workspace/db";
 import { auditLogsTable } from "@workspace/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, gte, lte, ilike } from "drizzle-orm";
 import { getLodgeId } from "../lib/config";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
+import type { SQL } from "drizzle-orm";
 
 const router = Router();
 const ADMINISTRATOR_LEVEL = 70;
+
+const filterSchema = z.object({
+  limit: z.coerce.number().int().min(1).max(500).default(100),
+  offset: z.coerce.number().int().min(0).default(0),
+  action: z.string().optional(),
+  actorEmail: z.string().optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
+  targetType: z.string().optional(),
+});
 
 router.get("/", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
   const lodgeId = await getLodgeId();
@@ -16,13 +28,32 @@ router.get("/", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res
     return;
   }
 
-  const limit = Math.min(parseInt(String(req.query.limit ?? "100"), 10), 500);
-  const offset = parseInt(String(req.query.offset ?? "0"), 10);
+  const parsed = filterSchema.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid query parameters" });
+    return;
+  }
+
+  const { limit, offset, action, actorEmail, from, to, targetType } = parsed.data;
+
+  const conditions: SQL[] = [eq(auditLogsTable.lodgeId, lodgeId)];
+
+  if (action) conditions.push(eq(auditLogsTable.action, action));
+  if (actorEmail) conditions.push(ilike(auditLogsTable.actorEmail, `%${actorEmail}%`));
+  if (from) {
+    const fromDate = new Date(from);
+    if (!isNaN(fromDate.getTime())) conditions.push(gte(auditLogsTable.createdAt, fromDate));
+  }
+  if (to) {
+    const toDate = new Date(to);
+    if (!isNaN(toDate.getTime())) conditions.push(lte(auditLogsTable.createdAt, toDate));
+  }
+  if (targetType) conditions.push(eq(auditLogsTable.targetType, targetType));
 
   const logs = await db
     .select()
     .from(auditLogsTable)
-    .where(eq(auditLogsTable.lodgeId, lodgeId))
+    .where(and(...conditions))
     .orderBy(desc(auditLogsTable.createdAt))
     .limit(limit)
     .offset(offset);

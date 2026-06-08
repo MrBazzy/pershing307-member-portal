@@ -34,6 +34,36 @@ router.get("/", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res
   res.json({ domains });
 });
 
+router.get("/:domainId/members", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+  const domainId = String(req.params.domainId);
+  const lodgeId = await getLodgeId();
+
+  const domain = await db
+    .select({ id: protectedDomainsTable.id, name: protectedDomainsTable.name })
+    .from(protectedDomainsTable)
+    .where(and(eq(protectedDomainsTable.id, domainId), eq(protectedDomainsTable.lodgeId, lodgeId!)))
+    .limit(1);
+
+  if (domain.length === 0) {
+    res.status(404).json({ error: "Domain not found" });
+    return;
+  }
+
+  const grants = await db
+    .select({
+      userId: userDomainAccessTable.userId,
+      firstName: usersTable.firstName,
+      lastName: usersTable.lastName,
+      email: usersTable.email,
+      grantedAt: userDomainAccessTable.grantedAt,
+    })
+    .from(userDomainAccessTable)
+    .innerJoin(usersTable, eq(userDomainAccessTable.userId, usersTable.id))
+    .where(eq(userDomainAccessTable.domainId, domainId));
+
+  res.json({ users: grants.map((g) => ({ ...g, grantedAt: g.grantedAt.toISOString() })) });
+});
+
 router.get("/:userId", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
   const targetUserId = String(req.params.userId);
 

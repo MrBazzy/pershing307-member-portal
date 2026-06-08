@@ -2,10 +2,12 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import { configurationTable } from "@workspace/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 import { getLodgeId, setConfig } from "../lib/config";
+import { writeAuditLog, getClientIp } from "../lib/audit";
+import { sendEmail } from "../lib/email";
 
 const router = Router();
 
@@ -43,6 +45,10 @@ const updateSchema = z.object({
   value: z.string(),
 });
 
+const testSmtpSchema = z.object({
+  to: z.string().email(),
+});
+
 router.get("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const lodgeId = await getLodgeId();
   if (!lodgeId) {
@@ -67,6 +73,63 @@ router.get("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) =
   res.json({ config });
 });
 
+router.post("/test-smtp", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const result = testSmtpSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: "Invalid request — provide a valid 'to' email address" });
+    return;
+  }
+
+  const { to } = result.data;
+  const actorId = req.session!.userId!;
+  const ip = getClientIp(req);
+  const lodgeId = await getLodgeId();
+
+  const smtpOk = !!(process.env.SMTP_PASS && process.env.SMTP_HOST);
+  if (!smtpOk) {
+    res.status(503).json({ error: "SMTP is not configured. Set SMTP_HOST and SMTP_PASS environment secrets." });
+    return;
+  }
+
+  let success = false;
+  let message = "";
+
+  try {
+    await sendEmail({
+      to,
+      subject: "Pershing307 Portal — SMTP Test",
+      html: `
+        <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px">
+          <h2 style="color:#1a1a2e">SMTP Test Successful</h2>
+          <p>This is a test email from your Pershing307 Member Portal.</p>
+          <p>If you received this message, your outgoing email configuration is working correctly.</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
+          <p style="color:#6b7280;font-size:12px">Sent at ${new Date().toISOString()} via portal SMTP test function.</p>
+        </div>
+      `,
+    });
+    success = true;
+    message = `Test email sent successfully to ${to}.`;
+  } catch (err: any) {
+    success = false;
+    message = err?.message ?? "Unknown error";
+  }
+
+  await writeAuditLog({
+    lodgeId,
+    actorId,
+    action: "SMTP_TEST",
+    detail: { to, success, message },
+    ipAddress: ip,
+  });
+
+  if (success) {
+    res.json({ success: true, message });
+  } else {
+    res.status(502).json({ error: "SMTP test failed", details: message });
+  }
+});
+
 router.put("/:key", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const key = String(req.params.key);
 
@@ -86,7 +149,18 @@ router.put("/:key", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, re
     return;
   }
 
+  const actorId = req.session!.userId!;
+  const lodgeId = await getLodgeId();
+
   await setConfig(key, result.data.value);
+
+  await writeAuditLog({
+    lodgeId,
+    actorId,
+    action: "CONFIG_CHANGED",
+    detail: { key, value: result.data.value },
+    ipAddress: getClientIp(req),
+  });
 
   res.json({ success: true });
 });

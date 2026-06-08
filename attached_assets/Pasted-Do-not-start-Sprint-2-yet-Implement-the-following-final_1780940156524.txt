@@ -1,0 +1,161 @@
+Do not start Sprint 2 yet.
+
+Implement the following final Sprint 1 hardening actions first.
+
+# 1. Add rate limiting
+
+Implement server-side rate limiting using express-rate-limit or equivalent.
+
+Apply rate limits to:
+
+- POST /api/auth/login
+- POST /api/auth/forgot-password
+- POST /api/auth/reset-password
+- POST /api/auth/verify-2fa
+- POST /api/invitations/accept
+
+Log rate-limit events as security events.
+
+# 2. Add TOTP brute-force protection
+
+Protect 2FA verification attempts.
+
+Requirements:
+
+- Track failed TOTP attempts per user/session/IP.
+- After 5 failed attempts, temporarily lock 2FA verification for 10–15 minutes.
+- Log failed and locked 2FA attempts.
+- Show a user-friendly error message.
+
+# 3. Invalidate sessions after critical changes
+
+Destroy active sessions for a user when:
+
+- Password is changed
+- Password is reset
+- User is deactivated
+- Administrator role is removed
+- Site Administrator role is removed
+- PM Super Administrator role is removed
+- Protected domain access is removed
+
+Do not allow old sessions to retain removed privileges.
+
+# 4. Add password history protection
+
+Implement password history.
+
+Requirements:
+
+- Store the last 5 password hashes.
+- Prevent reuse of the last 5 passwords.
+- Apply to password reset and password change.
+- Do not store plain-text passwords.
+
+# 5. Add SMTP test function
+
+Add a Test SMTP button in Configuration.
+
+Requirements:
+
+- Admin enters or selects test recipient.
+- System sends a test email.
+- Show success or failure.
+- Log result.
+- Keep SMTP_PASS as environment secret only.
+
+# 6. Improve audit log usability
+
+Add filters to the Audit Log page:
+
+- Action type
+- Actor email
+- Date range
+- Target type
+
+Keep pagination.
+
+# 7. Improve domain administration
+
+Enhance the Domains page.
+
+Requirements:
+
+- Show all protected domains.
+- For each domain, show users who currently have access.
+- PM Super Administrators can grant/revoke access.
+- Administrators and Site Administrators must not automatically receive Past Masters domain access.
+
+# 8. Add degree definition management UI
+
+Add structured administration for degree definitions.
+
+Requirements:
+
+- View degree definitions.
+- Add/edit/archive degree definitions.
+- Initial values:
+  - Entered Apprentice
+  - Fellow Craft
+  - Master Mason
+  - Past Master
+- Keep values lodge-configurable.
+
+# 9. Add production build verification
+
+Run and verify:
+
+- frontend production build
+- backend TypeScript build
+- database migration check
+
+Fix all build errors.
+
+# 10. Add missing documentation
+
+Create these files:
+
+- INSTALLATION_GUIDE.md
+- DEPLOYMENT_GUIDE.md
+- USER_GUIDE.md
+- ADMINISTRATOR_GUIDE.md
+- SITE_ADMINISTRATOR_GUIDE.md
+- PM_SUPER_ADMINISTRATOR_GUIDE.md
+- SECURITY_GUIDE.md
+- PRIVACY_GUIDE.md
+- BACKUP_RESTORE_GUIDE.md
+- OPERATIONS_MANUAL.md
+- RUNBOOKS.md
+- CONTINUITY_MANUAL.md
+- OFFICER_TRANSITION_GUIDE.md
+- EMERGENCY_RECOVERY.md
+
+Use step-by-step language for non-technical administrators.
+
+# 11. Add Emergency Recovery design
+
+Create EMERGENCY_RECOVERY.md.
+
+It must explain:
+
+- What to do if all administrators lose access
+- What to do if the final PM Super Administrator is unavailable
+- How emergency credentials are stored
+- Who may approve emergency recovery
+- How emergency actions are logged
+- How credentials are rotated afterward
+
+Do not store secrets in Git or source code.
+
+# 12. Final report
+
+After implementation, stop and provide:
+
+1. Files changed
+2. Security controls added
+3. Remaining limitations
+4. Updated test procedure
+5. Production build result
+6. Whether Sprint 1 is now ready for acceptance review
+
+Do not start Sprint 2 until approved.

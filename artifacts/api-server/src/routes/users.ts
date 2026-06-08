@@ -14,12 +14,15 @@ import { writeAuditLog, getClientIp } from "../lib/audit";
 import { getLodgeId, getConfig } from "../lib/config";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
+import { invalidateUserSessions } from "../lib/sessions";
 
 const router = Router();
 
 const ADMINISTRATOR_LEVEL = 70;
 const SITE_ADMIN_LEVEL = 80;
 const PM_SUPER_ADMIN_LEVEL = 90;
+
+const PRIVILEGED_ROLE_SLUGS = new Set(["administrator", "site-administrator", "pm-super-administrator"]);
 
 const listQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(50),
@@ -150,6 +153,8 @@ router.patch("/:id/deactivate", requireAuth(), requireRole(ADMINISTRATOR_LEVEL),
 
   await db.update(usersTable).set({ isActive: false, updatedAt: new Date() }).where(eq(usersTable.id, targetId));
 
+  await invalidateUserSessions(targetId);
+
   await writeAuditLog({
     lodgeId,
     actorId,
@@ -242,7 +247,7 @@ router.delete("/:id/roles/:roleId", requireAuth(), requireRole(SITE_ADMIN_LEVEL)
   const lodgeId = await getLodgeId();
 
   const roles = await db
-    .select({ name: rolesTable.name })
+    .select({ name: rolesTable.name, slug: rolesTable.slug, permissionLevel: rolesTable.permissionLevel })
     .from(rolesTable)
     .where(eq(rolesTable.id, targetRoleId))
     .limit(1);
@@ -260,6 +265,10 @@ router.delete("/:id/roles/:roleId", requireAuth(), requireRole(SITE_ADMIN_LEVEL)
     detail: { roleId: targetRoleId, roleName: roles[0]?.name },
     ipAddress: getClientIp(req),
   });
+
+  if (roles[0] && PRIVILEGED_ROLE_SLUGS.has(roles[0].slug)) {
+    await invalidateUserSessions(targetId);
+  }
 
   res.json({ success: true });
 });
@@ -350,6 +359,8 @@ router.delete("/:id/domains/:domainId", requireAuth(), requireRole(PM_SUPER_ADMI
     detail: { domainId, domainName: domains[0]?.name },
     ipAddress: getClientIp(req),
   });
+
+  await invalidateUserSessions(targetUserId);
 
   res.json({ success: true });
 });

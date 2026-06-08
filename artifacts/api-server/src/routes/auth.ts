@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { rateLimit } from "express-rate-limit";
 import { db } from "@workspace/db";
 import { usersTable, userRolesTable, rolesTable, twoFactorSettingsTable, passwordResetTokensTable } from "@workspace/db/schema";
 import { eq, and, gt } from "drizzle-orm";
@@ -9,10 +10,41 @@ import { writeAuditLog, getClientIp } from "../lib/audit";
 import { sendEmail, passwordResetEmailHtml } from "../lib/email";
 import { getConfig, getConfigNumber, getLodgeId } from "../lib/config";
 import { requireAuth } from "../middlewares/requireAuth";
+import { invalidateUserSessions } from "../lib/sessions";
+import { checkPasswordHistory, recordPasswordHistory } from "../lib/password-history";
 import twoFactorRouter from "./two-factor";
 import speakeasy from "speakeasy";
 
 const router = Router();
+
+function makeRateLimit(max: number, windowMs: number, errorMessage: string) {
+  return rateLimit({
+    windowMs,
+    max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req, res) => {
+      const ip = getClientIp(req);
+      getLodgeId().then((lodgeId) => {
+        writeAuditLog({
+          lodgeId,
+          action: "RATE_LIMIT_HIT",
+          ipAddress: ip,
+          detail: { path: req.path, limit: max, windowMs },
+        }).catch(() => {});
+      }).catch(() => {});
+      res.status(429).json({ error: errorMessage });
+    },
+  });
+}
+
+const loginRateLimit = makeRateLimit(20, 15 * 60 * 1000, "Too many login attempts. Please try again in 15 minutes.");
+const forgotPasswordRateLimit = makeRateLimit(5, 15 * 60 * 1000, "Too many password reset requests. Please try again in 15 minutes.");
+const resetPasswordRateLimit = makeRateLimit(10, 15 * 60 * 1000, "Too many reset attempts. Please try again in 15 minutes.");
+const twoFaRateLimit = makeRateLimit(10, 15 * 60 * 1000, "Too many authentication attempts. Please try again in 15 minutes.");
+
+const TOTP_MAX_ATTEMPTS = 5;
+const TOTP_LOCKOUT_MS = 15 * 60 * 1000;
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -57,7 +89,7 @@ async function getUserWithRoles(userId: string) {
   return { user, roles };
 }
 
-router.post("/login", async (req, res) => {
+router.post("/login", loginRateLimit, async (req, res) => {
   const result = loginSchema.safeParse(req.body);
   if (!result.success) {
     res.status(400).json({ error: "Invalid request", issues: result.error.issues });
@@ -120,6 +152,8 @@ router.post("/login", async (req, res) => {
 
   if (tfEnabled) {
     req.session.pendingTwoFactorUserId = user.id;
+    req.session.failedTotpAttempts = 0;
+    delete req.session.totpLockedUntil;
     res.json({ requiresTwoFactor: true });
     return;
   }
@@ -151,11 +185,27 @@ router.post("/login", async (req, res) => {
   });
 });
 
-router.post("/login/2fa", async (req, res) => {
+router.post("/login/2fa", twoFaRateLimit, async (req, res) => {
   const pendingUserId = req.session?.pendingTwoFactorUserId;
   if (!pendingUserId) {
     res.status(400).json({ error: "No pending two-factor authentication" });
     return;
+  }
+
+  const ip = getClientIp(req);
+  const ua = req.headers["user-agent"] ?? null;
+  const lodgeId = await getLodgeId();
+
+  const lockedUntilStr = req.session.totpLockedUntil;
+  if (lockedUntilStr) {
+    const lockedUntil = new Date(lockedUntilStr);
+    if (lockedUntil > new Date()) {
+      await writeAuditLog({ lodgeId, actorId: pendingUserId, action: "TOTP_LOCKED", ipAddress: ip, userAgent: ua });
+      res.status(423).json({ error: "Too many failed attempts. Two-factor verification is temporarily locked. Please try again later." });
+      return;
+    }
+    delete req.session.totpLockedUntil;
+    req.session.failedTotpAttempts = 0;
   }
 
   const result = twoFactorSchema.safeParse(req.body);
@@ -180,9 +230,22 @@ router.post("/login/2fa", async (req, res) => {
   });
 
   if (!verified) {
-    res.status(401).json({ error: "Invalid authentication code" });
+    const attempts = (req.session.failedTotpAttempts ?? 0) + 1;
+    req.session.failedTotpAttempts = attempts;
+
+    if (attempts >= TOTP_MAX_ATTEMPTS) {
+      req.session.totpLockedUntil = new Date(Date.now() + TOTP_LOCKOUT_MS).toISOString();
+      await writeAuditLog({ lodgeId, actorId: pendingUserId, action: "TOTP_LOCKED", ipAddress: ip, userAgent: ua, detail: { attempts } });
+      res.status(423).json({ error: "Too many failed attempts. Two-factor verification is locked for 15 minutes." });
+    } else {
+      await writeAuditLog({ lodgeId, actorId: pendingUserId, action: "TOTP_FAILED", ipAddress: ip, userAgent: ua, detail: { attempts, remaining: TOTP_MAX_ATTEMPTS - attempts } });
+      res.status(401).json({ error: "Invalid authentication code", attemptsRemaining: TOTP_MAX_ATTEMPTS - attempts });
+    }
     return;
   }
+
+  req.session.failedTotpAttempts = 0;
+  delete req.session.totpLockedUntil;
 
   const users = await db.select().from(usersTable).where(eq(usersTable.id, pendingUserId)).limit(1);
   const user = users[0];
@@ -191,9 +254,6 @@ router.post("/login/2fa", async (req, res) => {
     res.status(401).json({ error: "User not found" });
     return;
   }
-
-  const ip = getClientIp(req);
-  const ua = req.headers["user-agent"] ?? null;
 
   await db.update(usersTable).set({ lastLoginAt: new Date(), lastLoginIp: ip, updatedAt: new Date() }).where(eq(usersTable.id, user.id));
   await db.update(twoFactorSettingsTable).set({ lastUsedAt: new Date(), updatedAt: new Date() }).where(eq(twoFactorSettingsTable.userId, user.id));
@@ -238,7 +298,7 @@ router.post("/logout", requireAuth(), async (req, res) => {
       res.status(500).json({ error: "Logout failed" });
       return;
     }
-    res.clearCookie("connect.sid");
+    res.clearCookie("portal.sid");
     writeAuditLog({ lodgeId, actorId: userId, actorEmail: email, action: "LOGOUT", ipAddress: ip, userAgent: ua });
     res.json({ success: true });
   });
@@ -276,6 +336,7 @@ router.get("/me", requireAuth(), async (req, res) => {
 
 router.post("/change-password", requireAuth(), async (req, res) => {
   const userId = req.session!.userId!;
+  const currentSid = req.session.id;
 
   const result = changePasswordSchema.safeParse(req.body);
   if (!result.success) {
@@ -303,14 +364,26 @@ router.post("/change-password", requireAuth(), async (req, res) => {
     return;
   }
 
+  const usedBefore = await checkPasswordHistory(userId, newPassword);
+  if (usedBefore) {
+    const lodgeId = await getLodgeId();
+    await writeAuditLog({ lodgeId, actorId: userId, actorEmail: user.email, action: "PASSWORD_HISTORY_VIOLATION", targetType: "user", targetId: userId, ipAddress: getClientIp(req) });
+    res.status(400).json({ error: "This password has been used recently. Please choose a different password." });
+    return;
+  }
+
   const newHash = await hashPassword(newPassword);
   await db
     .update(usersTable)
     .set({ passwordHash: newHash, passwordChangedAt: new Date(), mustChangePassword: false, updatedAt: new Date() })
     .where(eq(usersTable.id, userId));
 
+  await recordPasswordHistory(userId, newHash);
+
   const lodgeId = await getLodgeId();
   await writeAuditLog({ lodgeId, actorId: userId, actorEmail: user.email, action: "PASSWORD_CHANGED", targetType: "user", targetId: userId, ipAddress: getClientIp(req) });
+
+  await invalidateUserSessions(userId, currentSid);
 
   res.json({ success: true, message: "Password changed successfully" });
 });
@@ -338,7 +411,7 @@ router.patch("/profile", requireAuth(), async (req, res) => {
   res.json({ success: true });
 });
 
-router.post("/forgot-password", async (req, res) => {
+router.post("/forgot-password", forgotPasswordRateLimit, async (req, res) => {
   const result = forgotPasswordSchema.safeParse(req.body);
   if (!result.success) {
     res.status(400).json({ error: "Invalid request" });
@@ -379,7 +452,7 @@ router.post("/forgot-password", async (req, res) => {
   await writeAuditLog({ lodgeId, actorId: user.id, actorEmail: user.email, action: "PASSWORD_RESET_REQUESTED", ipAddress: ip });
 });
 
-router.post("/reset-password", async (req, res) => {
+router.post("/reset-password", resetPasswordRateLimit, async (req, res) => {
   const result = resetPasswordSchema.safeParse(req.body);
   if (!result.success) {
     res.status(400).json({ error: "Invalid request", issues: result.error.issues });
@@ -405,6 +478,18 @@ router.post("/reset-password", async (req, res) => {
   }
 
   const resetToken = tokens[0];
+
+  const usersRow = await db.select().from(usersTable).where(eq(usersTable.id, resetToken.userId)).limit(1);
+  const user = usersRow[0];
+
+  const usedBefore = await checkPasswordHistory(resetToken.userId, password);
+  if (usedBefore) {
+    const lodgeId = await getLodgeId();
+    await writeAuditLog({ lodgeId, actorId: resetToken.userId, actorEmail: user?.email, action: "PASSWORD_HISTORY_VIOLATION", targetType: "user", targetId: resetToken.userId, ipAddress: getClientIp(req) });
+    res.status(400).json({ error: "This password has been used recently. Please choose a different password." });
+    return;
+  }
+
   const passwordHash = await hashPassword(password);
 
   await db
@@ -413,8 +498,7 @@ router.post("/reset-password", async (req, res) => {
     .where(eq(usersTable.id, resetToken.userId));
   await db.update(passwordResetTokensTable).set({ usedAt: new Date() }).where(eq(passwordResetTokensTable.id, resetToken.id));
 
-  const users = await db.select().from(usersTable).where(eq(usersTable.id, resetToken.userId)).limit(1);
-  const user = users[0];
+  await recordPasswordHistory(resetToken.userId, passwordHash);
 
   await writeAuditLog({
     lodgeId: user?.lodgeId,
@@ -423,6 +507,8 @@ router.post("/reset-password", async (req, res) => {
     action: "PASSWORD_RESET_COMPLETED",
     ipAddress: getClientIp(req),
   });
+
+  await invalidateUserSessions(resetToken.userId);
 
   res.json({ success: true });
 });
