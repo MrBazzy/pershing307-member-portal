@@ -1,1 +1,2 @@
 - [Port registration in Replit](port-registration.md) — adding a port to .replit [[ports]] requires `verifyAndReplaceDotReplit`, not `verifyAndReplaceArtifactToml`
+- [Pershing307 Stack & Conventions](pershing307-stack.md) — portal stack, lib build requirement after codegen, auth patterns, key config values.

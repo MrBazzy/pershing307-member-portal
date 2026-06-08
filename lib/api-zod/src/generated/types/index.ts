@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Pershing307 Member Portal API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 
 export * from './acceptInvitationInput';
@@ -14,30 +14,51 @@ export * from './authUser';
 export * from './bootstrapInput';
 export * from './bootstrapResult';
 export * from './bootstrapStatus';
+export * from './changePasswordInput';
+export * from './configEntry';
+export * from './configListResult';
+export * from './configUpdateInput';
 export * from './currentUserResult';
 export * from './currentUserResultUser';
+export * from './degreeDefinition';
+export * from './degreeDefinitionListResult';
+export * from './degreeDefinitionUpdateInput';
+export * from './degreeInput';
+export * from './domainGrantInput';
+export * from './domainListResult';
 export * from './forgotPasswordInput';
 export * from './healthStatus';
 export * from './invitationCreated';
 export * from './invitationCreatedResult';
 export * from './invitationInput';
+export * from './invitationLinkResult';
 export * from './invitationListResult';
 export * from './invitationLookup';
 export * from './invitationLookupResult';
 export * from './invitationSummary';
 export * from './listAuditLogsParams';
+export * from './listUsersParams';
 export * from './lodgeSummary';
 export * from './loginInput';
 export * from './loginResult';
+export * from './profileUpdateInput';
+export * from './protectedDomain';
 export * from './resetPasswordInput';
 export * from './role';
 export * from './roleAssignment';
 export * from './roleDetail';
 export * from './roleListResult';
 export * from './successResult';
+export * from './twoFactorEnrollResult';
 export * from './twoFactorInput';
+export * from './twoFactorStatus';
+export * from './twoFactorVerifyEnrollInput';
+export * from './userDegree';
+export * from './userDegreeListResult';
 export * from './userDetail';
 export * from './userDetailResult';
+export * from './userDomainAccessListResult';
+export * from './userDomainGrant';
 export * from './userListResult';
 export * from './userRole';
 export * from './userSummary';

@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Pershing307 Member Portal API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import * as zod from 'zod';
 
@@ -75,6 +75,7 @@ export const LoginResponse = zod.object({
   "firstName": zod.string(),
   "lastName": zod.string(),
   "displayName": zod.string().nullish(),
+  "mustChangePassword": zod.boolean().optional(),
   "roles": zod.array(zod.object({
   "name": zod.string(),
   "slug": zod.string(),
@@ -104,6 +105,7 @@ export const VerifyTwoFactorResponse = zod.object({
   "firstName": zod.string(),
   "lastName": zod.string(),
   "displayName": zod.string().nullish(),
+  "mustChangePassword": zod.boolean().optional(),
   "roles": zod.array(zod.object({
   "name": zod.string(),
   "slug": zod.string(),
@@ -132,6 +134,7 @@ export const GetCurrentUserResponse = zod.object({
   "firstName": zod.string(),
   "lastName": zod.string(),
   "displayName": zod.string().nullish(),
+  "mustChangePassword": zod.boolean().optional(),
   "roles": zod.array(zod.object({
   "name": zod.string(),
   "slug": zod.string(),
@@ -176,8 +179,119 @@ export const ResetPasswordResponse = zod.object({
 
 
 /**
- * @summary List all users (admin)
+ * @summary Get current user 2FA enrollment status
  */
+export const GetTwoFactorStatusResponse = zod.object({
+  "enabled": zod.boolean(),
+  "enrolledAt": zod.string().nullish(),
+  "hasPendingEnrollment": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Begin 2FA enrollment — returns QR code URI and backup codes
+ */
+export const EnrollTwoFactorResponse = zod.object({
+  "qrCodeUri": zod.string(),
+  "backupCodes": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Verify first TOTP code and activate 2FA
+ */
+export const verifyTwoFactorEnrollBodyCodeMin = 6;
+export const verifyTwoFactorEnrollBodyCodeMax = 8;
+
+
+
+export const VerifyTwoFactorEnrollBody = zod.object({
+  "code": zod.string().min(verifyTwoFactorEnrollBodyCodeMin).max(verifyTwoFactorEnrollBodyCodeMax)
+})
+
+export const VerifyTwoFactorEnrollResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary Disable 2FA for the current user
+ */
+export const disableTwoFactorBodyCodeMin = 6;
+export const disableTwoFactorBodyCodeMax = 8;
+
+
+
+export const DisableTwoFactorBody = zod.object({
+  "code": zod.string().min(disableTwoFactorBodyCodeMin).max(disableTwoFactorBodyCodeMax)
+})
+
+export const DisableTwoFactorResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary Change password for authenticated user
+ */
+
+export const changePasswordBodyNewPasswordMin = 12;
+
+
+
+export const ChangePasswordBody = zod.object({
+  "currentPassword": zod.string().min(1),
+  "newPassword": zod.string().min(changePasswordBodyNewPasswordMin)
+})
+
+export const ChangePasswordResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary Update current user profile
+ */
+export const updateProfileBodyFirstNameMax = 100;
+
+export const updateProfileBodyLastNameMax = 100;
+
+export const updateProfileBodyDisplayNameMax = 100;
+
+
+
+export const UpdateProfileBody = zod.object({
+  "firstName": zod.string().min(1).max(updateProfileBodyFirstNameMax).optional(),
+  "lastName": zod.string().min(1).max(updateProfileBodyLastNameMax).optional(),
+  "displayName": zod.string().max(updateProfileBodyDisplayNameMax).nullish()
+})
+
+export const UpdateProfileResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary List users (admin) with optional pagination and search
+ */
+export const listUsersQueryLimitDefault = 50;
+export const listUsersQueryLimitMax = 200;
+
+export const listUsersQueryOffsetDefault = 0;
+export const listUsersQueryOffsetMin = 0;
+
+
+
+export const ListUsersQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(listUsersQueryLimitMax).default(listUsersQueryLimitDefault),
+  "offset": zod.coerce.number().min(listUsersQueryOffsetMin).default(listUsersQueryOffsetDefault),
+  "search": zod.coerce.string().optional()
+})
+
 export const ListUsersResponse = zod.object({
   "users": zod.array(zod.object({
   "id": zod.string(),
@@ -189,7 +303,10 @@ export const ListUsersResponse = zod.object({
   "isActive": zod.boolean(),
   "lastLoginAt": zod.string().nullish(),
   "createdAt": zod.string()
-}))
+})),
+  "total": zod.number(),
+  "limit": zod.number(),
+  "offset": zod.number()
 })
 
 
@@ -284,6 +401,107 @@ export const RevokeUserRoleResponse = zod.object({
 
 
 /**
+ * @summary List domain access grants for a user
+ */
+export const GetUserDomainsParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetUserDomainsResponse = zod.object({
+  "domains": zod.array(zod.object({
+  "domainId": zod.string(),
+  "domainName": zod.string(),
+  "domainSlug": zod.string(),
+  "grantedAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Grant a protected domain access to a user
+ */
+export const GrantUserDomainParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+
+
+export const GrantUserDomainBody = zod.object({
+  "domainId": zod.string().min(1)
+})
+
+export const GrantUserDomainResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary Revoke protected domain access from a user
+ */
+export const RevokeUserDomainParams = zod.object({
+  "id": zod.coerce.string(),
+  "domainId": zod.coerce.string()
+})
+
+export const RevokeUserDomainResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary List degree records for a user
+ */
+export const GetUserDegreesParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetUserDegreesResponse = zod.object({
+  "degrees": zod.array(zod.object({
+  "id": zod.string(),
+  "degree": zod.number(),
+  "degreeName": zod.string(),
+  "conferredOn": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Add a degree record for a user
+ */
+export const AddUserDegreeParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+
+
+export const AddUserDegreeBody = zod.object({
+  "degree": zod.number().min(1),
+  "conferredOn": zod.string().nullish(),
+  "notes": zod.string().nullish()
+})
+
+
+/**
+ * @summary Remove a degree record from a user
+ */
+export const RemoveUserDegreeParams = zod.object({
+  "id": zod.coerce.string(),
+  "degreeId": zod.coerce.string()
+})
+
+export const RemoveUserDegreeResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
  * @summary List all invitations (admin)
  */
 export const ListInvitationsResponse = zod.object({
@@ -296,7 +514,8 @@ export const ListInvitationsResponse = zod.object({
   "acceptedAt": zod.string().nullish(),
   "revokedAt": zod.string().nullish(),
   "createdAt": zod.string()
-}))
+})),
+  "smtpConfigured": zod.boolean()
 })
 
 
@@ -362,6 +581,18 @@ export const RevokeInvitationResponse = zod.object({
 
 
 /**
+ * @summary Get the invitation accept link (for copy when SMTP is unavailable)
+ */
+export const GetInvitationLinkParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetInvitationLinkResponse = zod.object({
+  "link": zod.string()
+})
+
+
+/**
  * @summary List all roles (admin)
  */
 export const ListRolesResponse = zod.object({
@@ -372,6 +603,78 @@ export const ListRolesResponse = zod.object({
   "permissionLevel": zod.number(),
   "isSystem": zod.boolean()
 }))
+})
+
+
+/**
+ * @summary List all protected domains (admin)
+ */
+export const ListDomainsResponse = zod.object({
+  "domains": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "description": zod.string().nullish()
+}))
+})
+
+
+/**
+ * @summary List configurable degree definitions
+ */
+export const ListDegreeDefinitionsResponse = zod.object({
+  "definitions": zod.array(zod.object({
+  "degree": zod.number(),
+  "name": zod.string(),
+  "abbreviation": zod.string()
+}))
+})
+
+
+/**
+ * @summary Update degree definitions (site admin)
+ */
+export const UpdateDegreeDefinitionsBody = zod.object({
+  "definitions": zod.array(zod.object({
+  "degree": zod.number(),
+  "name": zod.string(),
+  "abbreviation": zod.string()
+}))
+})
+
+export const UpdateDegreeDefinitionsResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary List all configuration entries (site admin)
+ */
+export const ListConfigResponse = zod.object({
+  "config": zod.array(zod.object({
+  "key": zod.string(),
+  "value": zod.string().nullable(),
+  "description": zod.string(),
+  "isReadOnly": zod.boolean()
+}))
+})
+
+
+/**
+ * @summary Update a configuration value (site admin)
+ */
+export const UpdateConfigParams = zod.object({
+  "key": zod.coerce.string()
+})
+
+export const UpdateConfigBody = zod.object({
+  "value": zod.string()
+})
+
+export const UpdateConfigResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
 })
 
 

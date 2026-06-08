@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Pershing307 Member Portal API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import type { UserRole } from './userRole';
 
@@ -14,5 +14,6 @@ export interface AuthUser {
   lastName: string;
   /** @nullable */
   displayName?: string | null;
+  mustChangePassword?: boolean;
   roles: UserRole[];
 }

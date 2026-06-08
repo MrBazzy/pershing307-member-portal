@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Pershing307 Member Portal API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 export interface HealthStatus {
   status: string;
@@ -76,6 +76,51 @@ export interface TwoFactorInput {
   code: string;
 }
 
+export interface TwoFactorStatus {
+  enabled: boolean;
+  /** @nullable */
+  enrolledAt?: string | null;
+  hasPendingEnrollment?: boolean;
+}
+
+export interface TwoFactorEnrollResult {
+  qrCodeUri: string;
+  backupCodes: string[];
+}
+
+export interface TwoFactorVerifyEnrollInput {
+  /**
+     * @minLength 6
+     * @maxLength 8
+     */
+  code: string;
+}
+
+export interface ChangePasswordInput {
+  /** @minLength 1 */
+  currentPassword: string;
+  /** @minLength 12 */
+  newPassword: string;
+}
+
+export interface ProfileUpdateInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  firstName?: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  lastName?: string;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  displayName?: string | null;
+}
+
 export interface UserRole {
   name: string;
   slug: string;
@@ -89,6 +134,7 @@ export interface AuthUser {
   lastName: string;
   /** @nullable */
   displayName?: string | null;
+  mustChangePassword?: boolean;
   roles: UserRole[];
 }
 
@@ -140,6 +186,9 @@ export interface UserSummary {
 
 export interface UserListResult {
   users: UserSummary[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 export interface RoleDetail {
@@ -176,6 +225,88 @@ export interface RoleAssignment {
   roleId: string;
 }
 
+export interface ProtectedDomain {
+  id: string;
+  name: string;
+  slug: string;
+  /** @nullable */
+  description?: string | null;
+}
+
+export interface DomainListResult {
+  domains: ProtectedDomain[];
+}
+
+export interface UserDomainGrant {
+  domainId: string;
+  domainName: string;
+  domainSlug: string;
+  grantedAt: string;
+}
+
+export interface UserDomainAccessListResult {
+  domains: UserDomainGrant[];
+}
+
+export interface DomainGrantInput {
+  /** @minLength 1 */
+  domainId: string;
+}
+
+export interface UserDegree {
+  id: string;
+  degree: number;
+  degreeName: string;
+  /** @nullable */
+  conferredOn?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface UserDegreeListResult {
+  degrees: UserDegree[];
+}
+
+export interface DegreeInput {
+  /** @minimum 1 */
+  degree: number;
+  /** @nullable */
+  conferredOn?: string | null;
+  /** @nullable */
+  notes?: string | null;
+}
+
+export interface DegreeDefinition {
+  degree: number;
+  name: string;
+  abbreviation: string;
+}
+
+export interface DegreeDefinitionListResult {
+  definitions: DegreeDefinition[];
+}
+
+export interface DegreeDefinitionUpdateInput {
+  definitions: DegreeDefinition[];
+}
+
+export interface ConfigEntry {
+  key: string;
+  /** @nullable */
+  value: string | null;
+  description: string;
+  isReadOnly: boolean;
+}
+
+export interface ConfigListResult {
+  config: ConfigEntry[];
+}
+
+export interface ConfigUpdateInput {
+  value: string;
+}
+
 export interface InvitationSummary {
   id: string;
   email: string;
@@ -191,6 +322,7 @@ export interface InvitationSummary {
 
 export interface InvitationListResult {
   invitations: InvitationSummary[];
+  smtpConfigured: boolean;
 }
 
 export interface InvitationInput {
@@ -219,6 +351,7 @@ export interface InvitationCreated {
 
 export interface InvitationCreatedResult {
   invitation: InvitationCreated;
+  smtpConfigured: boolean;
 }
 
 export interface InvitationLookup {
@@ -237,6 +370,10 @@ export interface AcceptInvitationInput {
   token: string;
   /** @minLength 12 */
   password: string;
+}
+
+export interface InvitationLinkResult {
+  link: string;
 }
 
 export interface Role {
@@ -281,6 +418,19 @@ export interface AuditLogResult {
   limit: number;
   offset: number;
 }
+
+export type ListUsersParams = {
+/**
+ * @minimum 1
+ * @maximum 200
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
+search?: string;
+};
 
 export type ListAuditLogsParams = {
 limit?: number;

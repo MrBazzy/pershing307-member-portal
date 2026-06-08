@@ -1,0 +1,79 @@
+Do not proceed to Sprint 2 yet.
+
+Sprint 1 foundation must first be completed and hardened.
+
+Please implement the following Sprint 1 remediation items in this priority order:
+
+1. Add 2FA enrollment UI
+
+* Allow Site Administrators and PM Super Administrators to enroll an authenticator app.
+* Show QR code.
+* Verify first TOTP code before enabling 2FA.
+* Allow backup codes.
+* Require 2FA for Site Administrator and PM Super Administrator roles.
+
+2. Add invitation link fallback
+
+* When SMTP is not configured, administrators must be able to copy the invitation link from the Invitations page.
+* Clearly show that email delivery is not active.
+* Do not require database access to retrieve invitation tokens.
+
+3. Add first-login setup flow
+
+* After invitation acceptance, redirect user to first-login setup.
+* Require password confirmation/change if mustChangePassword is true.
+* Guide user through basic profile completion.
+* Include privacy settings placeholder if full profile module is not yet implemented.
+
+4. Add domain access management UI
+
+* Administrators / PM Super Administrators must be able to view protected domains.
+* PM Super Administrators must be able to grant/revoke protected domain access.
+* Ensure Administrators and Site Administrators do not automatically receive Past Masters domain access.
+
+5. Add degree management UI
+
+* Allow authorized administrators to assign and view degree records.
+* Initial values: Entered Apprentice, Fellow Craft, Master Mason, Past Master.
+* Keep this configurable.
+
+6. Add configuration management UI
+
+* Allow authorized Site Administrators to manage:
+    * session timeout
+    * lockout policy
+    * 2FA-required roles
+    * SMTP host/port/user display
+* SMTP password must remain environment-secret only.
+* Add a clear note that SMTP_PASS must be configured as a secret.
+
+7. Add users pagination/search
+
+* Add limit/offset or cursor pagination to GET /api/users.
+* Add basic name/email search.
+
+8. Add top-level React error boundary
+
+* Show a friendly error page instead of blank screen.
+
+9. Validate mobile layout
+
+* Make admin navigation usable on mobile.
+* Ensure Users, Invitations, Audit Log and Dashboard work on phone width.
+
+10. Run production build verification
+
+* Run frontend production build.
+* Run backend TypeScript build.
+* Report any errors and fixes.
+
+After completing these remediation items, stop and provide:
+
+1. Updated folder/file list
+2. What was changed
+3. Security improvements made
+4. Remaining limitations
+5. Step-by-step test instructions
+6. Confirmation that production build passes
+7. Screens/pages added
+8. Any questions before Sprint 2

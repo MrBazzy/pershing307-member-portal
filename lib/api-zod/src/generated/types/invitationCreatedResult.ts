@@ -3,10 +3,11 @@
  * Do not edit manually.
  * Api
  * Pershing307 Member Portal API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import type { InvitationCreated } from './invitationCreated';
 
 export interface InvitationCreatedResult {
   invitation: InvitationCreated;
+  smtpConfigured: boolean;
 }

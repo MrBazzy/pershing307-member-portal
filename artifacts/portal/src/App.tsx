@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { useGetBootstrapStatus } from "@workspace/api-client-react";
+import { ErrorBoundary } from "@/components/error-boundary";
 import NotFound from "@/pages/not-found";
 import LoginPage from "@/pages/login";
 import ForgotPasswordPage from "@/pages/forgot-password";
@@ -11,9 +12,14 @@ import ResetPasswordPage from "@/pages/reset-password";
 import AcceptInvitationPage from "@/pages/accept-invitation";
 import BootstrapPage from "@/pages/bootstrap";
 import DashboardPage from "@/pages/dashboard";
+import SetupPage from "@/pages/setup";
 import AdminUsersPage from "@/pages/admin/users";
 import AdminInvitationsPage from "@/pages/admin/invitations";
 import AdminAuditLogPage from "@/pages/admin/audit-log";
+import AdminDomainsPage from "@/pages/admin/domains";
+import AdminDegreesPage from "@/pages/admin/degrees";
+import AdminConfigPage from "@/pages/admin/config";
+import TwoFactorPage from "@/pages/settings/two-factor";
 import { useEffect } from "react";
 
 const queryClient = new QueryClient({
@@ -54,6 +60,34 @@ function BootstrapCheck({ children }: { children: React.ReactNode }) {
 }
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const [location, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated) {
+      setLocation("/login");
+      return;
+    }
+    if (user?.mustChangePassword && location !== "/setup") {
+      setLocation("/setup");
+    }
+  }, [isLoading, isAuthenticated, user, setLocation, location]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-sm text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) return null;
+  if (user?.mustChangePassword && location !== "/setup") return null;
+  return <Component />;
+}
+
+function SetupRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -122,9 +156,14 @@ function AppRoutes() {
         <Route path="/reset-password" component={ResetPasswordPage} />
         <Route path="/accept-invitation" component={AcceptInvitationPage} />
         <Route path="/bootstrap" component={BootstrapPage} />
+        <Route path="/setup" component={() => <SetupRoute component={SetupPage} />} />
         <Route path="/dashboard" component={() => <ProtectedRoute component={DashboardPage} />} />
+        <Route path="/settings/2fa" component={() => <ProtectedRoute component={TwoFactorPage} />} />
         <Route path="/admin/users" component={() => <ProtectedRoute component={AdminUsersPage} />} />
         <Route path="/admin/invitations" component={() => <ProtectedRoute component={AdminInvitationsPage} />} />
+        <Route path="/admin/domains" component={() => <ProtectedRoute component={AdminDomainsPage} />} />
+        <Route path="/admin/degrees" component={() => <ProtectedRoute component={AdminDegreesPage} />} />
+        <Route path="/admin/config" component={() => <ProtectedRoute component={AdminConfigPage} />} />
         <Route path="/admin/audit-log" component={() => <ProtectedRoute component={AdminAuditLogPage} />} />
         <Route component={NotFound} />
       </Switch>
@@ -134,16 +173,18 @@ function AppRoutes() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL?.replace(/\/$/, "") || ""}>
-          <AuthProvider>
-            <AppRoutes />
-          </AuthProvider>
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL?.replace(/\/$/, "") || ""}>
+            <AuthProvider>
+              <AppRoutes />
+            </AuthProvider>
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

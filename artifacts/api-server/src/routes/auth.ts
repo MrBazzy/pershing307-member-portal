@@ -9,6 +9,7 @@ import { writeAuditLog, getClientIp } from "../lib/audit";
 import { sendEmail, passwordResetEmailHtml } from "../lib/email";
 import { getConfig, getConfigNumber, getLodgeId } from "../lib/config";
 import { requireAuth } from "../middlewares/requireAuth";
+import twoFactorRouter from "./two-factor";
 import speakeasy from "speakeasy";
 
 const router = Router();
@@ -30,6 +31,31 @@ const resetPasswordSchema = z.object({
   token: z.string().min(1),
   password: passwordSchema,
 });
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: passwordSchema,
+});
+
+const profileUpdateSchema = z.object({
+  firstName: z.string().min(1).max(100).optional(),
+  lastName: z.string().min(1).max(100).optional(),
+  displayName: z.string().max(100).nullable().optional(),
+});
+
+async function getUserWithRoles(userId: string) {
+  const users = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  const user = users[0];
+  if (!user) return null;
+
+  const roles = await db
+    .select({ name: rolesTable.name, slug: rolesTable.slug, permissionLevel: rolesTable.permissionLevel })
+    .from(userRolesTable)
+    .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
+    .where(eq(userRolesTable.userId, user.id));
+
+  return { user, roles };
+}
 
 router.post("/login", async (req, res) => {
   const result = loginSchema.safeParse(req.body);
@@ -119,6 +145,7 @@ router.post("/login", async (req, res) => {
       firstName: user.firstName,
       lastName: user.lastName,
       displayName: user.displayName,
+      mustChangePassword: user.mustChangePassword,
       roles,
     },
   });
@@ -191,6 +218,7 @@ router.post("/login/2fa", async (req, res) => {
       firstName: user.firstName,
       lastName: user.lastName,
       displayName: user.displayName,
+      mustChangePassword: user.mustChangePassword,
       roles,
     },
   });
@@ -240,9 +268,74 @@ router.get("/me", requireAuth(), async (req, res) => {
       lastName: user.lastName,
       displayName: user.displayName,
       membershipStatus: user.membershipStatus,
+      mustChangePassword: user.mustChangePassword,
       roles,
     },
   });
+});
+
+router.post("/change-password", requireAuth(), async (req, res) => {
+  const userId = req.session!.userId!;
+
+  const result = changePasswordSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: "Invalid request", issues: result.error.issues });
+    return;
+  }
+
+  const { currentPassword, newPassword } = result.data;
+
+  const users = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  const user = users[0];
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  if (!user.passwordHash) {
+    res.status(400).json({ error: "No password set on this account" });
+    return;
+  }
+
+  const valid = await verifyPassword(user.passwordHash, currentPassword);
+  if (!valid) {
+    res.status(400).json({ error: "Current password is incorrect" });
+    return;
+  }
+
+  const newHash = await hashPassword(newPassword);
+  await db
+    .update(usersTable)
+    .set({ passwordHash: newHash, passwordChangedAt: new Date(), mustChangePassword: false, updatedAt: new Date() })
+    .where(eq(usersTable.id, userId));
+
+  const lodgeId = await getLodgeId();
+  await writeAuditLog({ lodgeId, actorId: userId, actorEmail: user.email, action: "PASSWORD_CHANGED", targetType: "user", targetId: userId, ipAddress: getClientIp(req) });
+
+  res.json({ success: true, message: "Password changed successfully" });
+});
+
+router.patch("/profile", requireAuth(), async (req, res) => {
+  const userId = req.session!.userId!;
+
+  const result = profileUpdateSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: "Invalid request" });
+    return;
+  }
+
+  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  if (result.data.firstName !== undefined) updates.firstName = result.data.firstName;
+  if (result.data.lastName !== undefined) updates.lastName = result.data.lastName;
+  if (result.data.displayName !== undefined) updates.displayName = result.data.displayName;
+
+  if (result.data.firstName !== undefined || result.data.lastName !== undefined) {
+    updates.mustChangePassword = false;
+  }
+
+  await db.update(usersTable).set(updates as any).where(eq(usersTable.id, userId));
+
+  res.json({ success: true });
 });
 
 router.post("/forgot-password", async (req, res) => {
@@ -314,7 +407,10 @@ router.post("/reset-password", async (req, res) => {
   const resetToken = tokens[0];
   const passwordHash = await hashPassword(password);
 
-  await db.update(usersTable).set({ passwordHash, passwordChangedAt: new Date(), updatedAt: new Date() }).where(eq(usersTable.id, resetToken.userId));
+  await db
+    .update(usersTable)
+    .set({ passwordHash, passwordChangedAt: new Date(), mustChangePassword: false, updatedAt: new Date() })
+    .where(eq(usersTable.id, resetToken.userId));
   await db.update(passwordResetTokensTable).set({ usedAt: new Date() }).where(eq(passwordResetTokensTable.id, resetToken.id));
 
   const users = await db.select().from(usersTable).where(eq(usersTable.id, resetToken.userId)).limit(1);
@@ -330,5 +426,7 @@ router.post("/reset-password", async (req, res) => {
 
   res.json({ success: true });
 });
+
+router.use("/2fa", twoFactorRouter);
 
 export default router;

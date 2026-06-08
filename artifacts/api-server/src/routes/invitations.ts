@@ -19,13 +19,17 @@ const createInvitationSchema = z.object({
   email: z.string().email(),
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
-  roleId: z.string().optional(),
+  roleId: z.string().nullable().optional(),
 });
 
 const acceptInvitationSchema = z.object({
   token: z.string().min(1),
   password: passwordSchema,
 });
+
+function isSmtpConfigured(): boolean {
+  return !!(process.env.SMTP_PASS && process.env.SMTP_HOST);
+}
 
 router.post("/", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
   const result = createInvitationSchema.safeParse(req.body);
@@ -93,15 +97,18 @@ router.post("/", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, re
     ipAddress: getClientIp(req),
   });
 
-  const baseUrl = process.env.APP_BASE_URL ?? `http://localhost:${process.env.PORT ?? 5000}`;
+  const baseUrl = process.env.APP_BASE_URL ?? "http://localhost:3000";
   const inviteUrl = `${baseUrl}/accept-invitation?token=${token}`;
   const lodgeName = (await getConfig("lodge_name")) ?? "Member Portal";
+  const smtpOk = isSmtpConfigured();
 
-  await sendEmail({
-    to: normalizedEmail,
-    subject: `You have been invited to join ${lodgeName}`,
-    html: invitationEmailHtml({ firstName, lodgeName, inviteUrl, expiryDays }),
-  });
+  if (smtpOk) {
+    await sendEmail({
+      to: normalizedEmail,
+      subject: `You have been invited to join ${lodgeName}`,
+      html: invitationEmailHtml({ firstName, lodgeName, inviteUrl, expiryDays }),
+    });
+  }
 
   res.status(201).json({
     invitation: {
@@ -111,6 +118,7 @@ router.post("/", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, re
       lastName: invitation.lastName,
       expiresAt: invitation.expiresAt,
     },
+    smtpConfigured: smtpOk,
   });
 });
 
@@ -136,7 +144,7 @@ router.get("/", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res
     .where(eq(invitationsTable.lodgeId, lodgeId))
     .orderBy(invitationsTable.createdAt);
 
-  res.json({ invitations });
+  res.json({ invitations, smtpConfigured: isSmtpConfigured() });
 });
 
 router.get("/accept/:token", async (req, res) => {
@@ -222,6 +230,7 @@ router.post("/accept", async (req, res) => {
       firstName: invitation.firstName,
       lastName: invitation.lastName,
       isActive: true,
+      mustChangePassword: true,
       passwordChangedAt: new Date(),
     })
     .returning();
@@ -246,7 +255,34 @@ router.post("/accept", async (req, res) => {
   });
   await writeAuditLog({ lodgeId, actorId: user.id, actorEmail: user.email, action: "USER_ACTIVATED", targetType: "user", targetId: user.id, ipAddress: ip });
 
-  res.status(201).json({ success: true, message: "Account created successfully. You may now log in." });
+  res.status(201).json({ success: true, message: "Account created. Please complete your profile setup." });
+});
+
+router.get("/:id/link", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+  const invitationId = String(req.params.id);
+  const lodgeId = await getLodgeId();
+
+  const invitations = await db
+    .select({ token: invitationsTable.token, acceptedAt: invitationsTable.acceptedAt, revokedAt: invitationsTable.revokedAt })
+    .from(invitationsTable)
+    .where(and(eq(invitationsTable.id, invitationId), eq(invitationsTable.lodgeId, lodgeId!)))
+    .limit(1);
+
+  if (invitations.length === 0) {
+    res.status(404).json({ error: "Invitation not found" });
+    return;
+  }
+
+  const inv = invitations[0];
+  if (inv.acceptedAt || inv.revokedAt) {
+    res.status(404).json({ error: "Invitation is no longer active" });
+    return;
+  }
+
+  const baseUrl = process.env.APP_BASE_URL ?? "http://localhost:3000";
+  const link = `${baseUrl}/accept-invitation?token=${inv.token}`;
+
+  res.json({ link });
 });
 
 router.delete("/:id", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {

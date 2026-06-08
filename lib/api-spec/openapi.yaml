@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Api
-  version: 0.1.0
+  version: 0.2.0
   description: Pershing307 Member Portal API
 servers:
   - url: /api
@@ -10,7 +10,7 @@ tags:
   - name: health
     description: Health operations
   - name: auth
-    description: Authentication
+    description: Authentication and 2FA
   - name: bootstrap
     description: Initial portal setup
   - name: users
@@ -19,6 +19,12 @@ tags:
     description: Invitation management
   - name: roles
     description: Role management
+  - name: domains
+    description: Protected domain access
+  - name: degrees
+    description: Masonic degree records
+  - name: config
+    description: Portal configuration
   - name: audit
     description: Audit log
 paths:
@@ -181,11 +187,145 @@ paths:
         "400":
           description: Invalid or expired token
 
+  /auth/2fa/status:
+    get:
+      operationId: getTwoFactorStatus
+      tags: [auth]
+      summary: Get current user 2FA enrollment status
+      responses:
+        "200":
+          description: 2FA status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TwoFactorStatus"
+        "401":
+          description: Not authenticated
+
+  /auth/2fa/enroll:
+    post:
+      operationId: enrollTwoFactor
+      tags: [auth]
+      summary: Begin 2FA enrollment — returns QR code URI and backup codes
+      responses:
+        "200":
+          description: Enrollment data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TwoFactorEnrollResult"
+        "401":
+          description: Not authenticated
+
+  /auth/2fa/verify-enroll:
+    post:
+      operationId: verifyTwoFactorEnroll
+      tags: [auth]
+      summary: Verify first TOTP code and activate 2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TwoFactorVerifyEnrollInput"
+      responses:
+        "200":
+          description: 2FA activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "400":
+          description: Invalid code or no pending enrollment
+        "401":
+          description: Not authenticated
+
+  /auth/2fa:
+    delete:
+      operationId: disableTwoFactor
+      tags: [auth]
+      summary: Disable 2FA for the current user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TwoFactorInput"
+      responses:
+        "200":
+          description: 2FA disabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "401":
+          description: Invalid code
+
+  /auth/change-password:
+    post:
+      operationId: changePassword
+      tags: [auth]
+      summary: Change password for authenticated user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordInput"
+      responses:
+        "200":
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "400":
+          description: Invalid current password
+
+  /auth/profile:
+    patch:
+      operationId: updateProfile
+      tags: [auth]
+      summary: Update current user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdateInput"
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "401":
+          description: Not authenticated
+
   /users:
     get:
       operationId: listUsers
       tags: [users]
-      summary: List all users (admin)
+      summary: List users (admin) with optional pagination and search
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: search
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: User list
@@ -306,6 +446,138 @@ paths:
               schema:
                 $ref: "#/components/schemas/SuccessResult"
 
+  /users/{id}/domains:
+    get:
+      operationId: getUserDomains
+      tags: [users]
+      summary: List domain access grants for a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Domain access list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDomainAccessListResult"
+    post:
+      operationId: grantUserDomain
+      tags: [users]
+      summary: Grant a protected domain access to a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DomainGrantInput"
+      responses:
+        "200":
+          description: Access granted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+
+  /users/{id}/domains/{domainId}:
+    delete:
+      operationId: revokeUserDomain
+      tags: [users]
+      summary: Revoke protected domain access from a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: domainId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Access revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+
+  /users/{id}/degrees:
+    get:
+      operationId: getUserDegrees
+      tags: [users]
+      summary: List degree records for a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Degree list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDegreeListResult"
+    post:
+      operationId: addUserDegree
+      tags: [users]
+      summary: Add a degree record for a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DegreeInput"
+      responses:
+        "201":
+          description: Degree added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+
+  /users/{id}/degrees/{degreeId}:
+    delete:
+      operationId: removeUserDegree
+      tags: [users]
+      summary: Remove a degree record from a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: degreeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Degree removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+
   /invitations:
     get:
       operationId: listInvitations
@@ -401,6 +673,27 @@ paths:
         "404":
           description: Invitation not found
 
+  /invitations/{id}/link:
+    get:
+      operationId: getInvitationLink
+      tags: [invitations]
+      summary: Get the invitation accept link (for copy when SMTP is unavailable)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Invitation link
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationLinkResult"
+        "404":
+          description: Invitation not found or already accepted
+
   /roles:
     get:
       operationId: listRoles
@@ -413,6 +706,89 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RoleListResult"
+
+  /domains:
+    get:
+      operationId: listDomains
+      tags: [domains]
+      summary: List all protected domains (admin)
+      responses:
+        "200":
+          description: Domain list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainListResult"
+
+  /degree-definitions:
+    get:
+      operationId: listDegreeDefinitions
+      tags: [degrees]
+      summary: List configurable degree definitions
+      responses:
+        "200":
+          description: Degree definitions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DegreeDefinitionListResult"
+    put:
+      operationId: updateDegreeDefinitions
+      tags: [degrees]
+      summary: Update degree definitions (site admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DegreeDefinitionUpdateInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+
+  /config:
+    get:
+      operationId: listConfig
+      tags: [config]
+      summary: List all configuration entries (site admin)
+      responses:
+        "200":
+          description: Config list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfigListResult"
+
+  /config/{key}:
+    put:
+      operationId: updateConfig
+      tags: [config]
+      summary: Update a configuration value (site admin)
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfigUpdateInput"
+      responses:
+        "200":
+          description: Config updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "403":
+          description: Key is read-only
 
   /audit:
     get:
@@ -535,6 +911,63 @@ components:
           minLength: 6
           maxLength: 8
 
+    TwoFactorStatus:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+        enrolledAt:
+          type: ["string", "null"]
+        hasPendingEnrollment:
+          type: boolean
+
+    TwoFactorEnrollResult:
+      type: object
+      required: [qrCodeUri, backupCodes]
+      properties:
+        qrCodeUri:
+          type: string
+        backupCodes:
+          type: array
+          items:
+            type: string
+
+    TwoFactorVerifyEnrollInput:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 6
+          maxLength: 8
+
+    ChangePasswordInput:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+          minLength: 1
+        newPassword:
+          type: string
+          minLength: 12
+
+    ProfileUpdateInput:
+      type: object
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        displayName:
+          type: ["string", "null"]
+          maxLength: 100
+
     UserRole:
       type: object
       required: [name, slug, permissionLevel]
@@ -560,6 +993,8 @@ components:
           type: string
         displayName:
           type: ["string", "null"]
+        mustChangePassword:
+          type: boolean
         roles:
           type: array
           items:
@@ -638,12 +1073,18 @@ components:
 
     UserListResult:
       type: object
-      required: [users]
+      required: [users, total, limit, offset]
       properties:
         users:
           type: array
           items:
             $ref: "#/components/schemas/UserSummary"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
 
     RoleDetail:
       type: object
@@ -704,6 +1145,154 @@ components:
           type: string
           minLength: 1
 
+    ProtectedDomain:
+      type: object
+      required: [id, name, slug]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: ["string", "null"]
+
+    DomainListResult:
+      type: object
+      required: [domains]
+      properties:
+        domains:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProtectedDomain"
+
+    UserDomainGrant:
+      type: object
+      required: [domainId, domainName, domainSlug, grantedAt]
+      properties:
+        domainId:
+          type: string
+        domainName:
+          type: string
+        domainSlug:
+          type: string
+        grantedAt:
+          type: string
+
+    UserDomainAccessListResult:
+      type: object
+      required: [domains]
+      properties:
+        domains:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserDomainGrant"
+
+    DomainGrantInput:
+      type: object
+      required: [domainId]
+      properties:
+        domainId:
+          type: string
+          minLength: 1
+
+    UserDegree:
+      type: object
+      required: [id, degree, degreeName, createdAt]
+      properties:
+        id:
+          type: string
+        degree:
+          type: integer
+        degreeName:
+          type: string
+        conferredOn:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    UserDegreeListResult:
+      type: object
+      required: [degrees]
+      properties:
+        degrees:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserDegree"
+
+    DegreeInput:
+      type: object
+      required: [degree]
+      properties:
+        degree:
+          type: integer
+          minimum: 1
+        conferredOn:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+
+    DegreeDefinition:
+      type: object
+      required: [degree, name, abbreviation]
+      properties:
+        degree:
+          type: integer
+        name:
+          type: string
+        abbreviation:
+          type: string
+
+    DegreeDefinitionListResult:
+      type: object
+      required: [definitions]
+      properties:
+        definitions:
+          type: array
+          items:
+            $ref: "#/components/schemas/DegreeDefinition"
+
+    DegreeDefinitionUpdateInput:
+      type: object
+      required: [definitions]
+      properties:
+        definitions:
+          type: array
+          items:
+            $ref: "#/components/schemas/DegreeDefinition"
+
+    ConfigEntry:
+      type: object
+      required: [key, value, description, isReadOnly]
+      properties:
+        key:
+          type: string
+        value:
+          type: ["string", "null"]
+        description:
+          type: string
+        isReadOnly:
+          type: boolean
+
+    ConfigListResult:
+      type: object
+      required: [config]
+      properties:
+        config:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConfigEntry"
+
+    ConfigUpdateInput:
+      type: object
+      required: [value]
+      properties:
+        value:
+          type: string
+
     InvitationSummary:
       type: object
       required: [id, email, firstName, lastName, expiresAt, createdAt]
@@ -727,12 +1316,14 @@ components:
 
     InvitationListResult:
       type: object
-      required: [invitations]
+      required: [invitations, smtpConfigured]
       properties:
         invitations:
           type: array
           items:
             $ref: "#/components/schemas/InvitationSummary"
+        smtpConfigured:
+          type: boolean
 
     InvitationInput:
       type: object
@@ -769,10 +1360,12 @@ components:
 
     InvitationCreatedResult:
       type: object
-      required: [invitation]
+      required: [invitation, smtpConfigured]
       properties:
         invitation:
           $ref: "#/components/schemas/InvitationCreated"
+        smtpConfigured:
+          type: boolean
 
     InvitationLookup:
       type: object
@@ -804,6 +1397,13 @@ components:
         password:
           type: string
           minLength: 12
+
+    InvitationLinkResult:
+      type: object
+      required: [link]
+      properties:
+        link:
+          type: string
 
     Role:
       type: object

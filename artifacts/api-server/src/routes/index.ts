@@ -6,6 +6,9 @@ import usersRouter from "./users";
 import bootstrapRouter from "./bootstrap";
 import auditRouter from "./audit";
 import rolesRouter from "./roles";
+import domainsRouter from "./domains";
+import degreesRouter from "./degrees";
+import configAdminRouter from "./config-admin";
 
 const router: IRouter = Router();
 
@@ -16,5 +19,8 @@ router.use("/users", usersRouter);
 router.use("/bootstrap", bootstrapRouter);
 router.use("/audit-logs", auditRouter);
 router.use("/roles", rolesRouter);
+router.use("/domains", domainsRouter);
+router.use("/degree-definitions", degreesRouter);
+router.use("/config", configAdminRouter);
 
 export default router;
