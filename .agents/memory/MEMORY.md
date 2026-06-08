@@ -1,0 +1,1 @@
+- [Port registration in Replit](port-registration.md) — adding a port to .replit [[ports]] requires `verifyAndReplaceDotReplit`, not `verifyAndReplaceArtifactToml`

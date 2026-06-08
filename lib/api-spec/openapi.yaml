@@ -1,22 +1,32 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Pershing307 Member Portal API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: bootstrap
+    description: Initial portal setup
+  - name: users
+    description: User management
+  - name: invitations
+    description: Invitation management
+  - name: roles
+    description: Role management
+  - name: audit
+    description: Audit log
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +34,836 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /bootstrap/status:
+    get:
+      operationId: getBootstrapStatus
+      tags: [bootstrap]
+      summary: Check if portal has been bootstrapped
+      responses:
+        "200":
+          description: Bootstrap status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BootstrapStatus"
+
+  /bootstrap:
+    post:
+      operationId: runBootstrap
+      tags: [bootstrap]
+      summary: Run initial portal setup wizard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BootstrapInput"
+      responses:
+        "201":
+          description: Bootstrap completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BootstrapResult"
+        "409":
+          description: Already bootstrapped
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Login successful or 2FA required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResult"
+        "401":
+          description: Invalid credentials
+        "423":
+          description: Account locked
+
+  /auth/login/2fa:
+    post:
+      operationId: verifyTwoFactor
+      tags: [auth]
+      summary: Complete login with 2FA code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TwoFactorInput"
+      responses:
+        "200":
+          description: 2FA verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResult"
+        "401":
+          description: Invalid code
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout current session
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get current authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUserResult"
+        "401":
+          description: Not authenticated
+
+  /auth/forgot-password:
+    post:
+      operationId: forgotPassword
+      tags: [auth]
+      summary: Request password reset email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordInput"
+      responses:
+        "200":
+          description: Reset email sent (always succeeds to prevent enumeration)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+
+  /auth/reset-password:
+    post:
+      operationId: resetPassword
+      tags: [auth]
+      summary: Reset password using token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordInput"
+      responses:
+        "200":
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "400":
+          description: Invalid or expired token
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users (admin)
+      responses:
+        "200":
+          description: User list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserListResult"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Insufficient permissions
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user details (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDetailResult"
+        "404":
+          description: User not found
+
+  /users/{id}/deactivate:
+    patch:
+      operationId: deactivateUser
+      tags: [users]
+      summary: Deactivate a user account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User deactivated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+
+  /users/{id}/activate:
+    patch:
+      operationId: activateUser
+      tags: [users]
+      summary: Activate a user account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+
+  /users/{id}/roles:
+    post:
+      operationId: grantUserRole
+      tags: [users]
+      summary: Grant a role to a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleAssignment"
+      responses:
+        "200":
+          description: Role granted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+
+  /users/{id}/roles/{roleId}:
+    delete:
+      operationId: revokeUserRole
+      tags: [users]
+      summary: Revoke a role from a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Role revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+
+  /invitations:
+    get:
+      operationId: listInvitations
+      tags: [invitations]
+      summary: List all invitations (admin)
+      responses:
+        "200":
+          description: Invitation list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationListResult"
+    post:
+      operationId: createInvitation
+      tags: [invitations]
+      summary: Create a new invitation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvitationInput"
+      responses:
+        "201":
+          description: Invitation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationCreatedResult"
+        "409":
+          description: User or invitation already exists
+
+  /invitations/accept/{token}:
+    get:
+      operationId: getInvitationByToken
+      tags: [invitations]
+      summary: Look up invitation by token
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Invitation details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationLookupResult"
+        "404":
+          description: Invalid or expired invitation
+
+  /invitations/accept:
+    post:
+      operationId: acceptInvitation
+      tags: [invitations]
+      summary: Accept an invitation and create account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AcceptInvitationInput"
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "404":
+          description: Invalid or expired invitation
+
+  /invitations/{id}:
+    delete:
+      operationId: revokeInvitation
+      tags: [invitations]
+      summary: Revoke a pending invitation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Invitation revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "404":
+          description: Invitation not found
+
+  /roles:
+    get:
+      operationId: listRoles
+      tags: [roles]
+      summary: List all roles (admin)
+      responses:
+        "200":
+          description: Role list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleListResult"
+
+  /audit:
+    get:
+      operationId: listAuditLogs
+      tags: [audit]
+      summary: List audit log entries (admin)
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Audit log entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogResult"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    BootstrapStatus:
+      type: object
+      required: [bootstrapped]
+      properties:
+        bootstrapped:
+          type: boolean
+
+    BootstrapInput:
+      type: object
+      required: [lodgeName, lodgeNumber, timezone, adminEmail, adminFirstName, adminLastName, adminPassword]
+      properties:
+        lodgeName:
+          type: string
+          minLength: 2
+          maxLength: 200
+        lodgeNumber:
+          type: string
+          minLength: 1
+          maxLength: 50
+        timezone:
+          type: string
+        adminEmail:
+          type: string
+          format: email
+        adminFirstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        adminLastName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        adminPassword:
+          type: string
+          minLength: 12
+        smtpHost:
+          type: ["string", "null"]
+        smtpPort:
+          type: ["string", "null"]
+        smtpUser:
+          type: ["string", "null"]
+        smtpFromEmail:
+          type: ["string", "null"]
+        smtpFromName:
+          type: ["string", "null"]
+
+    BootstrapResult:
+      type: object
+      required: [success, message, lodge]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        lodge:
+          $ref: "#/components/schemas/LodgeSummary"
+
+    LodgeSummary:
+      type: object
+      required: [id, name, number]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        number:
+          type: string
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+
+    TwoFactorInput:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 6
+          maxLength: 8
+
+    UserRole:
+      type: object
+      required: [name, slug, permissionLevel]
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        permissionLevel:
+          type: integer
+
+    AuthUser:
+      type: object
+      required: [id, email, firstName, lastName, roles]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        displayName:
+          type: ["string", "null"]
+        roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserRole"
+
+    LoginResult:
+      type: object
+      properties:
+        requiresTwoFactor:
+          type: boolean
+        user:
+          $ref: "#/components/schemas/AuthUser"
+
+    CurrentUserResult:
+      type: object
+      required: [user]
+      properties:
+        user:
+          allOf:
+            - $ref: "#/components/schemas/AuthUser"
+            - type: object
+              properties:
+                membershipStatus:
+                  type: ["string", "null"]
+
+    SuccessResult:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: ["string", "null"]
+
+    ForgotPasswordInput:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    ResetPasswordInput:
+      type: object
+      required: [token, password]
+      properties:
+        token:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 12
+
+    UserSummary:
+      type: object
+      required: [id, email, firstName, lastName, isActive, createdAt]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        displayName:
+          type: ["string", "null"]
+        membershipStatus:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+        lastLoginAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    UserListResult:
+      type: object
+      required: [users]
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserSummary"
+
+    RoleDetail:
+      type: object
+      required: [id, name, slug, permissionLevel]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        permissionLevel:
+          type: integer
+
+    UserDetail:
+      type: object
+      required: [id, email, firstName, lastName, isActive, emailVerified, mustChangePassword, createdAt, roles]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        displayName:
+          type: ["string", "null"]
+        membershipStatus:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+        emailVerified:
+          type: boolean
+        mustChangePassword:
+          type: boolean
+        lastLoginAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoleDetail"
+
+    UserDetailResult:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: "#/components/schemas/UserDetail"
+
+    RoleAssignment:
+      type: object
+      required: [roleId]
+      properties:
+        roleId:
+          type: string
+          minLength: 1
+
+    InvitationSummary:
+      type: object
+      required: [id, email, firstName, lastName, expiresAt, createdAt]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        expiresAt:
+          type: string
+        acceptedAt:
+          type: ["string", "null"]
+        revokedAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    InvitationListResult:
+      type: object
+      required: [invitations]
+      properties:
+        invitations:
+          type: array
+          items:
+            $ref: "#/components/schemas/InvitationSummary"
+
+    InvitationInput:
+      type: object
+      required: [email, firstName, lastName]
+      properties:
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        roleId:
+          type: ["string", "null"]
+
+    InvitationCreated:
+      type: object
+      required: [id, email, firstName, lastName, expiresAt]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        expiresAt:
+          type: string
+
+    InvitationCreatedResult:
+      type: object
+      required: [invitation]
+      properties:
+        invitation:
+          $ref: "#/components/schemas/InvitationCreated"
+
+    InvitationLookup:
+      type: object
+      required: [email, firstName, lastName, lodgeName]
+      properties:
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        lodgeName:
+          type: string
+
+    InvitationLookupResult:
+      type: object
+      required: [invitation]
+      properties:
+        invitation:
+          $ref: "#/components/schemas/InvitationLookup"
+
+    AcceptInvitationInput:
+      type: object
+      required: [token, password]
+      properties:
+        token:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 12
+
+    Role:
+      type: object
+      required: [id, name, slug, permissionLevel, isSystem]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        permissionLevel:
+          type: integer
+        isSystem:
+          type: boolean
+
+    RoleListResult:
+      type: object
+      required: [roles]
+      properties:
+        roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/Role"
+
+    AuditLogEntry:
+      type: object
+      required: [id, action, createdAt]
+      properties:
+        id:
+          type: string
+        actorId:
+          type: ["string", "null"]
+        actorEmail:
+          type: ["string", "null"]
+        action:
+          type: string
+        targetType:
+          type: ["string", "null"]
+        targetId:
+          type: ["string", "null"]
+        detail:
+          type: ["object", "null"]
+          additionalProperties: true
+        ipAddress:
+          type: ["string", "null"]
+        userAgent:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    AuditLogResult:
+      type: object
+      required: [logs, limit, offset]
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditLogEntry"
+        limit:
+          type: integer
+        offset:
+          type: integer

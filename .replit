@@ -1,28 +1,38 @@
-modules = ["nodejs-24"]
+modules = ["nodejs-24", "python-3.11"]
 
-[deployment]
-router = "application"
-deploymentTarget = "autoscale"
+  [deployment]
+  router = "application"
+  deploymentTarget = "autoscale"
 
-[deployment.postBuild]
-args = ["pnpm", "store", "prune"]
-env = { "CI" = "true" }
+  [deployment.postBuild]
+  args = ["pnpm", "store", "prune"]
+  env = { "CI" = "true" }
 
-[workflows]
-runButton = "Project"
+  [workflows]
+  runButton = "Project"
 
-[agent]
-stack = "PNPM_WORKSPACE"
-expertMode = true
+  [agent]
+  stack = "PNPM_WORKSPACE"
+  expertMode = true
 
-[postMerge]
-path = "scripts/post-merge.sh"
-timeoutMs = 20000
+  [postMerge]
+  path = "scripts/post-merge.sh"
+  timeoutMs = 20000
 
-[[ports]]
-localPort = 8080
-externalPort = 80
+  [[ports]]
+  localPort = 8080
+  externalPort = 80
 
-[[ports]]
-localPort = 8081
-externalPort = 8081
+  [[ports]]
+  localPort = 8081
+  externalPort = 8081
+
+  [[ports]]
+  localPort = 3000
+  externalPort = 3000
+
+  [userenv]
+
+  [userenv.shared]
+  APP_BASE_URL = "https://0356d3f0-abb2-474e-9e4f-67d0ed75cacb-00-hkofcdgokpt9.kirk.replit.dev"
+  

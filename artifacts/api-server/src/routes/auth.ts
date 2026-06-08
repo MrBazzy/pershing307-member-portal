@@ -1,0 +1,334 @@
+import { Router } from "express";
+import { z } from "zod";
+import { db } from "@workspace/db";
+import { usersTable, userRolesTable, rolesTable, twoFactorSettingsTable, passwordResetTokensTable } from "@workspace/db/schema";
+import { eq, and, gt } from "drizzle-orm";
+import { hashPassword, verifyPassword, passwordSchema } from "../lib/password";
+import { generateSecureToken } from "../lib/crypto";
+import { writeAuditLog, getClientIp } from "../lib/audit";
+import { sendEmail, passwordResetEmailHtml } from "../lib/email";
+import { getConfig, getConfigNumber, getLodgeId } from "../lib/config";
+import { requireAuth } from "../middlewares/requireAuth";
+import speakeasy from "speakeasy";
+
+const router = Router();
+
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+
+const twoFactorSchema = z.object({
+  code: z.string().min(6).max(8),
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: passwordSchema,
+});
+
+router.post("/login", async (req, res) => {
+  const result = loginSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: "Invalid request", issues: result.error.issues });
+    return;
+  }
+
+  const { email, password } = result.data;
+  const ip = getClientIp(req);
+  const ua = req.headers["user-agent"] ?? null;
+  const lodgeId = await getLodgeId();
+
+  const users = await db
+    .select()
+    .from(usersTable)
+    .where(and(eq(usersTable.email, email.toLowerCase()), eq(usersTable.isActive, true)))
+    .limit(1);
+
+  if (users.length === 0) {
+    await writeAuditLog({ lodgeId, actorEmail: email, action: "LOGIN_FAILED", ipAddress: ip, userAgent: ua, detail: { reason: "user_not_found" } });
+    res.status(401).json({ error: "Invalid email or password" });
+    return;
+  }
+
+  const user = users[0];
+
+  if (user.lockedUntil && user.lockedUntil > new Date()) {
+    await writeAuditLog({ lodgeId, actorId: user.id, actorEmail: user.email, action: "LOGIN_LOCKED", ipAddress: ip, userAgent: ua });
+    res.status(423).json({ error: "Account temporarily locked. Please try again later." });
+    return;
+  }
+
+  if (!user.passwordHash) {
+    res.status(401).json({ error: "Invalid email or password" });
+    return;
+  }
+
+  const valid = await verifyPassword(user.passwordHash, password);
+
+  if (!valid) {
+    const maxAttempts = await getConfigNumber("lockout_max_attempts", 5);
+    const lockoutMinutes = await getConfigNumber("lockout_duration_min", 15);
+    const newAttempts = user.failedLoginAttempts + 1;
+
+    const updates: Partial<typeof usersTable.$inferInsert> = { failedLoginAttempts: newAttempts, updatedAt: new Date() };
+    if (newAttempts >= maxAttempts) {
+      updates.lockedUntil = new Date(Date.now() + lockoutMinutes * 60 * 1000);
+    }
+
+    await db.update(usersTable).set(updates).where(eq(usersTable.id, user.id));
+    await writeAuditLog({ lodgeId, actorId: user.id, actorEmail: user.email, action: "LOGIN_FAILED", ipAddress: ip, userAgent: ua, detail: { attempts: newAttempts } });
+
+    res.status(401).json({ error: "Invalid email or password" });
+    return;
+  }
+
+  await db.update(usersTable).set({ failedLoginAttempts: 0, lockedUntil: null, updatedAt: new Date() }).where(eq(usersTable.id, user.id));
+
+  const tfRows = await db.select().from(twoFactorSettingsTable).where(eq(twoFactorSettingsTable.userId, user.id)).limit(1);
+  const tfEnabled = tfRows[0]?.enabled ?? false;
+
+  if (tfEnabled) {
+    req.session.pendingTwoFactorUserId = user.id;
+    res.json({ requiresTwoFactor: true });
+    return;
+  }
+
+  await db.update(usersTable).set({ lastLoginAt: new Date(), lastLoginIp: ip, updatedAt: new Date() }).where(eq(usersTable.id, user.id));
+
+  req.session.userId = user.id;
+  req.session.lodgeId = user.lodgeId;
+  req.session.twoFactorVerified = false;
+
+  await writeAuditLog({ lodgeId: user.lodgeId, actorId: user.id, actorEmail: user.email, action: "LOGIN", ipAddress: ip, userAgent: ua });
+
+  const roles = await db
+    .select({ name: rolesTable.name, slug: rolesTable.slug, permissionLevel: rolesTable.permissionLevel })
+    .from(userRolesTable)
+    .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
+    .where(eq(userRolesTable.userId, user.id));
+
+  res.json({
+    user: {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      displayName: user.displayName,
+      roles,
+    },
+  });
+});
+
+router.post("/login/2fa", async (req, res) => {
+  const pendingUserId = req.session?.pendingTwoFactorUserId;
+  if (!pendingUserId) {
+    res.status(400).json({ error: "No pending two-factor authentication" });
+    return;
+  }
+
+  const result = twoFactorSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: "Invalid request" });
+    return;
+  }
+
+  const tfRows = await db.select().from(twoFactorSettingsTable).where(eq(twoFactorSettingsTable.userId, pendingUserId)).limit(1);
+  const tf = tfRows[0];
+
+  if (!tf?.totpSecret || !tf.enabled) {
+    res.status(400).json({ error: "Two-factor authentication not configured" });
+    return;
+  }
+
+  const verified = speakeasy.totp.verify({
+    secret: tf.totpSecret,
+    encoding: "base32",
+    token: result.data.code,
+    window: 1,
+  });
+
+  if (!verified) {
+    res.status(401).json({ error: "Invalid authentication code" });
+    return;
+  }
+
+  const users = await db.select().from(usersTable).where(eq(usersTable.id, pendingUserId)).limit(1);
+  const user = users[0];
+
+  if (!user) {
+    res.status(401).json({ error: "User not found" });
+    return;
+  }
+
+  const ip = getClientIp(req);
+  const ua = req.headers["user-agent"] ?? null;
+
+  await db.update(usersTable).set({ lastLoginAt: new Date(), lastLoginIp: ip, updatedAt: new Date() }).where(eq(usersTable.id, user.id));
+  await db.update(twoFactorSettingsTable).set({ lastUsedAt: new Date(), updatedAt: new Date() }).where(eq(twoFactorSettingsTable.userId, user.id));
+
+  delete req.session.pendingTwoFactorUserId;
+  req.session.userId = user.id;
+  req.session.lodgeId = user.lodgeId;
+  req.session.twoFactorVerified = true;
+
+  await writeAuditLog({ lodgeId: user.lodgeId, actorId: user.id, actorEmail: user.email, action: "LOGIN_2FA", ipAddress: ip, userAgent: ua });
+
+  const roles = await db
+    .select({ name: rolesTable.name, slug: rolesTable.slug, permissionLevel: rolesTable.permissionLevel })
+    .from(userRolesTable)
+    .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
+    .where(eq(userRolesTable.userId, user.id));
+
+  res.json({
+    user: {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      displayName: user.displayName,
+      roles,
+    },
+  });
+});
+
+router.post("/logout", requireAuth(), async (req, res) => {
+  const userId = req.session?.userId;
+  const lodgeId = req.session?.lodgeId;
+  const ip = getClientIp(req);
+  const ua = req.headers["user-agent"] ?? null;
+
+  const users = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, userId!)).limit(1);
+  const email = users[0]?.email;
+
+  req.session.destroy((err) => {
+    if (err) {
+      res.status(500).json({ error: "Logout failed" });
+      return;
+    }
+    res.clearCookie("connect.sid");
+    writeAuditLog({ lodgeId, actorId: userId, actorEmail: email, action: "LOGOUT", ipAddress: ip, userAgent: ua });
+    res.json({ success: true });
+  });
+});
+
+router.get("/me", requireAuth(), async (req, res) => {
+  const userId = req.session!.userId!;
+  const users = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  const user = users[0];
+
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const roles = await db
+    .select({ name: rolesTable.name, slug: rolesTable.slug, permissionLevel: rolesTable.permissionLevel })
+    .from(userRolesTable)
+    .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
+    .where(eq(userRolesTable.userId, user.id));
+
+  res.json({
+    user: {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      displayName: user.displayName,
+      membershipStatus: user.membershipStatus,
+      roles,
+    },
+  });
+});
+
+router.post("/forgot-password", async (req, res) => {
+  const result = forgotPasswordSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: "Invalid request" });
+    return;
+  }
+
+  const { email } = result.data;
+  const lodgeId = await getLodgeId();
+  const ip = getClientIp(req);
+
+  const users = await db
+    .select()
+    .from(usersTable)
+    .where(and(eq(usersTable.email, email.toLowerCase()), eq(usersTable.isActive, true)))
+    .limit(1);
+
+  res.json({ success: true, message: "If an account exists for this email, a reset link has been sent." });
+
+  if (users.length === 0) return;
+  const user = users[0];
+
+  const expiryHours = await getConfigNumber("reset_expiry_hours", 1);
+  const token = generateSecureToken();
+  const expiresAt = new Date(Date.now() + expiryHours * 60 * 60 * 1000);
+
+  await db.insert(passwordResetTokensTable).values({ userId: user.id, token, expiresAt });
+
+  const baseUrl = process.env.APP_BASE_URL ?? `http://localhost:${process.env.PORT ?? 5000}`;
+  const resetUrl = `${baseUrl}/reset-password?token=${token}`;
+  const lodgeName = (await getConfig("lodge_name")) ?? "Member Portal";
+
+  await sendEmail({
+    to: user.email,
+    subject: `${lodgeName} — Password Reset`,
+    html: passwordResetEmailHtml({ firstName: user.firstName, lodgeName, resetUrl }),
+  });
+
+  await writeAuditLog({ lodgeId, actorId: user.id, actorEmail: user.email, action: "PASSWORD_RESET_REQUESTED", ipAddress: ip });
+});
+
+router.post("/reset-password", async (req, res) => {
+  const result = resetPasswordSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: "Invalid request", issues: result.error.issues });
+    return;
+  }
+
+  const { token, password } = result.data;
+
+  const tokens = await db
+    .select()
+    .from(passwordResetTokensTable)
+    .where(
+      and(
+        eq(passwordResetTokensTable.token, token),
+        gt(passwordResetTokensTable.expiresAt, new Date())
+      )
+    )
+    .limit(1);
+
+  if (tokens.length === 0 || tokens[0].usedAt) {
+    res.status(400).json({ error: "Invalid or expired reset token" });
+    return;
+  }
+
+  const resetToken = tokens[0];
+  const passwordHash = await hashPassword(password);
+
+  await db.update(usersTable).set({ passwordHash, passwordChangedAt: new Date(), updatedAt: new Date() }).where(eq(usersTable.id, resetToken.userId));
+  await db.update(passwordResetTokensTable).set({ usedAt: new Date() }).where(eq(passwordResetTokensTable.id, resetToken.id));
+
+  const users = await db.select().from(usersTable).where(eq(usersTable.id, resetToken.userId)).limit(1);
+  const user = users[0];
+
+  await writeAuditLog({
+    lodgeId: user?.lodgeId,
+    actorId: resetToken.userId,
+    actorEmail: user?.email,
+    action: "PASSWORD_RESET_COMPLETED",
+    ipAddress: getClientIp(req),
+  });
+
+  res.json({ success: true });
+});
+
+export default router;

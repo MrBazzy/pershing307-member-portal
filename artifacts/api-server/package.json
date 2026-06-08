@@ -10,14 +10,26 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@types/connect-pg-simple": "^7.0.3",
+    "@types/express-session": "^1.19.0",
+    "@types/nodemailer": "^8.0.0",
+    "@types/speakeasy": "^2.0.10",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
+    "argon2": "^0.44.0",
+    "connect-pg-simple": "^10.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
+    "csurf": "^1.11.0",
     "drizzle-orm": "catalog:",
     "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "helmet": "^8.2.0",
+    "nodemailer": "^8.0.10",
     "pino": "^9.14.0",
-    "pino-http": "^10.5.0"
+    "pino-http": "^10.5.0",
+    "speakeasy": "^2.0.0",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
