@@ -17,7 +17,7 @@ router.use("/auth", authRouter);
 router.use("/invitations", invitationsRouter);
 router.use("/users", usersRouter);
 router.use("/bootstrap", bootstrapRouter);
-router.use("/audit-logs", auditRouter);
+router.use("/audit", auditRouter);
 router.use("/roles", rolesRouter);
 router.use("/domains", domainsRouter);
 router.use("/degree-definitions", degreesRouter);

@@ -16,7 +16,7 @@ After running orval codegen, **must** run `pnpm run typecheck:libs` at the works
 
 ## Auth patterns
 - `mustChangePassword: true` is set on invitation acceptance; cleared on PATCH /auth/profile or POST /auth/change-password
-- Bootstrap admin: admin@pershing307.org / SecurePass123! (PM Super Administrator, permissionLevel 90)
+- Bootstrap admin user: admin@pershing307.org (PM Super Administrator, permissionLevel 90). Credentials are NOT stored here — check the secure setup/bootstrap config if needed.
 - `ProtectedRoute` redirects to /setup if `user.mustChangePassword === true`
 - SetupRoute: protected (requires auth) but does NOT check mustChangePassword (avoids redirect loop)
 - 2FA required for: Site Admins and PM Super Admins (role permissionLevel >= 70/90); stored in config key `require_2fa_roles`
@@ -30,5 +30,10 @@ After running orval codegen, **must** run `pnpm run typecheck:libs` at the works
 ## Domain access
 - Not automatically granted to any role; must be explicitly granted per user by PM Super Admin (permissionLevel >= 90)
 - Domain routes: GET/POST /users/:id/domains, DELETE /users/:id/domains/:domainId; also duplicated at /domains router
+
+## API path coupling (server mount ↔ openapi)
+- The express route mount path MUST match the path in the openapi spec (the orval client is generated from openapi). A mismatch produces a SILENT 404 — the page renders an empty state with no error, because inserts/handler are fine and only the URL is wrong. Symptom: a feature looks totally broken while the DB clearly has data.
+- **Why:** Audit Log showed "No entries" while dozens of rows existed — server mount and the openapi/client path had diverged.
+- **How to apply:** When adding or renaming any route, grep the openapi spec for the same path before assuming a read bug is in the handler or DB.
 
 **Why:** These patterns were non-obvious and required multiple interconnected decisions during Sprint 1 hardening.
