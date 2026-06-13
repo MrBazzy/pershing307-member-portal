@@ -58,10 +58,13 @@ export default function LoginPage() {
         },
         onError: (err: any) => {
           const status = err?.status;
-          if (status === 423) {
-            toast({ title: "Account locked", description: "Your account is temporarily locked. Please try again later.", variant: "destructive" });
+          const message: string = err?.data?.error ?? "";
+          if (status === 403) {
+            toast({ title: "Account inactive", description: "Your account is inactive. Please contact a lodge administrator.", variant: "destructive" });
+          } else if (status === 423) {
+            toast({ title: "Account locked", description: "Your account is temporarily locked.", variant: "destructive" });
           } else {
-            toast({ title: "Invalid credentials", description: "The email or password you entered is incorrect.", variant: "destructive" });
+            toast({ title: "Sign-in failed", description: message || "Invalid username or password.", variant: "destructive" });
           }
         },
       }
@@ -76,8 +79,13 @@ export default function LoginPage() {
           queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
           setLocation("/dashboard");
         },
-        onError: () => {
-          toast({ title: "Invalid code", description: "The authentication code is incorrect or expired.", variant: "destructive" });
+        onError: (err: any) => {
+          const status = err?.status;
+          if (status === 423) {
+            toast({ title: "Verification locked", description: "Too many failed attempts. Two-factor verification is temporarily locked.", variant: "destructive" });
+          } else {
+            toast({ title: "Invalid code", description: "Invalid authentication code.", variant: "destructive" });
+          }
         },
       }
     );

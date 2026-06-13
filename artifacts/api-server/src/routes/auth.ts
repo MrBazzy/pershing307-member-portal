@@ -104,25 +104,31 @@ router.post("/login", loginRateLimit, async (req, res) => {
   const users = await db
     .select()
     .from(usersTable)
-    .where(and(eq(usersTable.email, email.toLowerCase()), eq(usersTable.isActive, true)))
+    .where(eq(usersTable.email, email.toLowerCase()))
     .limit(1);
 
   if (users.length === 0) {
     await writeAuditLog({ lodgeId, actorEmail: email, action: "LOGIN_FAILED", ipAddress: ip, userAgent: ua, detail: { reason: "user_not_found" } });
-    res.status(401).json({ error: "Invalid email or password" });
+    res.status(401).json({ error: "Invalid username or password." });
     return;
   }
 
   const user = users[0];
 
+  if (!user.isActive) {
+    await writeAuditLog({ lodgeId, actorId: user.id, actorEmail: user.email, action: "LOGIN_FAILED", ipAddress: ip, userAgent: ua, detail: { reason: "account_inactive" } });
+    res.status(403).json({ error: "Your account is inactive. Please contact a lodge administrator." });
+    return;
+  }
+
   if (user.lockedUntil && user.lockedUntil > new Date()) {
     await writeAuditLog({ lodgeId, actorId: user.id, actorEmail: user.email, action: "LOGIN_LOCKED", ipAddress: ip, userAgent: ua });
-    res.status(423).json({ error: "Account temporarily locked. Please try again later." });
+    res.status(423).json({ error: "Your account is temporarily locked." });
     return;
   }
 
   if (!user.passwordHash) {
-    res.status(401).json({ error: "Invalid email or password" });
+    res.status(401).json({ error: "Invalid username or password." });
     return;
   }
 
@@ -139,9 +145,9 @@ router.post("/login", loginRateLimit, async (req, res) => {
     }
 
     await db.update(usersTable).set(updates).where(eq(usersTable.id, user.id));
-    await writeAuditLog({ lodgeId, actorId: user.id, actorEmail: user.email, action: "LOGIN_FAILED", ipAddress: ip, userAgent: ua, detail: { attempts: newAttempts } });
+    await writeAuditLog({ lodgeId, actorId: user.id, actorEmail: user.email, action: "LOGIN_FAILED", ipAddress: ip, userAgent: ua, detail: { reason: "wrong_password", attempts: newAttempts } });
 
-    res.status(401).json({ error: "Invalid email or password" });
+    res.status(401).json({ error: "Invalid username or password." });
     return;
   }
 
