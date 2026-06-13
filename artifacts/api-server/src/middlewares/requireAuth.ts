@@ -6,6 +6,9 @@ export function requireAuth() {
       res.status(401).json({ error: "Authentication required" });
       return;
     }
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     next();
   };
 }

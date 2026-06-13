@@ -2,6 +2,7 @@ import { ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useLogout } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
@@ -42,6 +43,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [location] = useLocation();
   const { toast } = useToast();
   const logout = useLogout();
+  const queryClient = useQueryClient();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isAdmin = user?.roles?.some((r) => r.permissionLevel >= 70) ?? false;
@@ -49,7 +51,10 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const handleLogout = () => {
     logout.mutate(undefined, {
-      onSuccess: () => { window.location.href = "/login"; },
+      onSuccess: () => {
+        queryClient.clear();
+        window.location.href = "/login";
+      },
       onError: () => { toast({ title: "Logout failed", variant: "destructive" }); },
     });
   };

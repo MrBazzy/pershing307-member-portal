@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useGetCurrentUser, getGetCurrentUserQueryKey, AuthUser } from "@workspace/api-client-react";
-import { useLocation } from "wouter";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -12,6 +12,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const { data: currentUserData, isLoading, refetch } = useGetCurrentUser({
     query: {
       queryKey: getGetCurrentUserQueryKey(),
@@ -21,6 +22,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const user = currentUserData?.user ?? null;
   const isAuthenticated = !!user;
+
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        queryClient.resetQueries({ queryKey: getGetCurrentUserQueryKey() });
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, [queryClient]);
 
   return (
     <AuthContext.Provider value={{ user, isLoading, refetch, isAuthenticated }}>
