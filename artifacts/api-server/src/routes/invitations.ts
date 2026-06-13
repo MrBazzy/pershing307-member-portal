@@ -25,7 +25,7 @@ const createInvitationSchema = z.object({
 
 const acceptInvitationSchema = z.object({
   token: z.string().min(1),
-  password: passwordSchema,
+  password: z.string().min(1),
 });
 
 function isSmtpConfigured(): boolean {
@@ -158,20 +158,31 @@ router.get("/accept/:token", async (req, res) => {
     .where(
       and(
         eq(invitationsTable.token, token),
-        isNull(invitationsTable.acceptedAt),
-        isNull(invitationsTable.revokedAt),
-        gt(invitationsTable.expiresAt, new Date()),
         ...(lodgeId ? [eq(invitationsTable.lodgeId, lodgeId)] : [])
       )
     )
     .limit(1);
 
   if (invitations.length === 0) {
-    res.status(404).json({ error: "Invalid or expired invitation" });
+    res.status(404).json({ error: "This invitation link is invalid.", code: "INVALID_TOKEN" });
     return;
   }
 
   const invitation = invitations[0];
+
+  if (invitation.revokedAt) {
+    res.status(410).json({ error: "This invitation has been revoked. Please contact your lodge administrator.", code: "REVOKED" });
+    return;
+  }
+  if (invitation.acceptedAt) {
+    res.status(409).json({ error: "This invitation has already been accepted. Please sign in instead.", code: "ALREADY_ACCEPTED" });
+    return;
+  }
+  if (invitation.expiresAt <= new Date()) {
+    res.status(410).json({ error: "This invitation has expired. Please request a new one from your lodge administrator.", code: "EXPIRED" });
+    return;
+  }
+
   const lodgeName = (await getConfig("lodge_name")) ?? "Member Portal";
 
   res.json({
@@ -187,54 +198,86 @@ router.get("/accept/:token", async (req, res) => {
 router.post("/accept", async (req, res) => {
   const result = acceptInvitationSchema.safeParse(req.body);
   if (!result.success) {
-    res.status(400).json({ error: "Invalid request", issues: result.error.issues });
+    res.status(400).json({ error: "Invalid request", code: "INVALID_REQUEST", issues: result.error.issues });
     return;
   }
 
   const { token, password } = result.data;
   const lodgeId = await getLodgeId();
   if (!lodgeId) {
-    res.status(500).json({ error: "Lodge not configured" });
+    res.status(500).json({ error: "Lodge not configured", code: "LODGE_NOT_CONFIGURED" });
     return;
   }
 
   const invitations = await db
     .select()
     .from(invitationsTable)
-    .where(
-      and(
-        eq(invitationsTable.token, token),
-        eq(invitationsTable.lodgeId, lodgeId),
-        isNull(invitationsTable.acceptedAt),
-        isNull(invitationsTable.revokedAt),
-        gt(invitationsTable.expiresAt, new Date())
-      )
-    )
+    .where(and(eq(invitationsTable.token, token), eq(invitationsTable.lodgeId, lodgeId)))
     .limit(1);
 
   if (invitations.length === 0) {
-    res.status(404).json({ error: "Invalid or expired invitation" });
+    res.status(404).json({ error: "This invitation link is invalid.", code: "INVALID_TOKEN" });
     return;
   }
 
   const invitation = invitations[0];
+
+  if (invitation.revokedAt) {
+    res.status(410).json({ error: "This invitation has been revoked. Please contact your lodge administrator.", code: "REVOKED" });
+    return;
+  }
+  if (invitation.acceptedAt) {
+    res.status(409).json({ error: "This invitation has already been accepted. Please sign in instead.", code: "ALREADY_ACCEPTED" });
+    return;
+  }
+  if (invitation.expiresAt <= new Date()) {
+    res.status(410).json({ error: "This invitation has expired. Please request a new one from your lodge administrator.", code: "EXPIRED" });
+    return;
+  }
+
+  const passwordCheck = passwordSchema.safeParse(password);
+  if (!passwordCheck.success) {
+    res.status(400).json({ error: "Password does not meet the requirements.", code: "PASSWORD_INVALID", issues: passwordCheck.error.issues });
+    return;
+  }
+
+  const existingUser = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(and(eq(usersTable.lodgeId, lodgeId), eq(usersTable.email, invitation.email)))
+    .limit(1);
+
+  if (existingUser.length > 0) {
+    res.status(409).json({ error: "An account with this email already exists. Please sign in instead.", code: "USER_EXISTS" });
+    return;
+  }
+
   const passwordHash = await hashPassword(password);
   const ip = getClientIp(req);
 
-  const [user] = await db
-    .insert(usersTable)
-    .values({
-      lodgeId,
-      email: invitation.email,
-      emailVerified: true,
-      passwordHash,
-      firstName: invitation.firstName,
-      lastName: invitation.lastName,
-      isActive: true,
-      mustChangePassword: true,
-      passwordChangedAt: new Date(),
-    })
-    .returning();
+  let user: typeof usersTable.$inferSelect;
+  try {
+    [user] = await db
+      .insert(usersTable)
+      .values({
+        lodgeId,
+        email: invitation.email,
+        emailVerified: true,
+        passwordHash,
+        firstName: invitation.firstName,
+        lastName: invitation.lastName,
+        isActive: true,
+        mustChangePassword: true,
+        passwordChangedAt: new Date(),
+      })
+      .returning();
+  } catch (err) {
+    if ((err as { code?: string })?.code === "23505") {
+      res.status(409).json({ error: "An account with this email already exists. Please sign in instead.", code: "USER_EXISTS" });
+      return;
+    }
+    throw err;
+  }
 
   if (invitation.roleId) {
     await db.insert(userRolesTable).values({ userId: user.id, roleId: invitation.roleId, grantedBy: invitation.invitedBy });

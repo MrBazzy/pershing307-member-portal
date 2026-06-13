@@ -31,6 +31,12 @@ After running orval codegen, **must** run `pnpm run typecheck:libs` at the works
 - Not automatically granted to any role; must be explicitly granted per user by PM Super Admin (permissionLevel >= 90)
 - Domain routes: GET/POST /users/:id/domains, DELETE /users/:id/domains/:domainId; also duplicated at /domains router
 
+## Validation parity & distinct error reasons
+- Frontend (zod) and backend (`passwordSchema` in api-server/src/lib/password.ts) password rules MUST stay in sync. They drifted once: backend required upper/lower/digit/special + 12 chars, frontend only required 12 chars → a user-chosen weak password passed the form but failed the server.
+- Auth/onboarding handlers must look up by token/id ALONE, then diagnose state in order (invalid → revoked → accepted → expired → password invalid → user exists) and return a DISTINCT message + machine `code`. Do NOT fold all failures into one query that yields a single generic "invalid or expired" 404.
+- **Why:** A fresh invitation reported "invitation expired" because the frontend's catch-all `onError` toast hardcoded an "expired" message for ANY error (the real error was 400 password-complexity). Two compounding bugs: validation drift + generic error mapping.
+- **How to apply:** Frontend should surface `ApiError.data.error` (custom-fetch throws `ApiError` with parsed body in `.data`), never a hardcoded reason. Keep client/server validation schemas identical.
+
 ## API path coupling (server mount ↔ openapi)
 - The express route mount path MUST match the path in the openapi spec (the orval client is generated from openapi). A mismatch produces a SILENT 404 — the page renders an empty state with no error, because inserts/handler are fine and only the URL is wrong. Symptom: a feature looks totally broken while the DB clearly has data.
 - **Why:** Audit Log showed "No entries" while dozens of rows existed — server mount and the openapi/client path had diverged.

@@ -15,12 +15,29 @@ import { PasswordStrength } from "@/components/password-strength";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const schema = z.object({
-  password: z.string().min(12, "Password must be at least 12 characters"),
+  password: z
+    .string()
+    .min(12, "Password must be at least 12 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one digit")
+    .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
   confirm: z.string().min(1, "Please confirm your password"),
 }).refine((d) => d.password === d.confirm, {
   message: "Passwords do not match",
   path: ["confirm"],
 });
+
+function extractApiErrorMessage(error: unknown, fallback: string): string {
+  const data = (error as { data?: unknown } | null)?.data;
+  if (data && typeof data === "object" && "error" in data) {
+    const message = (data as { error?: unknown }).error;
+    if (typeof message === "string" && message.trim() !== "") {
+      return message;
+    }
+  }
+  return fallback;
+}
 
 type Values = z.infer<typeof schema>;
 
@@ -32,7 +49,7 @@ export default function AcceptInvitationPage() {
   const { toast } = useToast();
   const [success, setSuccess] = useState(false);
 
-  const { data, isLoading, isError } = useGetInvitationByToken(token, {
+  const { data, isLoading, isError, error: lookupError } = useGetInvitationByToken(token, {
     query: {
       enabled: !!token,
       queryKey: getGetInvitationByTokenQueryKey(token),
@@ -78,12 +95,16 @@ export default function AcceptInvitationPage() {
   }
 
   if (isError || !data?.invitation) {
+    const lookupMessage = extractApiErrorMessage(
+      lookupError,
+      "This invitation link may have expired or already been used. Please contact your lodge administrator."
+    );
     return (
-      <AuthLayout title="Invitation Not Found" subtitle="This invitation is invalid or has expired">
+      <AuthLayout title="Invitation Not Found" subtitle="This invitation cannot be used">
         <div className="text-center py-2">
           <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
           <p className="text-sm text-muted-foreground mb-6">
-            This invitation link may have expired or already been used. Please contact your lodge administrator.
+            {lookupMessage}
           </p>
           <Link href="/login">
             <a><Button variant="outline" className="w-full">Return to Sign In</Button></a>
@@ -116,8 +137,12 @@ export default function AcceptInvitationPage() {
       { data: { token, password: values.password } },
       {
         onSuccess: () => setSuccess(true),
-        onError: () => {
-          toast({ title: "Registration failed", description: "Your invitation may have expired. Please contact your administrator.", variant: "destructive" });
+        onError: (error) => {
+          const message = extractApiErrorMessage(
+            error,
+            "We couldn't create your account. Please try again or contact your lodge administrator."
+          );
+          toast({ title: "Registration failed", description: message, variant: "destructive" });
         },
       }
     );

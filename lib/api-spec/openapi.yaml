@@ -658,7 +658,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/InvitationLookupResult"
         "404":
-          description: Invalid or expired invitation
+          description: Invitation token is invalid (code INVALID_TOKEN)
+        "409":
+          description: Invitation already accepted (code ALREADY_ACCEPTED)
+        "410":
+          description: Invitation expired or revoked (code EXPIRED or REVOKED)
 
   /invitations/accept:
     post:
@@ -678,8 +682,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SuccessResult"
+        "400":
+          description: Password does not meet requirements (code PASSWORD_INVALID) or malformed request
         "404":
-          description: Invalid or expired invitation
+          description: Invitation token is invalid (code INVALID_TOKEN)
+        "409":
+          description: Invitation already accepted (code ALREADY_ACCEPTED) or user already exists (code USER_EXISTS)
+        "410":
+          description: Invitation expired or revoked (code EXPIRED or REVOKED)
 
   /invitations/{id}:
     delete:

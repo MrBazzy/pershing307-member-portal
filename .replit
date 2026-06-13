@@ -1,4 +1,4 @@
-modules = ["nodejs-24", "python-3.11"]
+modules = ["nodejs-24", "python-3.11", "postgresql-16"]
 
   [deployment]
   router = "application"
@@ -35,4 +35,7 @@ externalPort = 8081
 
   [userenv.shared]
   APP_BASE_URL = "https://0356d3f0-abb2-474e-9e4f-67d0ed75cacb-00-hkofcdgokpt9.kirk.replit.dev"
+
+[nix]
+channel = "stable-25_05"
   
