@@ -42,4 +42,10 @@ After running orval codegen, **must** run `pnpm run typecheck:libs` at the works
 - **Why:** Audit Log showed "No entries" while dozens of rows existed — server mount and the openapi/client path had diverged.
 - **How to apply:** When adding or renaming any route, grep the openapi spec for the same path before assuming a read bug is in the handler or DB.
 
+## API contract test (guards path coupling)
+- `artifacts/api-server` has a vitest suite (`pnpm --filter @workspace/api-server test`, also registered as the `test` validation command). Tests run serially against the real dev Postgres + the real express app via supertest.
+- `test/contract.test.ts` parses `lib/api-spec/openapi.yaml` and probes every operation at `/api`+path; a route is "missing" only when status is 404 AND the body is Express's default HTML (`Cannot <METHOD> ...`). A handler JSON 404 (resource-not-found) is treated as present. This is the automated guard against the silent mount↔openapi divergence.
+- **Why:** Express 5's unmatched-route 404 is an HTML page, not plain text — match `Cannot <METHOD>` anywhere, not anchored at start, or the check passes vacuously.
+- Auth fixtures (`test/helpers.ts`) seed a below-admin + admin user (slugs/emails prefixed `__contract_test_`) in the existing lodge and log in via the real `/api/auth/login` (users created without 2FA so login returns a session directly).
+
 **Why:** These patterns were non-obvious and required multiple interconnected decisions during Sprint 1 hardening.

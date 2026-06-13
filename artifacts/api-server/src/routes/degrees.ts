@@ -30,7 +30,7 @@ async function getDegreeDefinitions() {
   }
 }
 
-router.get("/definitions", requireAuth(), async (_req, res) => {
+router.get("/", requireAuth(), async (_req, res) => {
   const definitions = await getDegreeDefinitions();
   res.json({ definitions });
 });
@@ -45,7 +45,7 @@ const degreeDefSchema = z.object({
   ).min(1),
 });
 
-router.put("/definitions", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+router.put("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const result = degreeDefSchema.safeParse(req.body);
   if (!result.success) {
     res.status(400).json({ error: "Invalid request" });
