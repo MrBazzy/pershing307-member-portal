@@ -376,6 +376,10 @@ export interface InvitationCreatedResult {
   smtpConfigured: boolean;
 }
 
+export interface CleanupInvitationsResult {
+  removed: number;
+}
+
 export interface InvitationLookup {
   email: string;
   firstName: string;

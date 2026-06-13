@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import { invitationsTable, usersTable, rolesTable, userRolesTable } from "@workspace/db/schema";
-import { eq, and, isNull, gt } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, gt, lt, or } from "drizzle-orm";
 import { generateSecureToken } from "../lib/crypto";
 import { writeAuditLog, getClientIp } from "../lib/audit";
 import { sendEmail, invitationEmailHtml } from "../lib/email";
@@ -300,6 +300,44 @@ router.post("/accept", async (req, res) => {
   await writeAuditLog({ lodgeId, actorId: user.id, actorEmail: user.email, action: "USER_ACTIVATED", targetType: "user", targetId: user.id, ipAddress: ip });
 
   res.status(201).json({ success: true, message: "Account created. Please complete your profile setup." });
+});
+
+router.delete("/cleanup", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+  const actorId = req.session!.userId!;
+  const lodgeId = await getLodgeId();
+  if (!lodgeId) {
+    res.status(500).json({ error: "Lodge not configured" });
+    return;
+  }
+
+  const deleted = await db
+    .delete(invitationsTable)
+    .where(
+      and(
+        eq(invitationsTable.lodgeId, lodgeId),
+        or(
+          isNotNull(invitationsTable.revokedAt),
+          and(
+            isNull(invitationsTable.acceptedAt),
+            lt(invitationsTable.expiresAt, new Date())
+          )
+        )
+      )
+    )
+    .returning({ id: invitationsTable.id });
+
+  const removed = deleted.length;
+
+  await writeAuditLog({
+    lodgeId,
+    actorId,
+    action: "INVITATIONS_CLEANED_UP",
+    targetType: "invitation",
+    detail: { removed },
+    ipAddress: getClientIp(req),
+  });
+
+  res.json({ removed });
 });
 
 router.get("/:id/link", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {

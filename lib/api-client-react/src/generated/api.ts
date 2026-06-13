@@ -26,6 +26,7 @@ import type {
   BootstrapResult,
   BootstrapStatus,
   ChangePasswordInput,
+  CleanupInvitationsResult,
   ConfigListResult,
   ConfigUpdateInput,
   CurrentUserResult,
@@ -2415,6 +2416,76 @@ export const useAcceptInvitation = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getAcceptInvitationMutationOptions(options));
+    }
+
+export const getCleanupInvitationsUrl = () => {
+
+
+
+
+  return `/api/invitations/cleanup`
+}
+
+/**
+ * @summary Remove all expired and revoked invitations (admin)
+ */
+export const cleanupInvitations = async ( options?: RequestInit): Promise<CleanupInvitationsResult> => {
+
+  return customFetch<CleanupInvitationsResult>(getCleanupInvitationsUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getCleanupInvitationsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cleanupInvitations>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cleanupInvitations>>, TError,void, TContext> => {
+
+const mutationKey = ['cleanupInvitations'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cleanupInvitations>>, void> = () => {
+
+
+          return  cleanupInvitations(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CleanupInvitationsMutationResult = NonNullable<Awaited<ReturnType<typeof cleanupInvitations>>>
+
+    export type CleanupInvitationsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Remove all expired and revoked invitations (admin)
+ */
+export const useCleanupInvitations = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cleanupInvitations>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cleanupInvitations>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getCleanupInvitationsMutationOptions(options));
     }
 
 export const getRevokeInvitationUrl = (id: string,) => {

@@ -15,6 +15,7 @@ export * from './bootstrapInput';
 export * from './bootstrapResult';
 export * from './bootstrapStatus';
 export * from './changePasswordInput';
+export * from './cleanupInvitationsResult';
 export * from './configEntry';
 export * from './configListResult';
 export * from './configUpdateInput';

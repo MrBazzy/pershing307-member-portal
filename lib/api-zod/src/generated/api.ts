@@ -584,6 +584,14 @@ export const AcceptInvitationBody = zod.object({
 
 
 /**
+ * @summary Remove all expired and revoked invitations (admin)
+ */
+export const CleanupInvitationsResponse = zod.object({
+  "removed": zod.number()
+})
+
+
+/**
  * @summary Revoke a pending invitation
  */
 export const RevokeInvitationParams = zod.object({

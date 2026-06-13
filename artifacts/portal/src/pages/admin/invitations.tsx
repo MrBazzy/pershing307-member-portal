@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
-  useListInvitations, useCreateInvitation, useRevokeInvitation,
+  useListInvitations, useCreateInvitation, useRevokeInvitation, useCleanupInvitations,
   useListRoles, useGetInvitationLink, getListInvitationsQueryKey, getGetInvitationLinkQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -13,12 +13,17 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { format, formatDistanceToNow, isPast } from "date-fns";
-import { Mail, Plus, XCircle, Loader2, Copy, AlertTriangle, Link } from "lucide-react";
+import { Mail, Plus, XCircle, Loader2, Copy, AlertTriangle, Trash2 } from "lucide-react";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -28,6 +33,14 @@ const schema = z.object({
 });
 
 type Values = z.infer<typeof schema>;
+type StatusFilter = "all" | "pending" | "accepted" | "revoked" | "expired";
+
+function getInvitationStatus(inv: { acceptedAt?: string | null; revokedAt?: string | null; expiresAt: string }): "pending" | "accepted" | "revoked" | "expired" {
+  if (inv.acceptedAt) return "accepted";
+  if (inv.revokedAt) return "revoked";
+  if (isPast(new Date(inv.expiresAt))) return "expired";
+  return "pending";
+}
 
 function InvitationStatusBadge({ acceptedAt, revokedAt, expiresAt }: {
   acceptedAt?: string | null;
@@ -80,15 +93,26 @@ function CopyLinkButton({ invitationId }: { invitationId: string }) {
   );
 }
 
+const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "pending", label: "Pending" },
+  { value: "accepted", label: "Accepted" },
+  { value: "revoked", label: "Revoked" },
+  { value: "expired", label: "Expired" },
+];
+
 export default function AdminInvitationsPage() {
   const { data, isLoading } = useListInvitations();
   const { data: rolesData } = useListRoles();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showCleanupDialog, setShowCleanupDialog] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const revokeInvitation = useRevokeInvitation();
   const createInvitation = useCreateInvitation();
+  const cleanupInvitations = useCleanupInvitations();
 
   const form = useForm<Values>({
     resolver: zodResolver(schema),
@@ -96,6 +120,16 @@ export default function AdminInvitationsPage() {
   });
 
   const smtpConfigured = data?.smtpConfigured ?? true;
+
+  const allInvitations = data?.invitations ?? [];
+  const filteredInvitations = statusFilter === "all"
+    ? allInvitations
+    : allInvitations.filter((inv) => getInvitationStatus(inv) === statusFilter);
+
+  const cleanableCount = allInvitations.filter((inv) => {
+    const s = getInvitationStatus(inv);
+    return s === "expired" || s === "revoked";
+  }).length;
 
   const handleRevoke = (id: string) => {
     revokeInvitation.mutate(
@@ -136,6 +170,26 @@ export default function AdminInvitationsPage() {
     );
   };
 
+  const handleCleanup = () => {
+    cleanupInvitations.mutate(undefined, {
+      onSuccess: (result) => {
+        queryClient.invalidateQueries({ queryKey: getListInvitationsQueryKey() });
+        setShowCleanupDialog(false);
+        const n = result.removed;
+        toast({
+          title: "Invitations cleaned up",
+          description: n === 0
+            ? "No expired or revoked invitations to remove."
+            : `${n} invitation${n === 1 ? "" : "s"} removed.`,
+        });
+      },
+      onError: (e: any) => {
+        setShowCleanupDialog(false);
+        toast({ title: "Cleanup failed", description: e?.data?.error ?? "Could not clean up invitations", variant: "destructive" });
+      },
+    });
+  };
+
   return (
     <AppLayout>
       <div className="p-4 sm:p-6">
@@ -144,9 +198,22 @@ export default function AdminInvitationsPage() {
             <h1 className="text-2xl font-serif font-semibold">Invitations</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Manage pending and past member invitations</p>
           </div>
-          <Button size="sm" onClick={() => setShowCreateDialog(true)} data-testid="button-invite-member">
-            <Plus className="h-4 w-4 mr-2" /> Invite Member
-          </Button>
+          <div className="flex items-center gap-2">
+            {!isLoading && cleanableCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCleanupDialog(true)}
+                data-testid="button-cleanup-invitations"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Clean Up
+              </Button>
+            )}
+            <Button size="sm" onClick={() => setShowCreateDialog(true)} data-testid="button-invite-member">
+              <Plus className="h-4 w-4 mr-2" /> Invite Member
+            </Button>
+          </div>
         </div>
 
         {!isLoading && !smtpConfigured && (
@@ -159,6 +226,23 @@ export default function AdminInvitationsPage() {
             </AlertDescription>
           </Alert>
         )}
+
+        <div className="flex items-center gap-1 mb-3">
+          {STATUS_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => setStatusFilter(f.value)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                statusFilter === f.value
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/70"
+              }`}
+              data-testid={`filter-${f.value}`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
 
         <div className="bg-card border rounded-sm overflow-hidden">
           <table className="w-full text-sm">
@@ -184,8 +268,8 @@ export default function AdminInvitationsPage() {
                       <td className="px-4 py-3"></td>
                     </tr>
                   ))
-                : data?.invitations?.map((inv) => {
-                    const isPending = !inv.acceptedAt && !inv.revokedAt && !isPast(new Date(inv.expiresAt));
+                : filteredInvitations.map((inv) => {
+                    const isPending = getInvitationStatus(inv) === "pending";
                     return (
                       <tr key={inv.id} className="hover:bg-muted/20 transition-colors" data-testid={`row-invitation-${inv.id}`}>
                         <td className="px-4 py-3">
@@ -223,13 +307,17 @@ export default function AdminInvitationsPage() {
             </tbody>
           </table>
 
-          {!isLoading && data?.invitations?.length === 0 && (
+          {!isLoading && filteredInvitations.length === 0 && (
             <div className="px-4 py-12 text-center">
               <Mail className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No invitations sent yet</p>
-              <Button variant="outline" size="sm" className="mt-3" onClick={() => setShowCreateDialog(true)}>
-                Invite a member
-              </Button>
+              <p className="text-sm text-muted-foreground">
+                {statusFilter === "all" ? "No invitations sent yet" : `No ${statusFilter} invitations`}
+              </p>
+              {statusFilter === "all" && (
+                <Button variant="outline" size="sm" className="mt-3" onClick={() => setShowCreateDialog(true)}>
+                  Invite a member
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -295,6 +383,30 @@ export default function AdminInvitationsPage() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={showCleanupDialog} onOpenChange={setShowCleanupDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clean Up Invitations</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove all expired and revoked invitations.
+              Pending and accepted invitations will not be affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cleanupInvitations.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleCleanup(); }}
+              disabled={cleanupInvitations.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-cleanup"
+            >
+              {cleanupInvitations.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Remove Invitations
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

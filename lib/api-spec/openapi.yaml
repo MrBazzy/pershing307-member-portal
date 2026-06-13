@@ -691,6 +691,19 @@ paths:
         "410":
           description: Invitation expired or revoked (code EXPIRED or REVOKED)
 
+  /invitations/cleanup:
+    delete:
+      operationId: cleanupInvitations
+      tags: [invitations]
+      summary: Remove all expired and revoked invitations (admin)
+      responses:
+        "200":
+          description: Cleanup result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CleanupInvitationsResult"
+
   /invitations/{id}:
     delete:
       operationId: revokeInvitation
@@ -1512,6 +1525,13 @@ components:
           $ref: "#/components/schemas/InvitationCreated"
         smtpConfigured:
           type: boolean
+
+    CleanupInvitationsResult:
+      type: object
+      required: [removed]
+      properties:
+        removed:
+          type: integer
 
     InvitationLookup:
       type: object
