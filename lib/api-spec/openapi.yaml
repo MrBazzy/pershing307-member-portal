@@ -359,6 +359,35 @@ paths:
         "404":
           description: User not found
 
+  /users/{id}/test-reset:
+    delete:
+      operationId: resetTestUser
+      tags: [users]
+      summary: Permanently remove a test user (DEV/TDA only)
+      description: >
+        Testing-only action. Permanently removes a test user and all related
+        records so the email address can be invited again. Disabled in production.
+        Audit logs are preserved (anonymized). Restricted to PM Super Administrators.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Test user removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "400":
+          description: Cannot remove self or final PM Super Administrator
+        "403":
+          description: Disabled in this environment
+        "404":
+          description: User not found
+
   /users/{id}/deactivate:
     patch:
       operationId: deactivateUser
@@ -720,6 +749,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/DomainListResult"
 
+  /domains/{domainId}/members:
+    get:
+      operationId: getDomainMembers
+      tags: [domains]
+      summary: List members with access to a protected domain (admin)
+      parameters:
+        - name: domainId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Domain member list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainMembersResult"
+        "404":
+          description: Domain not found
+
   /degree-definitions:
     get:
       operationId: listDegreeDefinitions
@@ -762,6 +812,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ConfigListResult"
+
+  /config/test-smtp:
+    post:
+      operationId: testSmtp
+      tags: [config]
+      summary: Send a test email to verify SMTP configuration (site admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestSmtpInput"
+      responses:
+        "200":
+          description: Test email sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmtpTestResult"
+        "502":
+          description: SMTP send failed
+        "503":
+          description: SMTP not configured
 
   /config/{key}:
     put:
@@ -806,6 +879,26 @@ paths:
           schema:
             type: integer
             default: 0
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: actorEmail
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+        - name: targetType
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: Audit log entries
@@ -1136,6 +1229,49 @@ components:
       properties:
         user:
           $ref: "#/components/schemas/UserDetail"
+        testResetEnabled:
+          type: boolean
+
+    DomainMember:
+      type: object
+      required: [userId, firstName, lastName, email, grantedAt]
+      properties:
+        userId:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        grantedAt:
+          type: string
+
+    DomainMembersResult:
+      type: object
+      required: [users]
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/DomainMember"
+
+    TestSmtpInput:
+      type: object
+      required: [to]
+      properties:
+        to:
+          type: string
+          format: email
+
+    SmtpTestResult:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
 
     RoleAssignment:
       type: object

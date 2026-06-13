@@ -34,6 +34,7 @@ import type {
   DegreeInput,
   DomainGrantInput,
   DomainListResult,
+  DomainMembersResult,
   ForgotPasswordInput,
   HealthStatus,
   InvitationCreatedResult,
@@ -49,7 +50,9 @@ import type {
   ResetPasswordInput,
   RoleAssignment,
   RoleListResult,
+  SmtpTestResult,
   SuccessResult,
+  TestSmtpInput,
   TwoFactorEnrollResult,
   TwoFactorInput,
   TwoFactorStatus,
@@ -1319,6 +1322,78 @@ export function useGetUser<TData = Awaited<ReturnType<typeof getUser>>, TError =
 
 
 
+
+export const getResetTestUserUrl = (id: string,) => {
+
+
+
+
+  return `/api/users/${id}/test-reset`
+}
+
+/**
+ * Testing-only action. Permanently removes a test user and all related records so the email address can be invited again. Disabled in production. Audit logs are preserved (anonymized). Restricted to PM Super Administrators.
+
+ * @summary Permanently remove a test user (DEV/TDA only)
+ */
+export const resetTestUser = async (id: string, options?: RequestInit): Promise<SuccessResult> => {
+
+  return customFetch<SuccessResult>(getResetTestUserUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getResetTestUserMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetTestUser>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resetTestUser>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['resetTestUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resetTestUser>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  resetTestUser(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResetTestUserMutationResult = NonNullable<Awaited<ReturnType<typeof resetTestUser>>>
+
+    export type ResetTestUserMutationError = ErrorType<void>
+
+    /**
+ * @summary Permanently remove a test user (DEV/TDA only)
+ */
+export const useResetTestUser = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetTestUser>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resetTestUser>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getResetTestUserMutationOptions(options));
+    }
 
 export const getDeactivateUserUrl = (id: string,) => {
 
@@ -2643,6 +2718,83 @@ export function useListDomains<TData = Awaited<ReturnType<typeof listDomains>>, 
 
 
 
+export const getGetDomainMembersUrl = (domainId: string,) => {
+
+
+
+
+  return `/api/domains/${domainId}/members`
+}
+
+/**
+ * @summary List members with access to a protected domain (admin)
+ */
+export const getDomainMembers = async (domainId: string, options?: RequestInit): Promise<DomainMembersResult> => {
+
+  return customFetch<DomainMembersResult>(getGetDomainMembersUrl(domainId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDomainMembersQueryKey = (domainId: string,) => {
+    return [
+    `/api/domains/${domainId}/members`
+    ] as const;
+    }
+
+
+export const getGetDomainMembersQueryOptions = <TData = Awaited<ReturnType<typeof getDomainMembers>>, TError = ErrorType<void>>(domainId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDomainMembers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDomainMembersQueryKey(domainId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDomainMembers>>> = ({ signal }) => getDomainMembers(domainId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(domainId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDomainMembers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDomainMembersQueryResult = NonNullable<Awaited<ReturnType<typeof getDomainMembers>>>
+export type GetDomainMembersQueryError = ErrorType<void>
+
+
+/**
+ * @summary List members with access to a protected domain (admin)
+ */
+
+export function useGetDomainMembers<TData = Awaited<ReturnType<typeof getDomainMembers>>, TError = ErrorType<void>>(
+ domainId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDomainMembers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDomainMembersQueryOptions(domainId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getListDegreeDefinitionsUrl = () => {
 
 
@@ -2867,6 +3019,77 @@ export function useListConfig<TData = Awaited<ReturnType<typeof listConfig>>, TE
 
 
 
+
+export const getTestSmtpUrl = () => {
+
+
+
+
+  return `/api/config/test-smtp`
+}
+
+/**
+ * @summary Send a test email to verify SMTP configuration (site admin)
+ */
+export const testSmtp = async (testSmtpInput: TestSmtpInput, options?: RequestInit): Promise<SmtpTestResult> => {
+
+  return customFetch<SmtpTestResult>(getTestSmtpUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      testSmtpInput,)
+  }
+);}
+
+
+
+
+export const getTestSmtpMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testSmtp>>, TError,{data: BodyType<TestSmtpInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof testSmtp>>, TError,{data: BodyType<TestSmtpInput>}, TContext> => {
+
+const mutationKey = ['testSmtp'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testSmtp>>, {data: BodyType<TestSmtpInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  testSmtp(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TestSmtpMutationResult = NonNullable<Awaited<ReturnType<typeof testSmtp>>>
+    export type TestSmtpMutationBody = BodyType<TestSmtpInput>
+    export type TestSmtpMutationError = ErrorType<void>
+
+    /**
+ * @summary Send a test email to verify SMTP configuration (site admin)
+ */
+export const useTestSmtp = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testSmtp>>, TError,{data: BodyType<TestSmtpInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof testSmtp>>,
+        TError,
+        {data: BodyType<TestSmtpInput>},
+        TContext
+      > => {
+      return useMutation(getTestSmtpMutationOptions(options));
+    }
 
 export const getUpdateConfigUrl = (key: string,) => {
 

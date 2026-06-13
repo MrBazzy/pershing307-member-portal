@@ -8,13 +8,19 @@ import {
   userDomainAccessTable,
   protectedDomainsTable,
   userDegreesTable,
+  invitationsTable,
+  passwordResetTokensTable,
+  twoFactorSettingsTable,
+  passwordHistoryTable,
+  auditLogsTable,
 } from "@workspace/db/schema";
-import { eq, and, or, ilike, sql, count } from "drizzle-orm";
+import { eq, and, or, ilike, count } from "drizzle-orm";
 import { writeAuditLog, getClientIp } from "../lib/audit";
 import { getLodgeId, getConfig } from "../lib/config";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 import { invalidateUserSessions } from "../lib/sessions";
+import { isTestResetEnabled } from "../lib/env";
 
 const router = Router();
 
@@ -122,6 +128,7 @@ router.get("/:id", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, 
       createdAt: user.createdAt,
       roles,
     },
+    testResetEnabled: isTestResetEnabled(),
   });
 });
 
@@ -195,6 +202,91 @@ router.patch("/:id/activate", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), a
   });
 
   res.json({ success: true });
+});
+
+router.delete("/:id/test-reset", requireAuth(), requireRole(PM_SUPER_ADMIN_LEVEL), async (req, res) => {
+  if (!isTestResetEnabled()) {
+    res.status(403).json({ error: "Test user reset is disabled in this environment." });
+    return;
+  }
+
+  const targetId = String(req.params.id);
+  const actorId = req.session!.userId!;
+  const lodgeId = await getLodgeId();
+
+  if (targetId === actorId) {
+    res.status(400).json({ error: "You cannot remove your own account." });
+    return;
+  }
+
+  const users = await db
+    .select({ id: usersTable.id, email: usersTable.email, firstName: usersTable.firstName, lastName: usersTable.lastName })
+    .from(usersTable)
+    .where(and(eq(usersTable.id, targetId), eq(usersTable.lodgeId, lodgeId!)))
+    .limit(1);
+
+  if (users.length === 0) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const target = users[0];
+
+  const pmSupers = await db
+    .select({ userId: userRolesTable.userId })
+    .from(userRolesTable)
+    .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
+    .where(eq(rolesTable.slug, "pm-super-administrator"));
+
+  const targetIsPmSuper = pmSupers.some((r) => r.userId === targetId);
+  const remainingPmSupers = new Set(pmSupers.filter((r) => r.userId !== targetId).map((r) => r.userId));
+  if (targetIsPmSuper && remainingPmSupers.size === 0) {
+    res.status(400).json({ error: "Cannot remove the final PM Super Administrator." });
+    return;
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.update(auditLogsTable).set({ actorId: null }).where(eq(auditLogsTable.actorId, targetId));
+
+    await tx.update(invitationsTable).set({ revokedBy: null }).where(eq(invitationsTable.revokedBy, targetId));
+    await tx.update(invitationsTable).set({ acceptedByUser: null }).where(eq(invitationsTable.acceptedByUser, targetId));
+
+    await tx.delete(invitationsTable).where(eq(invitationsTable.email, target.email));
+    await tx.delete(invitationsTable).where(eq(invitationsTable.invitedBy, targetId));
+
+    await tx.update(userRolesTable).set({ grantedBy: null }).where(eq(userRolesTable.grantedBy, targetId));
+    await tx.update(userDomainAccessTable).set({ grantedBy: null }).where(eq(userDomainAccessTable.grantedBy, targetId));
+
+    await tx.delete(userRolesTable).where(eq(userRolesTable.userId, targetId));
+    await tx.delete(userDomainAccessTable).where(eq(userDomainAccessTable.userId, targetId));
+    await tx.delete(userDegreesTable).where(eq(userDegreesTable.userId, targetId));
+    await tx.delete(passwordResetTokensTable).where(eq(passwordResetTokensTable.userId, targetId));
+    await tx.delete(twoFactorSettingsTable).where(eq(twoFactorSettingsTable.userId, targetId));
+    await tx.delete(passwordHistoryTable).where(eq(passwordHistoryTable.userId, targetId));
+
+    await tx.delete(usersTable).where(eq(usersTable.id, targetId));
+  });
+
+  await invalidateUserSessions(targetId);
+
+  await writeAuditLog({
+    lodgeId,
+    actorId,
+    action: "TEST_USER_RESET",
+    targetType: "user",
+    targetId,
+    detail: {
+      email: target.email,
+      name: `${target.firstName} ${target.lastName}`,
+      env: process.env.APP_ENV ?? process.env.NODE_ENV ?? "unknown",
+    },
+    ipAddress: getClientIp(req),
+  });
+
+  res.json({
+    success: true,
+    message: `Test user ${target.email} removed. The email address can now be invited again.`,
+  });
 });
 
 router.post("/:id/roles", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {

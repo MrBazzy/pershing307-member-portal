@@ -3,7 +3,7 @@ import {
   useListUsers, useListRoles, useGetUser, useDeactivateUser, useActivateUser,
   useGrantUserRole, useRevokeUserRole, useGetUserDomains, useGetUserDegrees,
   useGrantUserDomain, useRevokeUserDomain, useListDomains, useListDegreeDefinitions,
-  useAddUserDegree, useRemoveUserDegree,
+  useAddUserDegree, useRemoveUserDegree, useResetTestUser,
   getListUsersQueryKey, getGetUserQueryKey, getGetUserDomainsQueryKey, getGetUserDegreesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -16,11 +16,16 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { formatDistanceToNow, format } from "date-fns";
 import {
   Users, UserX, UserCheck, Plus, Trash2, Search, ChevronLeft, ChevronRight, Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -173,6 +178,7 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
   const [tab, setTab] = useState("info");
   const [newDegree, setNewDegree] = useState("");
   const [newConferredOn, setNewConferredOn] = useState("");
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
 
   const { data, isLoading } = useGetUser(userId ?? "", {
     query: { enabled: !!userId, queryKey: getGetUserQueryKey(userId ?? "") },
@@ -191,10 +197,14 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
   const revokeDomain = useRevokeUserDomain();
   const addDegree = useAddUserDegree();
   const removeDegree = useRemoveUserDegree();
+  const resetTestUser = useResetTestUser();
 
   const isPmSuperAdmin = currentUser?.roles?.some((r) => r.permissionLevel >= 90) ?? false;
 
   const user = data?.user;
+  const testResetEnabled = data?.testResetEnabled ?? false;
+  const isSelf = !!user && user.id === currentUser?.id;
+  const canResetTestUser = testResetEnabled && isPmSuperAdmin && !isSelf;
   const allDomains = domainsAllData?.domains ?? [];
   const userDomains = userDomainsData?.domains ?? [];
   const userDegrees = userDegreesData?.degrees ?? [];
@@ -333,6 +343,33 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
                     </Button>
                   )}
                 </div>
+
+                {canResetTestUser && (
+                  <>
+                    <Separator />
+                    <div className="rounded-sm border border-amber-500/40 bg-amber-500/5 p-3">
+                      <div className="flex items-start gap-2 mb-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-xs font-semibold text-amber-700 dark:text-amber-500">Testing Tools</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            Permanently removes this test user and frees the email address for re-invitation. Available in test environments only.
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline" size="sm"
+                        className="w-full text-destructive border-destructive/40 hover:bg-destructive/5"
+                        onClick={() => setResetConfirmOpen(true)}
+                        disabled={resetTestUser.isPending}
+                        data-testid="button-reset-test-user"
+                      >
+                        {resetTestUser.isPending ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 mr-2" />}
+                        Remove Test User
+                      </Button>
+                    </div>
+                  </>
+                )}
               </TabsContent>
 
               <TabsContent value="domains" className="space-y-4 pt-4">
@@ -453,6 +490,46 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
                 </div>
               </TabsContent>
             </Tabs>
+
+            <AlertDialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    Remove Test User
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This is a testing-only action. It permanently removes this test user
+                    and allows the email address to be reused. This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel data-testid="button-cancel-reset">Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={() => {
+                      if (!userId) return;
+                      resetTestUser.mutate({ id: userId }, {
+                        onSuccess: () => {
+                          setResetConfirmOpen(false);
+                          queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+                          toast({ title: "Test user removed", description: "The email address can now be invited again." });
+                          onClose();
+                          setTab("info");
+                        },
+                        onError: (e: any) => {
+                          setResetConfirmOpen(false);
+                          toast({ title: "Could not remove user", description: e?.data?.error ?? "Action failed", variant: "destructive" });
+                        },
+                      });
+                    }}
+                    data-testid="button-confirm-reset"
+                  >
+                    Remove Test User
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </>
         )}
       </SheetContent>

@@ -218,6 +218,28 @@ export interface UserDetail {
 
 export interface UserDetailResult {
   user: UserDetail;
+  testResetEnabled?: boolean;
+}
+
+export interface DomainMember {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  grantedAt: string;
+}
+
+export interface DomainMembersResult {
+  users: DomainMember[];
+}
+
+export interface TestSmtpInput {
+  to: string;
+}
+
+export interface SmtpTestResult {
+  success: boolean;
+  message: string;
 }
 
 export interface RoleAssignment {
@@ -435,5 +457,10 @@ search?: string;
 export type ListAuditLogsParams = {
 limit?: number;
 offset?: number;
+action?: string;
+actorEmail?: string;
+from?: string;
+to?: string;
+targetType?: string;
 };
 

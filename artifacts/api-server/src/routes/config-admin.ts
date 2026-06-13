@@ -5,7 +5,7 @@ import { configurationTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
-import { getLodgeId, setConfig } from "../lib/config";
+import { getLodgeId, setConfig, getConfig } from "../lib/config";
 import { writeAuditLog, getClientIp } from "../lib/audit";
 import { sendEmail } from "../lib/email";
 
@@ -85,20 +85,16 @@ router.post("/test-smtp", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (r
   const ip = getClientIp(req);
   const lodgeId = await getLodgeId();
 
-  const smtpOk = !!(process.env.SMTP_PASS && process.env.SMTP_HOST);
-  if (!smtpOk) {
-    res.status(503).json({ error: "SMTP is not configured. Set SMTP_HOST and SMTP_PASS environment secrets." });
+  const host = await getConfig("smtp_host");
+  if (!host) {
+    res.status(503).json({ error: "SMTP is not configured. Set smtp_host in configuration and the SMTP_PASS environment secret." });
     return;
   }
 
-  let success = false;
-  let message = "";
-
-  try {
-    await sendEmail({
-      to,
-      subject: "Pershing307 Portal — SMTP Test",
-      html: `
+  const sent = await sendEmail({
+    to,
+    subject: "Pershing307 Portal — SMTP Test",
+    html: `
         <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px">
           <h2 style="color:#1a1a2e">SMTP Test Successful</h2>
           <p>This is a test email from your Pershing307 Member Portal.</p>
@@ -107,13 +103,12 @@ router.post("/test-smtp", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (r
           <p style="color:#6b7280;font-size:12px">Sent at ${new Date().toISOString()} via portal SMTP test function.</p>
         </div>
       `,
-    });
-    success = true;
-    message = `Test email sent successfully to ${to}.`;
-  } catch (err: any) {
-    success = false;
-    message = err?.message ?? "Unknown error";
-  }
+  });
+
+  const success = sent;
+  const message = sent
+    ? `Test email sent successfully to ${to}.`
+    : "Failed to send test email. Verify SMTP credentials (SMTP_PASS) and server settings.";
 
   await writeAuditLog({
     lodgeId,

@@ -5,9 +5,8 @@
  * Pershing307 Member Portal API
  * OpenAPI spec version: 0.2.0
  */
-import type { UserDetail } from './userDetail';
 
-export interface UserDetailResult {
-  user: UserDetail;
-  testResetEnabled?: boolean;
+export interface SmtpTestResult {
+  success: boolean;
+  message: string;
 }

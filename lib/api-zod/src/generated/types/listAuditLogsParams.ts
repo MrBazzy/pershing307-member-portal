@@ -9,4 +9,9 @@
 export type ListAuditLogsParams = {
 limit?: number;
 offset?: number;
+action?: string;
+actorEmail?: string;
+from?: string;
+to?: string;
+targetType?: string;
 };

@@ -336,7 +336,23 @@ export const GetUserResponse = zod.object({
   "slug": zod.string(),
   "permissionLevel": zod.number()
 }))
+}),
+  "testResetEnabled": zod.boolean().optional()
 })
+
+
+/**
+ * Testing-only action. Permanently removes a test user and all related records so the email address can be invited again. Disabled in production. Audit logs are preserved (anonymized). Restricted to PM Super Administrators.
+
+ * @summary Permanently remove a test user (DEV/TDA only)
+ */
+export const ResetTestUserParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const ResetTestUserResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
 })
 
 
@@ -620,6 +636,24 @@ export const ListDomainsResponse = zod.object({
 
 
 /**
+ * @summary List members with access to a protected domain (admin)
+ */
+export const GetDomainMembersParams = zod.object({
+  "domainId": zod.coerce.string()
+})
+
+export const GetDomainMembersResponse = zod.object({
+  "users": zod.array(zod.object({
+  "userId": zod.string(),
+  "firstName": zod.string(),
+  "lastName": zod.string(),
+  "email": zod.string(),
+  "grantedAt": zod.string()
+}))
+})
+
+
+/**
  * @summary List configurable degree definitions
  */
 export const ListDegreeDefinitionsResponse = zod.object({
@@ -662,6 +696,19 @@ export const ListConfigResponse = zod.object({
 
 
 /**
+ * @summary Send a test email to verify SMTP configuration (site admin)
+ */
+export const TestSmtpBody = zod.object({
+  "to": zod.string().email()
+})
+
+export const TestSmtpResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string()
+})
+
+
+/**
  * @summary Update a configuration value (site admin)
  */
 export const UpdateConfigParams = zod.object({
@@ -686,7 +733,12 @@ export const listAuditLogsQueryOffsetDefault = 0;
 
 export const ListAuditLogsQueryParams = zod.object({
   "limit": zod.coerce.number().default(listAuditLogsQueryLimitDefault),
-  "offset": zod.coerce.number().default(listAuditLogsQueryOffsetDefault)
+  "offset": zod.coerce.number().default(listAuditLogsQueryOffsetDefault),
+  "action": zod.coerce.string().optional(),
+  "actorEmail": zod.coerce.string().optional(),
+  "from": zod.coerce.string().optional(),
+  "to": zod.coerce.string().optional(),
+  "targetType": zod.coerce.string().optional()
 })
 
 export const ListAuditLogsResponse = zod.object({
