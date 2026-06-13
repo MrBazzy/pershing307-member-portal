@@ -38,7 +38,7 @@ export default function DashboardPage() {
 
   const isAdmin = user?.roles?.some((r) => r.permissionLevel >= 70) ?? false;
   const totalMembers = usersData?.users?.length ?? 0;
-  const activeMembers = usersData?.users?.filter((u) => u.isActive).length ?? 0;
+  const activeMembers = usersData?.users?.filter((u) => u.membershipStatus === "active").length ?? 0;
 
   return (
     <AppLayout>

@@ -267,6 +267,7 @@ router.post("/accept", async (req, res) => {
         firstName: invitation.firstName,
         lastName: invitation.lastName,
         isActive: true,
+        membershipStatus: "active",
         mustChangePassword: true,
         passwordChangedAt: new Date(),
       })

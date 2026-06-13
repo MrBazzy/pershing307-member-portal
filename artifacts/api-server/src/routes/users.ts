@@ -574,4 +574,88 @@ router.delete("/:id/degrees/:degreeId", requireAuth(), requireRole(ADMINISTRATOR
   res.json({ success: true });
 });
 
+const membershipStatusSchema = z.object({
+  status: z.enum(["pending", "active", "inactive", "suspended"]),
+});
+
+router.post("/fix-membership", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+  const actorId = req.session!.userId!;
+  const lodgeId = await getLodgeId();
+
+  const affected = await db
+    .update(usersTable)
+    .set({ membershipStatus: "active", updatedAt: new Date() })
+    .where(and(
+      eq(usersTable.lodgeId, lodgeId!),
+      eq(usersTable.isActive, true),
+      eq(usersTable.membershipStatus, "pending"),
+    ))
+    .returning({ id: usersTable.id });
+
+  const ip = getClientIp(req);
+  await Promise.all(
+    affected.map((u) =>
+      writeAuditLog({
+        lodgeId,
+        actorId,
+        action: "MEMBERSHIP_STATUS_CHANGED",
+        targetType: "user",
+        targetId: u.id,
+        detail: { from: "pending", to: "active", source: "bulk_fix" },
+        ipAddress: ip,
+      }),
+    ),
+  );
+
+  res.json({ fixed: affected.length });
+});
+
+router.patch("/:id/membership-status", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+  const targetId = String(req.params.id);
+  const actorId = req.session!.userId!;
+  const lodgeId = await getLodgeId();
+
+  const result = membershipStatusSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: "Invalid status", issues: result.error.issues });
+    return;
+  }
+
+  const existing = await db
+    .select({ id: usersTable.id, membershipStatus: usersTable.membershipStatus })
+    .from(usersTable)
+    .where(and(eq(usersTable.id, targetId), eq(usersTable.lodgeId, lodgeId!)))
+    .limit(1);
+
+  if (existing.length === 0) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const prevStatus = existing[0].membershipStatus;
+  const newStatus = result.data.status;
+
+  if (prevStatus === newStatus) {
+    res.json({ success: true });
+    return;
+  }
+
+  await db
+    .update(usersTable)
+    .set({ membershipStatus: newStatus, updatedAt: new Date() })
+    .where(eq(usersTable.id, targetId));
+
+  await writeAuditLog({
+    lodgeId,
+    actorId,
+    action: "MEMBERSHIP_STATUS_CHANGED",
+    targetType: "user",
+    targetId,
+    detail: { from: prevStatus, to: newStatus },
+    ipAddress: getClientIp(req),
+  });
+
+  res.json({ success: true });
+});
+
 export default router;

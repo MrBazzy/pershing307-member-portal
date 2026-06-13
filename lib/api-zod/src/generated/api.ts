@@ -383,6 +383,31 @@ export const ActivateUserResponse = zod.object({
 
 
 /**
+ * @summary Update a user's membership status
+ */
+export const UpdateUserMembershipStatusParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UpdateUserMembershipStatusBody = zod.object({
+  "status": zod.enum(['pending', 'active', 'inactive', 'suspended'])
+})
+
+export const UpdateUserMembershipStatusResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary Bulk-correct active users stuck in pending membership status
+ */
+export const FixMembershipResponse = zod.object({
+  "fixed": zod.number()
+})
+
+
+/**
  * @summary Grant a role to a user
  */
 export const GrantUserRoleParams = zod.object({

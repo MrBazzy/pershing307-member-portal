@@ -36,6 +36,7 @@ import type {
   DomainGrantInput,
   DomainListResult,
   DomainMembersResult,
+  FixMembershipResult,
   ForgotPasswordInput,
   HealthStatus,
   InvitationCreatedResult,
@@ -58,6 +59,7 @@ import type {
   TwoFactorInput,
   TwoFactorStatus,
   TwoFactorVerifyEnrollInput,
+  UpdateMembershipStatusInput,
   UserDegreeListResult,
   UserDetailResult,
   UserDomainAccessListResult,
@@ -1534,6 +1536,148 @@ export const useActivateUser = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getActivateUserMutationOptions(options));
+    }
+
+export const getUpdateUserMembershipStatusUrl = (id: string,) => {
+
+
+
+
+  return `/api/users/${id}/membership-status`
+}
+
+/**
+ * @summary Update a user's membership status
+ */
+export const updateUserMembershipStatus = async (id: string,
+    updateMembershipStatusInput: UpdateMembershipStatusInput, options?: RequestInit): Promise<SuccessResult> => {
+
+  return customFetch<SuccessResult>(getUpdateUserMembershipStatusUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateMembershipStatusInput,)
+  }
+);}
+
+
+
+
+export const getUpdateUserMembershipStatusMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUserMembershipStatus>>, TError,{id: string;data: BodyType<UpdateMembershipStatusInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateUserMembershipStatus>>, TError,{id: string;data: BodyType<UpdateMembershipStatusInput>}, TContext> => {
+
+const mutationKey = ['updateUserMembershipStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateUserMembershipStatus>>, {id: string;data: BodyType<UpdateMembershipStatusInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateUserMembershipStatus(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateUserMembershipStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateUserMembershipStatus>>>
+    export type UpdateUserMembershipStatusMutationBody = BodyType<UpdateMembershipStatusInput>
+    export type UpdateUserMembershipStatusMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a user's membership status
+ */
+export const useUpdateUserMembershipStatus = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUserMembershipStatus>>, TError,{id: string;data: BodyType<UpdateMembershipStatusInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateUserMembershipStatus>>,
+        TError,
+        {id: string;data: BodyType<UpdateMembershipStatusInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateUserMembershipStatusMutationOptions(options));
+    }
+
+export const getFixMembershipUrl = () => {
+
+
+
+
+  return `/api/users/fix-membership`
+}
+
+/**
+ * @summary Bulk-correct active users stuck in pending membership status
+ */
+export const fixMembership = async ( options?: RequestInit): Promise<FixMembershipResult> => {
+
+  return customFetch<FixMembershipResult>(getFixMembershipUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getFixMembershipMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof fixMembership>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof fixMembership>>, TError,void, TContext> => {
+
+const mutationKey = ['fixMembership'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof fixMembership>>, void> = () => {
+
+
+          return  fixMembership(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FixMembershipMutationResult = NonNullable<Awaited<ReturnType<typeof fixMembership>>>
+
+    export type FixMembershipMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Bulk-correct active users stuck in pending membership status
+ */
+export const useFixMembership = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof fixMembership>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof fixMembership>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getFixMembershipMutationOptions(options));
     }
 
 export const getGrantUserRoleUrl = (id: string,) => {

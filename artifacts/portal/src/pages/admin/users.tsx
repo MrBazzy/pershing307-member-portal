@@ -1,9 +1,10 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   useListUsers, useListRoles, useGetUser, useDeactivateUser, useActivateUser,
   useGrantUserRole, useRevokeUserRole, useGetUserDomains, useGetUserDegrees,
   useGrantUserDomain, useRevokeUserDomain, useListDomains, useListDegreeDefinitions,
   useAddUserDegree, useRemoveUserDegree, useResetTestUser,
+  useUpdateUserMembershipStatus, useFixMembership,
   getListUsersQueryKey, getGetUserQueryKey, getGetUserDomainsQueryKey, getGetUserDegreesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -36,6 +37,11 @@ export default function AdminUsersPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [offset, setOffset] = useState(0);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [fixConfirmOpen, setFixConfirmOpen] = useState(false);
+
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const fixMembership = useFixMembership();
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -57,6 +63,7 @@ export default function AdminUsersPage() {
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
+  const stuckCount = users.filter((u) => u.isActive && u.membershipStatus === "pending").length;
 
   return (
     <AppLayout>
@@ -79,6 +86,28 @@ export default function AdminUsersPage() {
             />
           </div>
         </div>
+
+        {stuckCount > 0 && (
+          <div className="mb-4 flex items-start gap-3 rounded-sm border border-amber-500/40 bg-amber-500/5 px-4 py-3">
+            <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-400">
+                {stuckCount} active {stuckCount === 1 ? "member has" : "members have"} pending membership status
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                These accounts have portal access but their membership status was not set automatically.
+              </p>
+            </div>
+            <Button
+              variant="outline" size="sm"
+              className="shrink-0 border-amber-500/40 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
+              onClick={() => setFixConfirmOpen(true)}
+              data-testid="button-fix-membership"
+            >
+              Fix All
+            </Button>
+          </div>
+        )}
 
         <div className="bg-card border rounded-sm overflow-hidden">
           <table className="w-full text-sm">
@@ -166,6 +195,36 @@ export default function AdminUsersPage() {
       </div>
 
       <UserDetailSheet userId={selectedUserId} onClose={() => setSelectedUserId(null)} />
+
+      <AlertDialog open={fixConfirmOpen} onOpenChange={setFixConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Fix Membership Status</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will update {stuckCount} active {stuckCount === 1 ? "user's" : "users'"} membership status from "pending" to "active" and record an audit entry for each change.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={fixMembership.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                fixMembership.mutate(undefined, {
+                  onSuccess: (result) => {
+                    setFixConfirmOpen(false);
+                    queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+                    toast({ title: `Fixed ${result.fixed} member${result.fixed !== 1 ? "s" : ""}` });
+                  },
+                  onError: () => toast({ title: "Failed", description: "Could not fix membership status", variant: "destructive" }),
+                });
+              }}
+            >
+              {fixMembership.isPending ? "Fixing…" : "Fix All"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
@@ -179,6 +238,9 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
   const [newDegree, setNewDegree] = useState("");
   const [newConferredOn, setNewConferredOn] = useState("");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [membershipStatusEdit, setMembershipStatusEdit] = useState("");
+
+  useEffect(() => { setMembershipStatusEdit(""); }, [userId]);
 
   const { data, isLoading } = useGetUser(userId ?? "", {
     query: { enabled: !!userId, queryKey: getGetUserQueryKey(userId ?? "") },
@@ -191,6 +253,7 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
 
   const deactivate = useDeactivateUser();
   const activate = useActivateUser();
+  const updateMembershipStatus = useUpdateUserMembershipStatus();
   const grantRole = useGrantUserRole();
   const revokeRole = useRevokeUserRole();
   const grantDomain = useGrantUserDomain();
@@ -259,11 +322,56 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
                   <DetailItem label="Email">
                     <Badge variant={user.emailVerified ? "default" : "outline"}>{user.emailVerified ? "Verified" : "Pending"}</Badge>
                   </DetailItem>
-                  {user.membershipStatus && <DetailItem label="Membership">{user.membershipStatus}</DetailItem>}
                   <DetailItem label="Joined">{format(new Date(user.createdAt), "MMM d, yyyy")}</DetailItem>
                   <DetailItem label="Last Login">
                     {user.lastLoginAt ? formatDistanceToNow(new Date(user.lastLoginAt), { addSuffix: true }) : "Never"}
                   </DetailItem>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Membership Status</p>
+                  <div className="flex gap-2">
+                    <Select
+                      value={membershipStatusEdit || user.membershipStatus || "pending"}
+                      onValueChange={setMembershipStatusEdit}
+                    >
+                      <SelectTrigger className="flex-1 h-8 text-xs" data-testid="select-membership-status">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                        <SelectItem value="suspended">Suspended</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm" className="h-8 px-3"
+                      disabled={
+                        (!membershipStatusEdit || membershipStatusEdit === user.membershipStatus) ||
+                        updateMembershipStatus.isPending
+                      }
+                      onClick={() => {
+                        if (!userId || !membershipStatusEdit) return;
+                        updateMembershipStatus.mutate(
+                          { id: userId, data: { status: membershipStatusEdit as "pending" | "active" | "inactive" | "suspended" } },
+                          {
+                            onSuccess: () => {
+                              invalidate();
+                              setMembershipStatusEdit("");
+                              toast({ title: "Membership status updated" });
+                            },
+                            onError: () => toast({ title: "Failed", description: "Could not update membership status", variant: "destructive" }),
+                          },
+                        );
+                      }}
+                      data-testid="button-save-membership-status"
+                    >
+                      Save
+                    </Button>
+                  </div>
                 </div>
 
                 <Separator />

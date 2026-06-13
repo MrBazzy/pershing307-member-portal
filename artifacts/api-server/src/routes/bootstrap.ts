@@ -122,6 +122,7 @@ router.post("/", async (req, res) => {
         lastName: data.adminLastName,
         isActive: true,
         isBootstrapAdmin: true,
+        membershipStatus: "active",
         passwordChangedAt: new Date(),
       })
       .returning();

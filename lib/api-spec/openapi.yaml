@@ -426,6 +426,44 @@ paths:
               schema:
                 $ref: "#/components/schemas/SuccessResult"
 
+  /users/{id}/membership-status:
+    patch:
+      operationId: updateUserMembershipStatus
+      tags: [users]
+      summary: Update a user's membership status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMembershipStatusInput"
+      responses:
+        "200":
+          description: Membership status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+
+  /users/fix-membership:
+    post:
+      operationId: fixMembership
+      tags: [users]
+      summary: Bulk-correct active users stuck in pending membership status
+      responses:
+        "200":
+          description: Number of users corrected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FixMembershipResult"
+
   /users/{id}/roles:
     post:
       operationId: grantUserRole
@@ -1295,6 +1333,21 @@ components:
           type: boolean
         message:
           type: string
+
+    UpdateMembershipStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [pending, active, inactive, suspended]
+
+    FixMembershipResult:
+      type: object
+      required: [fixed]
+      properties:
+        fixed:
+          type: integer
 
     RoleAssignment:
       type: object

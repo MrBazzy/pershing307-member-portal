@@ -242,6 +242,24 @@ export interface SmtpTestResult {
   message: string;
 }
 
+export type UpdateMembershipStatusInputStatus = typeof UpdateMembershipStatusInputStatus[keyof typeof UpdateMembershipStatusInputStatus];
+
+
+export const UpdateMembershipStatusInputStatus = {
+  pending: 'pending',
+  active: 'active',
+  inactive: 'inactive',
+  suspended: 'suspended',
+} as const;
+
+export interface UpdateMembershipStatusInput {
+  status: UpdateMembershipStatusInputStatus;
+}
+
+export interface FixMembershipResult {
+  fixed: number;
+}
+
 export interface RoleAssignment {
   /** @minLength 1 */
   roleId: string;
