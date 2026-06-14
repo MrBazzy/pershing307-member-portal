@@ -298,6 +298,16 @@ router.post("/accept", async (req, res) => {
     targetId: invitation.id,
     ipAddress: ip,
   });
+  await writeAuditLog({
+    lodgeId,
+    actorId: user.id,
+    actorEmail: user.email,
+    action: "MEMBERSHIP_STATUS_CHANGED",
+    targetType: "user",
+    targetId: user.id,
+    detail: { from: "pending", to: "active", source: "invitation_accepted" },
+    ipAddress: ip,
+  });
   await writeAuditLog({ lodgeId, actorId: user.id, actorEmail: user.email, action: "USER_ACTIVATED", targetType: "user", targetId: user.id, ipAddress: ip });
 
   res.status(201).json({ success: true, message: "Account created. Please complete your profile setup." });

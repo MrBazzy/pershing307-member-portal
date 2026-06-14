@@ -135,6 +135,16 @@ router.post("/", async (req, res) => {
       lodgeId: lodge.id,
       actorId: adminUser.id,
       actorEmail: adminUser.email,
+      action: "MEMBERSHIP_STATUS_CHANGED",
+      targetType: "user",
+      targetId: adminUser.id,
+      detail: { from: "pending", to: "active", source: "bootstrap" },
+    });
+
+    await writeAuditLog({
+      lodgeId: lodge.id,
+      actorId: adminUser.id,
+      actorEmail: adminUser.email,
       action: "BOOTSTRAP_COMPLETED",
       detail: { lodgeName: data.lodgeName, lodgeNumber: data.lodgeNumber },
     });
