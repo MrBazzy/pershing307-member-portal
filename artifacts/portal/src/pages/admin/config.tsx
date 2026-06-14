@@ -7,85 +7,194 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useListConfig, useUpdateConfig, getListConfigQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Settings, Lock, Key, Save, Info, Loader2, AlertTriangle } from "lucide-react";
+import { Settings, Lock, Save, Info, Loader2, AlertTriangle, ShieldAlert, Mail } from "lucide-react";
 
 const updateSchema = z.object({ value: z.string() });
 type UpdateValues = z.infer<typeof updateSchema>;
 
-function ConfigRow({ entry, onSave }: {
+const KEY_INPUT_TYPES: Record<string, string> = {
+  smtp_port: "number",
+  smtp_from_email: "email",
+  smtp_reply_to: "email",
+  session_timeout_min: "number",
+  lockout_max_attempts: "number",
+  lockout_duration_min: "number",
+  invite_expiry_days: "number",
+  reset_expiry_hours: "number",
+};
+
+const KEY_LABELS: Record<string, string> = {
+  lodge_name: "Lodge Name",
+  lodge_number: "Lodge Number",
+  lodge_timezone: "Timezone",
+  smtp_host: "SMTP Host",
+  smtp_port: "SMTP Port",
+  smtp_user: "SMTP Username",
+  smtp_from_email: "From Address",
+  smtp_from_name: "From Name",
+  smtp_reply_to: "Reply-To Address",
+  session_timeout_min: "Session Timeout (min)",
+  lockout_max_attempts: "Max Login Attempts",
+  lockout_duration_min: "Lockout Duration (min)",
+  invite_expiry_days: "Invitation Expiry (days)",
+  reset_expiry_hours: "Password Reset Expiry (hrs)",
+  require_2fa_roles: "Roles Requiring 2FA",
+};
+
+function ConfigRow({
+  entry,
+  onSave,
+  requiresConfirmation = false,
+}: {
   entry: { key: string; value: string | null; description: string; isReadOnly: boolean };
   onSave: (key: string, value: string) => Promise<void>;
+  requiresConfirmation?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingValue, setPendingValue] = useState<string | null>(null);
+
   const form = useForm<UpdateValues>({
     resolver: zodResolver(updateSchema),
     defaultValues: { value: entry.value ?? "" },
   });
 
-  const handleSubmit = async (values: UpdateValues) => {
+  const doSave = async (value: string) => {
     setSaving(true);
     try {
-      await onSave(entry.key, values.value);
+      await onSave(entry.key, value);
       setEditing(false);
     } finally {
       setSaving(false);
     }
   };
 
-  const isSmtpKey = entry.key.startsWith("smtp_");
+  const handleSubmit = async (values: UpdateValues) => {
+    if (requiresConfirmation) {
+      setPendingValue(values.value);
+      setConfirmOpen(true);
+    } else {
+      await doSave(values.value);
+    }
+  };
+
+  const label = KEY_LABELS[entry.key] ?? entry.key;
+  const inputType = KEY_INPUT_TYPES[entry.key] ?? "text";
 
   return (
-    <div className="py-4 space-y-2">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-0.5 flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{entry.key}</code>
-            {entry.isReadOnly && (
-              <Badge variant="outline" className="text-xs gap-1">
-                <Lock className="h-2.5 w-2.5" />
-                Read-only
-              </Badge>
-            )}
-            {isSmtpKey && (
-              <Badge variant="outline" className="text-xs">SMTP</Badge>
-            )}
+    <>
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm lodge information change</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>
+                  You are changing <strong className="text-foreground">{label}</strong>. This
+                  affects all members and the portal's public identity.
+                </p>
+                <div className="rounded-md border bg-muted/50 px-3 py-2 space-y-1 font-mono text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Current: </span>
+                    <span className="text-foreground">{entry.value || "(not set)"}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">New: </span>
+                    <span className="text-foreground font-semibold">{pendingValue || "(empty)"}</span>
+                  </div>
+                </div>
+                <p>Are you sure you want to proceed?</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={saving}
+              onClick={async () => {
+                setConfirmOpen(false);
+                if (pendingValue !== null) await doSave(pendingValue);
+              }}
+            >
+              {saving && <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />}
+              Confirm Change
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <div className="py-4 space-y-2">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-0.5 flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-medium">{label}</span>
+              <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono text-muted-foreground">
+                {entry.key}
+              </code>
+              {entry.isReadOnly && (
+                <Badge variant="outline" className="text-xs gap-1">
+                  <Lock className="h-2.5 w-2.5" />
+                  Read-only
+                </Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">{entry.description}</p>
           </div>
-          <p className="text-xs text-muted-foreground">{entry.description}</p>
+
+          {!entry.isReadOnly && !editing && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                form.reset({ value: entry.value ?? "" });
+                setEditing(true);
+              }}
+            >
+              Edit
+            </Button>
+          )}
         </div>
 
-        {!entry.isReadOnly && !editing && (
-          <Button size="sm" variant="outline" onClick={() => { form.reset({ value: entry.value ?? "" }); setEditing(true); }}>
-            Edit
-          </Button>
-        )}
-      </div>
-
-      {editing ? (
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="flex gap-2 mt-2">
-            <FormField control={form.control} name="value" render={({ field }) => (
-              <FormItem className="flex-1">
-                <FormControl>
-                  <Input {...field} autoFocus />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-            <Button type="submit" size="sm" disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            </Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
-          </form>
-        </Form>
-      ) : (
-        <div className="pl-0">
+        {editing ? (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="flex gap-2 mt-2">
+              <FormField
+                control={form.control}
+                name="value"
+                render={({ field }) => (
+                  <FormItem className="flex-1">
+                    <FormControl>
+                      <Input {...field} type={inputType} autoFocus />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" size="sm" disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              </Button>
+              <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
+                Cancel
+              </Button>
+            </form>
+          </Form>
+        ) : (
           <p className="text-sm font-mono">
             {entry.value ? (
               <span className="text-foreground">{entry.value}</span>
@@ -95,8 +204,34 @@ function ConfigRow({ entry, onSave }: {
               </span>
             )}
           </p>
+        )}
+      </div>
+    </>
+  );
+}
+
+function SmtpPasswordRow() {
+  return (
+    <div className="py-4 space-y-2">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-0.5 flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium">SMTP Password</span>
+            <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono text-muted-foreground">
+              SMTP_PASS
+            </code>
+            <Badge variant="outline" className="text-xs gap-1 border-amber-300 text-amber-700 bg-amber-50">
+              <ShieldAlert className="h-2.5 w-2.5" />
+              Env secret only
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Set the <code className="font-mono">SMTP_PASS</code> environment variable. The password is never
+            stored in the database and cannot be configured here.
+          </p>
         </div>
-      )}
+      </div>
+      <p className="text-sm text-muted-foreground italic">Protected — configure via environment secret</p>
     </div>
   );
 }
@@ -109,12 +244,20 @@ export default function AdminConfigPage() {
 
   const config = data?.config ?? [];
 
-  const smtpEntries = config.filter((c) => c.key.startsWith("smtp_") || c.key.startsWith("lodge_"));
+  const lodgeEntries = config.filter((c) =>
+    ["lodge_name", "lodge_number", "lodge_timezone"].includes(c.key)
+  );
+  const smtpEntries = config.filter((c) =>
+    ["smtp_host", "smtp_port", "smtp_user", "smtp_from_email", "smtp_from_name", "smtp_reply_to"].includes(c.key)
+  );
   const sessionEntries = config.filter((c) =>
     ["session_timeout_min", "lockout_max_attempts", "lockout_duration_min"].includes(c.key)
   );
+  const securityEntries = config.filter((c) =>
+    ["require_2fa_roles"].includes(c.key)
+  );
   const inviteEntries = config.filter((c) =>
-    ["invite_expiry_days", "reset_expiry_hours", "require_2fa_roles"].includes(c.key)
+    ["invite_expiry_days", "reset_expiry_hours"].includes(c.key)
   );
 
   const handleSave = async (key: string, value: string) => {
@@ -128,7 +271,11 @@ export default function AdminConfigPage() {
             resolve();
           },
           onError: (e: any) => {
-            toast({ title: "Error", description: e?.data?.error ?? "Failed to update configuration", variant: "destructive" });
+            toast({
+              title: "Error",
+              description: e?.data?.error ?? "Failed to update configuration",
+              variant: "destructive",
+            });
             reject(e);
           },
         }
@@ -144,37 +291,61 @@ export default function AdminConfigPage() {
             <Settings className="h-6 w-6" /> Configuration
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Manage portal settings. Read-only fields are set during setup or via environment variables.
+            Manage portal settings. SMTP Password is an environment secret and cannot be set here.
           </p>
         </div>
 
-        <Alert>
-          <Key className="h-4 w-4" />
-          <AlertTitle>SMTP Password</AlertTitle>
-          <AlertDescription>
-            The SMTP password (<code className="text-xs font-mono">SMTP_PASS</code>) must be set as an <strong>environment secret</strong> and is never stored in the database.
-            Email delivery will not work without it. Contact your system administrator to configure it.
-          </AlertDescription>
-        </Alert>
-
         {isLoading ? (
           <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-16" />)}
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Skeleton key={i} className="h-16" />
+            ))}
           </div>
         ) : (
           <div className="space-y-6">
             <div className="border rounded-lg px-4">
-              <h2 className="text-sm font-semibold py-3 text-muted-foreground uppercase tracking-wide">Lodge &amp; Email</h2>
+              <div className="py-3 flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  Lodge Information
+                </h2>
+                <Badge variant="outline" className="text-xs gap-1 ml-auto border-blue-200 text-blue-700 bg-blue-50">
+                  <Info className="h-2.5 w-2.5" />
+                  Confirmation required
+                </Badge>
+              </div>
               <Separator />
               <div className="divide-y">
-                {smtpEntries.map((entry) => (
-                  <ConfigRow key={entry.key} entry={entry} onSave={handleSave} />
+                {lodgeEntries.map((entry) => (
+                  <ConfigRow
+                    key={entry.key}
+                    entry={entry}
+                    onSave={handleSave}
+                    requiresConfirmation
+                  />
                 ))}
               </div>
             </div>
 
             <div className="border rounded-lg px-4">
-              <h2 className="text-sm font-semibold py-3 text-muted-foreground uppercase tracking-wide">Session &amp; Lockout</h2>
+              <div className="py-3 flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5" />
+                  Email Configuration
+                </h2>
+              </div>
+              <Separator />
+              <div className="divide-y">
+                {smtpEntries.map((entry) => (
+                  <ConfigRow key={entry.key} entry={entry} onSave={handleSave} />
+                ))}
+                <SmtpPasswordRow />
+              </div>
+            </div>
+
+            <div className="border rounded-lg px-4">
+              <h2 className="text-sm font-semibold py-3 text-muted-foreground uppercase tracking-wide">
+                Session &amp; Lockout
+              </h2>
               <Separator />
               <div className="divide-y">
                 {sessionEntries.map((entry) => (
@@ -184,7 +355,21 @@ export default function AdminConfigPage() {
             </div>
 
             <div className="border rounded-lg px-4">
-              <h2 className="text-sm font-semibold py-3 text-muted-foreground uppercase tracking-wide">Invitations &amp; Security</h2>
+              <h2 className="text-sm font-semibold py-3 text-muted-foreground uppercase tracking-wide">
+                Security
+              </h2>
+              <Separator />
+              <div className="divide-y">
+                {securityEntries.map((entry) => (
+                  <ConfigRow key={entry.key} entry={entry} onSave={handleSave} />
+                ))}
+              </div>
+            </div>
+
+            <div className="border rounded-lg px-4">
+              <h2 className="text-sm font-semibold py-3 text-muted-foreground uppercase tracking-wide">
+                Invitations
+              </h2>
               <Separator />
               <div className="divide-y">
                 {inviteEntries.map((entry) => (
@@ -199,7 +384,8 @@ export default function AdminConfigPage() {
                 Changes take effect after the next request.
               </p>
               <p className="text-xs">
-                Session timeout changes apply to new sessions only. To force existing sessions to expire, restart the API server.
+                Session timeout changes apply to new sessions only. To force existing sessions to
+                expire, restart the API server.
               </p>
             </div>
           </div>

@@ -13,32 +13,65 @@ const router = Router();
 
 const SITE_ADMIN_LEVEL = 80;
 
-const READ_ONLY_KEYS = new Set([
-  "lodge_name",
-  "lodge_number",
-  "lodge_timezone",
-  "smtp_host",
-  "smtp_port",
-  "smtp_user",
-  "smtp_from_email",
-  "smtp_from_name",
-]);
-
 const CONFIG_METADATA: Record<string, { description: string; isReadOnly: boolean }> = {
-  lodge_name: { description: "Name of the lodge", isReadOnly: true },
-  lodge_number: { description: "Lodge number", isReadOnly: true },
-  lodge_timezone: { description: "Lodge timezone", isReadOnly: true },
-  smtp_host: { description: "SMTP server hostname (SMTP_PASS must be set as an environment secret)", isReadOnly: true },
-  smtp_port: { description: "SMTP server port", isReadOnly: true },
-  smtp_user: { description: "SMTP login username", isReadOnly: true },
-  smtp_from_email: { description: "From email address for outgoing mail", isReadOnly: true },
-  smtp_from_name: { description: "Display name for outgoing mail", isReadOnly: true },
-  session_timeout_min: { description: "Session idle timeout in minutes (default: 480)", isReadOnly: false },
+  lodge_name: { description: "Public name of the lodge", isReadOnly: false },
+  lodge_number: { description: "Lodge number (e.g. 307)", isReadOnly: false },
+  lodge_timezone: { description: "Lodge timezone identifier (e.g. America/Chicago)", isReadOnly: false },
+  smtp_host: { description: "SMTP server hostname (e.g. smtp.example.com)", isReadOnly: false },
+  smtp_port: { description: "SMTP server port — 587 for STARTTLS, 465 for SSL/TLS, 25 for plain", isReadOnly: false },
+  smtp_user: { description: "SMTP login username", isReadOnly: false },
+  smtp_from_email: { description: "From address for outgoing mail (must be a valid email)", isReadOnly: false },
+  smtp_from_name: { description: "Display name shown on outgoing mail", isReadOnly: false },
+  smtp_reply_to: { description: "Reply-To address for outgoing mail — leave empty to use the From address", isReadOnly: false },
+  session_timeout_min: { description: "Session idle timeout in minutes (default: 480). Applies to new sessions only.", isReadOnly: false },
   lockout_max_attempts: { description: "Failed login attempts before account lockout (default: 5)", isReadOnly: false },
   lockout_duration_min: { description: "Account lockout duration in minutes (default: 15)", isReadOnly: false },
   invite_expiry_days: { description: "Days before an invitation link expires (default: 7)", isReadOnly: false },
   reset_expiry_hours: { description: "Hours before a password reset link expires (default: 1)", isReadOnly: false },
   require_2fa_roles: { description: "Comma-separated role slugs that must have 2FA enabled (e.g. site-administrator,pm-super-administrator)", isReadOnly: false },
+};
+
+type KeyValidator = (v: string) => string | null;
+
+const KEY_VALIDATORS: Record<string, KeyValidator> = {
+  smtp_port: (v) => {
+    const n = parseInt(v, 10);
+    if (!v.trim() || isNaN(n) || n < 1 || n > 65535) return "Must be a port number between 1 and 65535";
+    return null;
+  },
+  smtp_from_email: (v) => {
+    if (v && !z.string().email().safeParse(v).success) return "Must be a valid email address";
+    return null;
+  },
+  smtp_reply_to: (v) => {
+    if (v && !z.string().email().safeParse(v).success) return "Must be a valid email address";
+    return null;
+  },
+  session_timeout_min: (v) => {
+    const n = parseInt(v, 10);
+    if (isNaN(n) || n < 1) return "Must be a positive integer (minutes)";
+    return null;
+  },
+  lockout_max_attempts: (v) => {
+    const n = parseInt(v, 10);
+    if (isNaN(n) || n < 1) return "Must be a positive integer";
+    return null;
+  },
+  lockout_duration_min: (v) => {
+    const n = parseInt(v, 10);
+    if (isNaN(n) || n < 1) return "Must be a positive integer (minutes)";
+    return null;
+  },
+  invite_expiry_days: (v) => {
+    const n = parseInt(v, 10);
+    if (isNaN(n) || n < 1) return "Must be a positive integer (days)";
+    return null;
+  },
+  reset_expiry_hours: (v) => {
+    const n = parseInt(v, 10);
+    if (isNaN(n) || n < 1) return "Must be a positive integer (hours)";
+    return null;
+  },
 };
 
 const updateSchema = z.object({
@@ -133,7 +166,7 @@ router.put("/:key", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, re
     return;
   }
 
-  if (READ_ONLY_KEYS.has(key)) {
+  if (CONFIG_METADATA[key].isReadOnly) {
     res.status(403).json({ error: "This configuration key is read-only and cannot be modified here" });
     return;
   }
@@ -142,6 +175,15 @@ router.put("/:key", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, re
   if (!result.success) {
     res.status(400).json({ error: "Invalid request" });
     return;
+  }
+
+  const validator = KEY_VALIDATORS[key];
+  if (validator) {
+    const validationError = validator(result.data.value);
+    if (validationError) {
+      res.status(400).json({ error: validationError });
+      return;
+    }
   }
 
   const actorId = req.session!.userId!;
