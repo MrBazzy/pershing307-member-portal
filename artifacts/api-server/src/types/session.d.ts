@@ -8,6 +8,7 @@ declare module "express-session" {
     pendingTwoFactorUserId?: string;
     failedTotpAttempts?: number;
     totpLockedUntil?: string;
+    forceLogout?: boolean;
   }
 }
 

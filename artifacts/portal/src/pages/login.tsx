@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -30,6 +30,17 @@ export default function LoginPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
+  const [accessNotice, setAccessNotice] = useState<string | null>(null);
+
+  // Check for forced-logout notice on mount (stored by the global API error handler)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const stored = sessionStorage.getItem("loginNotice");
+    if (stored === "force_logout") {
+      setAccessNotice("Your access rights have changed. Please log in again.");
+      sessionStorage.removeItem("loginNotice");
+    }
+  }, []);
 
   const login = useLogin();
   const verifyTwoFactor = useVerifyTwoFactor();
@@ -153,6 +164,11 @@ export default function LoginPage() {
       title="Sign In"
       subtitle="Access the member portal"
     >
+      {accessNotice && (
+        <div className="mb-5 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert">
+          {accessNotice}
+        </div>
+      )}
       <Form {...loginForm}>
         <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-5">
           <FormField

@@ -19,7 +19,7 @@ import { writeAuditLog, getClientIp } from "../lib/audit";
 import { getLodgeId, getConfig } from "../lib/config";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
-import { invalidateUserSessions } from "../lib/sessions";
+import { invalidateUserSessions, markSessionsAsForceLogout } from "../lib/sessions";
 import { isTestResetEnabled } from "../lib/env";
 
 const router = Router();
@@ -158,9 +158,22 @@ router.patch("/:id/deactivate", requireAuth(), requireRole(ADMINISTRATOR_LEVEL),
     return;
   }
 
+  const pmSuperRowsDeact = await db
+    .select({ userId: userRolesTable.userId })
+    .from(userRolesTable)
+    .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
+    .where(eq(rolesTable.slug, "pm-super-administrator"));
+  if (
+    pmSuperRowsDeact.some((r) => r.userId === targetId) &&
+    pmSuperRowsDeact.filter((r) => r.userId !== targetId).length === 0
+  ) {
+    res.status(400).json({ error: "Cannot deactivate the final PM Super Administrator." });
+    return;
+  }
+
   await db.update(usersTable).set({ isActive: false, updatedAt: new Date() }).where(eq(usersTable.id, targetId));
 
-  await invalidateUserSessions(targetId);
+  const deactSessionsInvalidated = await markSessionsAsForceLogout(targetId);
 
   await writeAuditLog({
     lodgeId,
@@ -168,6 +181,7 @@ router.patch("/:id/deactivate", requireAuth(), requireRole(ADMINISTRATOR_LEVEL),
     action: "USER_DEACTIVATED",
     targetType: "user",
     targetId,
+    detail: { sessionsInvalidated: deactSessionsInvalidated },
     ipAddress: getClientIp(req),
   });
 
@@ -192,12 +206,15 @@ router.patch("/:id/activate", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), a
 
   await db.update(usersTable).set({ isActive: true, updatedAt: new Date() }).where(eq(usersTable.id, targetId));
 
+  const actSessionsInvalidated = await markSessionsAsForceLogout(targetId);
+
   await writeAuditLog({
     lodgeId,
     actorId,
     action: "USER_ACTIVATED",
     targetType: "user",
     targetId,
+    detail: { sessionsInvalidated: actSessionsInvalidated },
     ipAddress: getClientIp(req),
   });
 
@@ -319,13 +336,15 @@ router.post("/:id/roles", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (r
     .values({ userId: targetId, roleId, grantedBy: actorId })
     .onConflictDoNothing();
 
+  const grantRoleSessionsInvalidated = await markSessionsAsForceLogout(targetId);
+
   await writeAuditLog({
     lodgeId,
     actorId,
     action: "ROLE_GRANTED",
     targetType: "user",
     targetId,
-    detail: { roleId, roleName: roles[0].name },
+    detail: { roleId, roleName: roles[0].name, sessionsInvalidated: grantRoleSessionsInvalidated },
     ipAddress: getClientIp(req),
   });
 
@@ -344,9 +363,23 @@ router.delete("/:id/roles/:roleId", requireAuth(), requireRole(SITE_ADMIN_LEVEL)
     .where(eq(rolesTable.id, targetRoleId))
     .limit(1);
 
+  if (roles[0]?.slug === "pm-super-administrator") {
+    const pmSuperRowsRevoke = await db
+      .select({ userId: userRolesTable.userId })
+      .from(userRolesTable)
+      .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
+      .where(eq(rolesTable.slug, "pm-super-administrator"));
+    if (pmSuperRowsRevoke.filter((r) => r.userId !== targetId).length === 0) {
+      res.status(400).json({ error: "Cannot remove the PM Super Administrator role from the final holder." });
+      return;
+    }
+  }
+
   await db
     .delete(userRolesTable)
     .where(and(eq(userRolesTable.userId, targetId), eq(userRolesTable.roleId, targetRoleId)));
+
+  const revokeRoleSessionsInvalidated = await markSessionsAsForceLogout(targetId);
 
   await writeAuditLog({
     lodgeId,
@@ -354,13 +387,9 @@ router.delete("/:id/roles/:roleId", requireAuth(), requireRole(SITE_ADMIN_LEVEL)
     action: "ROLE_REVOKED",
     targetType: "user",
     targetId,
-    detail: { roleId: targetRoleId, roleName: roles[0]?.name },
+    detail: { roleId: targetRoleId, roleName: roles[0]?.name, sessionsInvalidated: revokeRoleSessionsInvalidated },
     ipAddress: getClientIp(req),
   });
-
-  if (roles[0] && PRIVILEGED_ROLE_SLUGS.has(roles[0].slug)) {
-    await invalidateUserSessions(targetId);
-  }
 
   res.json({ success: true });
 });
@@ -413,13 +442,15 @@ router.post("/:id/domains", requireAuth(), requireRole(PM_SUPER_ADMIN_LEVEL), as
     .values({ userId: targetUserId, domainId, grantedBy: actorId })
     .onConflictDoNothing();
 
+  const grantDomainSessionsInvalidated = await markSessionsAsForceLogout(targetUserId);
+
   await writeAuditLog({
     lodgeId,
     actorId,
     action: "DOMAIN_ACCESS_GRANTED",
     targetType: "user",
     targetId: targetUserId,
-    detail: { domainId, domainName: domains[0].name },
+    detail: { domainId, domainName: domains[0].name, sessionsInvalidated: grantDomainSessionsInvalidated },
     ipAddress: getClientIp(req),
   });
 
@@ -442,17 +473,17 @@ router.delete("/:id/domains/:domainId", requireAuth(), requireRole(PM_SUPER_ADMI
     .delete(userDomainAccessTable)
     .where(and(eq(userDomainAccessTable.userId, targetUserId), eq(userDomainAccessTable.domainId, domainId)));
 
+  const revokeDomainSessionsInvalidated = await markSessionsAsForceLogout(targetUserId);
+
   await writeAuditLog({
     lodgeId,
     actorId,
     action: "DOMAIN_ACCESS_REVOKED",
     targetType: "user",
     targetId: targetUserId,
-    detail: { domainId, domainName: domains[0]?.name },
+    detail: { domainId, domainName: domains[0]?.name, sessionsInvalidated: revokeDomainSessionsInvalidated },
     ipAddress: getClientIp(req),
   });
-
-  await invalidateUserSessions(targetUserId);
 
   res.json({ success: true });
 });
@@ -594,17 +625,18 @@ router.post("/fix-membership", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), 
 
   const ip = getClientIp(req);
   await Promise.all(
-    affected.map((u) =>
-      writeAuditLog({
+    affected.map(async (u) => {
+      const sessionsInvalidated = await markSessionsAsForceLogout(u.id);
+      return writeAuditLog({
         lodgeId,
         actorId,
         action: "MEMBERSHIP_STATUS_CHANGED",
         targetType: "user",
         targetId: u.id,
-        detail: { from: "pending", to: "active", source: "bulk_fix" },
+        detail: { from: "pending", to: "active", source: "bulk_fix", sessionsInvalidated },
         ipAddress: ip,
-      }),
-    ),
+      });
+    }),
   );
 
   res.json({ fixed: affected.length });
@@ -645,13 +677,15 @@ router.patch("/:id/membership-status", requireAuth(), requireRole(ADMINISTRATOR_
     .set({ membershipStatus: newStatus, updatedAt: new Date() })
     .where(eq(usersTable.id, targetId));
 
+  const membershipSessionsInvalidated = await markSessionsAsForceLogout(targetId);
+
   await writeAuditLog({
     lodgeId,
     actorId,
     action: "MEMBERSHIP_STATUS_CHANGED",
     targetType: "user",
     targetId,
-    detail: { from: prevStatus, to: newStatus },
+    detail: { from: prevStatus, to: newStatus, sessionsInvalidated: membershipSessionsInvalidated },
     ipAddress: getClientIp(req),
   });
 

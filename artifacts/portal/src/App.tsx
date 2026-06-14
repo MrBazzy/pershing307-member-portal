@@ -1,5 +1,5 @@
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
@@ -22,7 +22,16 @@ import AdminConfigPage from "@/pages/admin/config";
 import TwoFactorPage from "@/pages/settings/two-factor";
 import { useEffect } from "react";
 
+function onGlobalApiError(error: unknown) {
+  const err = error as any;
+  if (err?.status === 401 && err?.data?.reason === "force_logout") {
+    sessionStorage.setItem("loginNotice", "force_logout");
+  }
+}
+
 const queryClient = new QueryClient({
+  queryCache: new QueryCache({ onError: onGlobalApiError }),
+  mutationCache: new MutationCache({ onError: onGlobalApiError }),
   defaultOptions: {
     queries: {
       retry: (failureCount, error: any) => {

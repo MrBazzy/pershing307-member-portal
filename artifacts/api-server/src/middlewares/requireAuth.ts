@@ -6,6 +6,14 @@ export function requireAuth() {
       res.status(401).json({ error: "Authentication required" });
       return;
     }
+    if (req.session.forceLogout) {
+      req.session.destroy(() => {});
+      res.status(401).json({
+        error: "Your access rights have changed. Please log in again.",
+        reason: "force_logout",
+      });
+      return;
+    }
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
