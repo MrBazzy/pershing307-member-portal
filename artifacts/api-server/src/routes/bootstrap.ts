@@ -31,6 +31,7 @@ const INITIAL_ROLES = [
   { name: "Junior Warden", slug: "junior-warden", permissionLevel: 40, isSystem: false },
   { name: "Senior Warden", slug: "senior-warden", permissionLevel: 50, isSystem: false },
   { name: "Worshipful Master", slug: "worshipful-master", permissionLevel: 60, isSystem: false },
+  { name: "Past Master", slug: "past-master", permissionLevel: 30, isSystem: false },
   { name: "Site Administrator", slug: "site-administrator", permissionLevel: 80, isSystem: true },
   { name: "PM Super Administrator", slug: "pm-super-administrator", permissionLevel: 90, isSystem: true },
 ];
