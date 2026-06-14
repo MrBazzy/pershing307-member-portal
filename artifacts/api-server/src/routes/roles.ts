@@ -7,9 +7,9 @@ import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 
 const router = Router();
-const ADMINISTRATOR_LEVEL = 70;
+const SITE_ADMIN_LEVEL = 80;
 
-router.get("/", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (_req, res) => {
+router.get("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (_req, res) => {
   const lodgeId = await getLodgeId();
   if (!lodgeId) {
     res.status(500).json({ error: "Lodge not configured" });

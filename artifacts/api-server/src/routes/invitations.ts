@@ -14,7 +14,7 @@ import { requireRole } from "../middlewares/requireRole";
 
 const router = Router();
 
-const ADMINISTRATOR_LEVEL = 70;
+const SITE_ADMIN_LEVEL = 80;
 
 const createInvitationSchema = z.object({
   email: z.string().email(),
@@ -32,7 +32,7 @@ function isSmtpConfigured(): boolean {
   return !!(process.env.SMTP_PASS && process.env.SMTP_HOST);
 }
 
-router.post("/", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.post("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const result = createInvitationSchema.safeParse(req.body);
   if (!result.success) {
     res.status(400).json({ error: "Invalid request", issues: result.error.issues });
@@ -123,7 +123,7 @@ router.post("/", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, re
   });
 });
 
-router.get("/", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.get("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const lodgeId = await getLodgeId();
   if (!lodgeId) {
     res.status(500).json({ error: "Lodge not configured" });
@@ -314,7 +314,7 @@ router.post("/accept", async (req, res) => {
   res.status(201).json({ success: true, message: "Account created. Please complete your profile setup." });
 });
 
-router.delete("/cleanup", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.delete("/cleanup", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const actorId = req.session!.userId!;
   const lodgeId = await getLodgeId();
   if (!lodgeId) {
@@ -352,7 +352,7 @@ router.delete("/cleanup", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async
   res.json({ removed });
 });
 
-router.get("/:id/link", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.get("/:id/link", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const invitationId = String(req.params.id);
   const lodgeId = await getLodgeId();
 
@@ -379,7 +379,7 @@ router.get("/:id/link", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (
   res.json({ link });
 });
 
-router.delete("/:id", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.delete("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const invitationId = String(req.params.id);
   const actorId = req.session!.userId!;
   const lodgeId = await getLodgeId();

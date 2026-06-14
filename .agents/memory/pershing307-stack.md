@@ -47,6 +47,14 @@ window.location.replace destroys the entire TanStack cache — no in-flight requ
 ## Contract tests
 52 tests: `pnpm --filter @workspace/api-server test`
 
+## Role model (simplified — ROLE-SIMPLIFICATION-001)
+Administrator (level 70) was removed. Final model:
+- Visitor 10, Member 20, lodge officer roles 30–60, Site Administrator 80, PM Super Administrator 90
+- All former ADMINISTRATOR_LEVEL (70) gates are now SITE_ADMIN_LEVEL (80)
+- PRIVILEGED_ROLE_SLUGS = {site-administrator, pm-super-administrator}
+- Site Administrator owns all operational administration (users, invites, degrees, audit, config)
+- PM Super Administrator owns governance (domain assignment, role assignment, emergency)
+
 ## DB migration
 `cd lib/db && pnpm run push` (no migration files, direct schema push)
 

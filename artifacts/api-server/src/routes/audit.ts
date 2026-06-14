@@ -9,7 +9,7 @@ import { requireRole } from "../middlewares/requireRole";
 import type { SQL } from "drizzle-orm";
 
 const router = Router();
-const ADMINISTRATOR_LEVEL = 70;
+const SITE_ADMIN_LEVEL = 80;
 
 const filterSchema = z.object({
   limit: z.coerce.number().int().min(1).max(500).default(100),
@@ -21,7 +21,7 @@ const filterSchema = z.object({
   targetType: z.string().optional(),
 });
 
-router.get("/", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.get("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const lodgeId = await getLodgeId();
   if (!lodgeId) {
     res.status(500).json({ error: "Lodge not configured" });

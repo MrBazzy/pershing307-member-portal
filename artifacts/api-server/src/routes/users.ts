@@ -24,11 +24,10 @@ import { isTestResetEnabled } from "../lib/env";
 
 const router = Router();
 
-const ADMINISTRATOR_LEVEL = 70;
 const SITE_ADMIN_LEVEL = 80;
 const PM_SUPER_ADMIN_LEVEL = 90;
 
-const PRIVILEGED_ROLE_SLUGS = new Set(["administrator", "site-administrator", "pm-super-administrator"]);
+const PRIVILEGED_ROLE_SLUGS = new Set(["site-administrator", "pm-super-administrator"]);
 
 const listQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(50),
@@ -36,7 +35,7 @@ const listQuerySchema = z.object({
   search: z.string().optional(),
 });
 
-router.get("/", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.get("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const lodgeId = await getLodgeId();
   if (!lodgeId) {
     res.status(500).json({ error: "Lodge not configured" });
@@ -90,7 +89,7 @@ router.get("/", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res
   res.json({ users, total: totalResult[0]?.count ?? 0, limit, offset });
 });
 
-router.get("/:id", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.get("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const userId = String(req.params.id);
   const lodgeId = await getLodgeId();
 
@@ -132,7 +131,7 @@ router.get("/:id", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, 
   });
 });
 
-router.patch("/:id/deactivate", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.patch("/:id/deactivate", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const targetId = String(req.params.id);
   const actorId = req.session!.userId!;
   const lodgeId = await getLodgeId();
@@ -188,7 +187,7 @@ router.patch("/:id/deactivate", requireAuth(), requireRole(ADMINISTRATOR_LEVEL),
   res.json({ success: true });
 });
 
-router.patch("/:id/activate", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.patch("/:id/activate", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const targetId = String(req.params.id);
   const actorId = req.session!.userId!;
   const lodgeId = await getLodgeId();
@@ -224,7 +223,7 @@ router.patch("/:id/activate", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), a
   res.json({ success: true });
 });
 
-router.post("/:id/reset-password", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.post("/:id/reset-password", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const targetId = String(req.params.id);
   const actorId = req.session!.userId!;
   const lodgeId = await getLodgeId();
@@ -491,7 +490,7 @@ router.delete("/:id/roles/:roleId", requireAuth(), requireRole(SITE_ADMIN_LEVEL)
   res.json({ success: true });
 });
 
-router.get("/:id/domains", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.get("/:id/domains", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const targetUserId = String(req.params.id);
 
   const grants = await db
@@ -591,7 +590,7 @@ const addDegreeSchema = z.object({
   notes: z.string().max(500).nullable().optional(),
 });
 
-router.get("/:id/degrees", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.get("/:id/degrees", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const targetUserId = String(req.params.id);
 
   const degreeRows = await db
@@ -625,7 +624,7 @@ router.get("/:id/degrees", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), asyn
   res.json({ degrees });
 });
 
-router.post("/:id/degrees", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.post("/:id/degrees", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const targetUserId = String(req.params.id);
   const actorId = req.session!.userId!;
   const lodgeId = await getLodgeId();
@@ -670,7 +669,7 @@ router.post("/:id/degrees", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), asy
   res.status(201).json({ success: true });
 });
 
-router.delete("/:id/degrees/:degreeId", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.delete("/:id/degrees/:degreeId", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const targetUserId = String(req.params.id);
   const degreeId = String(req.params.degreeId);
   const actorId = req.session!.userId!;
@@ -706,7 +705,7 @@ const membershipStatusSchema = z.object({
   status: z.enum(["pending", "active", "inactive", "suspended"]),
 });
 
-router.post("/fix-membership", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.post("/fix-membership", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const actorId = req.session!.userId!;
   const lodgeId = await getLodgeId();
 
@@ -739,7 +738,7 @@ router.post("/fix-membership", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), 
   res.json({ fixed: affected.length });
 });
 
-router.patch("/:id/membership-status", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.patch("/:id/membership-status", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const targetId = String(req.params.id);
   const actorId = req.session!.userId!;
   const lodgeId = await getLodgeId();

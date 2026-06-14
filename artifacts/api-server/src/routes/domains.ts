@@ -10,10 +10,10 @@ import { getLodgeId } from "../lib/config";
 
 const router = Router();
 
-const ADMINISTRATOR_LEVEL = 70;
+const SITE_ADMIN_LEVEL = 80;
 const PM_SUPER_ADMIN_LEVEL = 90;
 
-router.get("/", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.get("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const lodgeId = await getLodgeId();
   if (!lodgeId) {
     res.status(500).json({ error: "Lodge not configured" });
@@ -34,7 +34,7 @@ router.get("/", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res
   res.json({ domains });
 });
 
-router.get("/:domainId/members", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.get("/:domainId/members", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const domainId = String(req.params.domainId);
   const lodgeId = await getLodgeId();
 
@@ -64,7 +64,7 @@ router.get("/:domainId/members", requireAuth(), requireRole(ADMINISTRATOR_LEVEL)
   res.json({ users: grants.map((g) => ({ ...g, grantedAt: g.grantedAt.toISOString() })) });
 });
 
-router.get("/:userId", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.get("/:userId", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const targetUserId = String(req.params.userId);
 
   const grants = await db

@@ -10,7 +10,6 @@ import { getLodgeId, getConfig, setConfig } from "../lib/config";
 
 const router = Router();
 
-const ADMINISTRATOR_LEVEL = 70;
 const SITE_ADMIN_LEVEL = 80;
 
 const DEFAULT_DEGREE_DEFINITIONS = [
@@ -57,7 +56,7 @@ router.put("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) =
   res.json({ success: true });
 });
 
-router.get("/:userId", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.get("/:userId", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const targetUserId = String(req.params.userId);
   const definitions = await getDegreeDefinitions();
 
@@ -88,7 +87,7 @@ const addDegreeSchema = z.object({
   notes: z.string().max(500).nullable().optional(),
 });
 
-router.post("/:userId", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.post("/:userId", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const targetUserId = String(req.params.userId);
   const actorId = req.session!.userId!;
   const lodgeId = await getLodgeId();
@@ -125,7 +124,7 @@ router.post("/:userId", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (
   res.status(201).json({ success: true });
 });
 
-router.delete("/:userId/:degreeId", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+router.delete("/:userId/:degreeId", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const targetUserId = String(req.params.userId);
   const degreeId = String(req.params.degreeId);
   const actorId = req.session!.userId!;
