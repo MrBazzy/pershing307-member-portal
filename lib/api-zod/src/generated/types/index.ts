@@ -7,6 +7,7 @@
  */
 
 export * from './acceptInvitationInput';
+export * from './adminResetPasswordResult';
 export * from './auditLogEntry';
 export * from './auditLogEntryDetail';
 export * from './auditLogResult';

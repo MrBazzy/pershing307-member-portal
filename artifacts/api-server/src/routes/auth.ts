@@ -157,6 +157,12 @@ router.post("/login", loginRateLimit, async (req, res) => {
     return;
   }
 
+  if (user.mustChangePassword && user.tempPasswordExpiresAt && user.tempPasswordExpiresAt < new Date()) {
+    await writeAuditLog({ lodgeId, actorId: user.id, actorEmail: user.email, action: "LOGIN_FAILED", ipAddress: ip, userAgent: ua, detail: { reason: "temp_password_expired" } });
+    res.status(403).json({ error: "Your temporary password has expired. Please contact a lodge administrator.", reason: "temp_password_expired" });
+    return;
+  }
+
   await db.update(usersTable).set({ failedLoginAttempts: 0, lockedUntil: null, updatedAt: new Date() }).where(eq(usersTable.id, user.id));
 
   const tfRows = await db.select().from(twoFactorSettingsTable).where(eq(twoFactorSettingsTable.userId, user.id)).limit(1);

@@ -256,6 +256,11 @@ export interface UpdateMembershipStatusInput {
   status: UpdateMembershipStatusInputStatus;
 }
 
+export interface AdminResetPasswordResult {
+  tempPassword: string;
+  expiresAt: string;
+}
+
 export interface FixMembershipResult {
   fixed: number;
 }

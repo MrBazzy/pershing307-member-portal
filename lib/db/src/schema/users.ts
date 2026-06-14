@@ -19,6 +19,7 @@ export const usersTable = pgTable("users", {
   lastLoginIp: text("last_login_ip"),
   passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }),
   mustChangePassword: boolean("must_change_password").notNull().default(false),
+  tempPasswordExpiresAt: timestamp("temp_password_expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [unique().on(t.lodgeId, t.email)]);

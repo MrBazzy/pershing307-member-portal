@@ -426,6 +426,29 @@ paths:
               schema:
                 $ref: "#/components/schemas/SuccessResult"
 
+  /users/{id}/reset-password:
+    post:
+      operationId: adminResetPassword
+      tags: [users]
+      summary: Reset a member's password (admin action)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Temporary password issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminResetPasswordResult"
+        "403":
+          description: Forbidden (last PM Super Administrator or insufficient role)
+        "404":
+          description: User not found
+
   /users/{id}/membership-status:
     patch:
       operationId: updateUserMembershipStatus
@@ -1341,6 +1364,16 @@ components:
         status:
           type: string
           enum: [pending, active, inactive, suspended]
+
+    AdminResetPasswordResult:
+      type: object
+      required: [tempPassword, expiresAt]
+      properties:
+        tempPassword:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
 
     FixMembershipResult:
       type: object

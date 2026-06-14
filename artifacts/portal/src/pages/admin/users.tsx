@@ -4,7 +4,7 @@ import {
   useGrantUserRole, useRevokeUserRole, useGetUserDomains, useGetUserDegrees,
   useGrantUserDomain, useRevokeUserDomain, useListDomains, useListDegreeDefinitions,
   useAddUserDegree, useRemoveUserDegree, useResetTestUser,
-  useUpdateUserMembershipStatus, useFixMembership,
+  useUpdateUserMembershipStatus, useFixMembership, useAdminResetPassword,
   getListUsersQueryKey, getGetUserQueryKey, getGetUserDomainsQueryKey, getGetUserDegreesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -26,7 +26,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { formatDistanceToNow, format } from "date-fns";
 import {
   Users, UserX, UserCheck, Plus, Trash2, Search, ChevronLeft, ChevronRight, Loader2,
-  AlertTriangle,
+  AlertTriangle, KeyRound, Copy, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -239,6 +239,9 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
   const [newConferredOn, setNewConferredOn] = useState("");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [membershipStatusEdit, setMembershipStatusEdit] = useState("");
+  const [pwdResetConfirmOpen, setPwdResetConfirmOpen] = useState(false);
+  const [tempPasswordResult, setTempPasswordResult] = useState<{ tempPassword: string; expiresAt: string } | null>(null);
+  const [copiedPassword, setCopiedPassword] = useState(false);
 
   useEffect(() => { setMembershipStatusEdit(""); }, [userId]);
 
@@ -261,6 +264,7 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
   const addDegree = useAddUserDegree();
   const removeDegree = useRemoveUserDegree();
   const resetTestUser = useResetTestUser();
+  const adminResetPassword = useAdminResetPassword();
 
   const isPmSuperAdmin = currentUser?.roles?.some((r) => r.permissionLevel >= 90) ?? false;
 
@@ -424,6 +428,23 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
                         <Plus className="h-3.5 w-3.5" />
                       </Button>
                     </div>
+                  )}
+                </div>
+
+                <Separator />
+
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Security</p>
+                  <Button
+                    variant="outline" size="sm" className="w-full"
+                    onClick={() => setPwdResetConfirmOpen(true)}
+                    disabled={isSelf || adminResetPassword.isPending}
+                    data-testid="button-reset-password"
+                  >
+                    <KeyRound className="h-3.5 w-3.5 mr-2" /> Reset Password
+                  </Button>
+                  {isSelf && (
+                    <p className="text-[11px] text-muted-foreground mt-1.5">You cannot reset your own password here. Use Account Settings.</p>
                   )}
                 </div>
 
@@ -634,6 +655,95 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
                     data-testid="button-confirm-reset"
                   >
                     Remove Test User
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={pwdResetConfirmOpen} onOpenChange={setPwdResetConfirmOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <KeyRound className="h-5 w-5 text-amber-600" />
+                    Reset Password for {user.firstName} {user.lastName}?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will generate a temporary password, invalidate all active sessions, and require the member to set a new password at next login. The temporary password expires in 24 hours.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel data-testid="button-cancel-pwd-reset">Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={adminResetPassword.isPending}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (!userId) return;
+                      adminResetPassword.mutate({ id: userId }, {
+                        onSuccess: (result) => {
+                          setPwdResetConfirmOpen(false);
+                          setTempPasswordResult(result);
+                          setCopiedPassword(false);
+                        },
+                        onError: (err: any) => {
+                          setPwdResetConfirmOpen(false);
+                          toast({
+                            title: "Password reset failed",
+                            description: err?.data?.error ?? "Could not reset password",
+                            variant: "destructive",
+                          });
+                        },
+                      });
+                    }}
+                    data-testid="button-confirm-pwd-reset"
+                  >
+                    {adminResetPassword.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    Reset Password
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!tempPasswordResult} onOpenChange={(open) => { if (!open) setTempPasswordResult(null); }}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Temporary Password — Share Securely</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-3">
+                      <p>
+                        This temporary password will <strong>not</strong> be shown again.
+                        Copy it now and deliver it securely to {user.firstName} {user.lastName}.
+                        It expires at{" "}
+                        {tempPasswordResult ? format(new Date(tempPasswordResult.expiresAt), "MMM d, yyyy 'at' h:mm a") : ""}.
+                      </p>
+                      <div className="flex items-center gap-2 rounded-sm border bg-muted px-3 py-2">
+                        <code className="flex-1 font-mono text-sm font-semibold tracking-wider select-all" data-testid="temp-password-display">
+                          {tempPasswordResult?.tempPassword}
+                        </code>
+                        <Button
+                          variant="ghost" size="icon" className="h-7 w-7 shrink-0"
+                          onClick={() => {
+                            if (!tempPasswordResult) return;
+                            navigator.clipboard.writeText(tempPasswordResult.tempPassword);
+                            setCopiedPassword(true);
+                            setTimeout(() => setCopiedPassword(false), 2000);
+                          }}
+                          data-testid="button-copy-temp-password"
+                        >
+                          {copiedPassword ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        The member's existing sessions have been invalidated. They must use this password to log in and will be prompted to create a new one immediately.
+                      </p>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogAction
+                    onClick={() => setTempPasswordResult(null)}
+                    data-testid="button-close-temp-password"
+                  >
+                    I've copied the password
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

@@ -383,6 +383,19 @@ export const ActivateUserResponse = zod.object({
 
 
 /**
+ * @summary Reset a member's password (admin action)
+ */
+export const AdminResetPasswordParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const AdminResetPasswordResponse = zod.object({
+  "tempPassword": zod.string(),
+  "expiresAt": zod.coerce.date()
+})
+
+
+/**
  * @summary Update a user's membership status
  */
 export const UpdateUserMembershipStatusParams = zod.object({

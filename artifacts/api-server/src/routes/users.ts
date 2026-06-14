@@ -224,6 +224,100 @@ router.patch("/:id/activate", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), a
   res.json({ success: true });
 });
 
+router.post("/:id/reset-password", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), async (req, res) => {
+  const targetId = String(req.params.id);
+  const actorId = req.session!.userId!;
+  const lodgeId = await getLodgeId();
+
+  if (targetId === actorId) {
+    res.status(400).json({ error: "You cannot reset your own password via this action." });
+    return;
+  }
+
+  const users = await db
+    .select()
+    .from(usersTable)
+    .where(and(eq(usersTable.id, targetId), eq(usersTable.lodgeId, lodgeId!)))
+    .limit(1);
+
+  if (users.length === 0) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const pmSuperRows = await db
+    .select({ userId: userRolesTable.userId })
+    .from(userRolesTable)
+    .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
+    .where(eq(rolesTable.slug, "pm-super-administrator"));
+
+  const targetIsPmSuper = pmSuperRows.some((r) => r.userId === targetId);
+  const otherPmSupers = pmSuperRows.filter((r) => r.userId !== targetId);
+  if (targetIsPmSuper && otherPmSupers.length === 0) {
+    res.status(403).json({ error: "Cannot reset the password of the sole PM Super Administrator. Promote another member first." });
+    return;
+  }
+
+  const { hashPassword } = await import("../lib/password");
+  const tempPassword = generateTempPassword();
+  const passwordHash = await hashPassword(tempPassword);
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+  await db.update(usersTable).set({
+    passwordHash,
+    mustChangePassword: true,
+    tempPasswordExpiresAt: expiresAt,
+    failedLoginAttempts: 0,
+    lockedUntil: null,
+    passwordChangedAt: new Date(),
+    updatedAt: new Date(),
+  }).where(eq(usersTable.id, targetId));
+
+  const sessionsInvalidated = await markSessionsAsForceLogout(targetId);
+
+  await writeAuditLog({
+    lodgeId,
+    actorId,
+    action: "PASSWORD_RESET_BY_ADMIN",
+    targetType: "user",
+    targetId,
+    detail: { sessionsInvalidated, expiresAt: expiresAt.toISOString() },
+    ipAddress: getClientIp(req),
+  });
+
+  res.json({ tempPassword, expiresAt: expiresAt.toISOString() });
+});
+
+function generateTempPassword(): string {
+  const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const lower = "abcdefghijklmnopqrstuvwxyz";
+  const digits = "0123456789";
+  const special = "!@#$%^&*";
+
+  const randomByte = () => {
+    const buf = new Uint32Array(1);
+    crypto.getRandomValues(buf);
+    return buf[0];
+  };
+
+  const pickFrom = (charset: string, count: number): string[] =>
+    Array.from({ length: count }, () => charset[randomByte() % charset.length]);
+
+  const chars = [
+    ...pickFrom(upper, 4),
+    ...pickFrom(lower, 4),
+    ...pickFrom(digits, 4),
+    ...pickFrom(special, 4),
+  ];
+
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = randomByte() % (i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+
+  return chars.join("");
+}
+
 router.delete("/:id/test-reset", requireAuth(), requireRole(PM_SUPER_ADMIN_LEVEL), async (req, res) => {
   if (!isTestResetEnabled()) {
     res.status(403).json({ error: "Test user reset is disabled in this environment." });

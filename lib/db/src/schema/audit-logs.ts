@@ -55,4 +55,5 @@ export type AuditAction =
   | "BOOTSTRAP_COMPLETED"
   | "CONFIG_CHANGED"
   | "SMTP_TEST"
-  | "TEST_USER_RESET";
+  | "TEST_USER_RESET"
+  | "PASSWORD_RESET_BY_ADMIN";
