@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -57,7 +57,21 @@ export default function SetupPage() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
 
-  const isForcedReset = user?.hasTemporaryPassword === true;
+  /**
+   * One-way latch: once set to true it never goes back to false, even after
+   * the password is changed and hasTemporaryPassword flips to false on the
+   * server. This prevents the component from briefly rendering the regular
+   * wizard while setLocation("/dashboard") is in flight.
+   */
+  const forcedResetLatched = useRef(false);
+  const [forcedReset, setForcedReset] = useState(false);
+
+  useEffect(() => {
+    if (user?.hasTemporaryPassword && !forcedResetLatched.current) {
+      forcedResetLatched.current = true;
+      setForcedReset(true);
+    }
+  }, [user?.hasTemporaryPassword]);
 
   const profileForm = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
@@ -68,13 +82,20 @@ export default function SetupPage() {
     },
   });
 
-  const passwordForm = useForm<PasswordValues>({
+  const forcedPasswordForm = useForm<PasswordValues>({
     resolver: zodResolver(passwordSchema),
     defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
   });
 
-  const newPassword = passwordForm.watch("newPassword");
+  const setupPasswordForm = useForm<PasswordValues>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
+  });
 
+  const forcedNewPassword = forcedPasswordForm.watch("newPassword");
+  const setupNewPassword = setupPasswordForm.watch("newPassword");
+
+  // --- Profile step (regular wizard only) ---
   const handleProfileSubmit = async (values: ProfileValues) => {
     setSaving(true);
     try {
@@ -94,7 +115,31 @@ export default function SetupPage() {
     }
   };
 
-  const handlePasswordSubmit = async (values: PasswordValues) => {
+  // --- Forced-reset password change: always navigates to /dashboard on success ---
+  const handleForcedResetPassword = async (values: PasswordValues) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${BASE_URL}/api/auth/change-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ currentPassword: values.currentPassword, newPassword: values.newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to change password");
+      // Refresh session state then navigate — no conditional branching on
+      // user state here so the render cycle cannot interfere with navigation.
+      await refetch();
+      setLocation("/dashboard");
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // --- Regular wizard password change (step 1): always advances to step 2 ---
+  const handleSetupPassword = async (values: PasswordValues) => {
     setSaving(true);
     try {
       const res = await fetch(`${BASE_URL}/api/auth/change-password`, {
@@ -106,11 +151,7 @@ export default function SetupPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to change password");
       await refetch();
-      if (isForcedReset) {
-        setLocation("/dashboard");
-      } else {
-        setStep(2);
-      }
+      setStep(2);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
@@ -134,7 +175,8 @@ export default function SetupPage() {
     setLocation("/dashboard");
   };
 
-  if (isForcedReset) {
+  // --- Forced-reset UI ---
+  if (forcedReset) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-md space-y-6">
@@ -159,9 +201,9 @@ export default function SetupPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Form {...passwordForm}>
-                <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-4">
-                  <FormField control={passwordForm.control} name="currentPassword" render={({ field }) => (
+              <Form {...forcedPasswordForm}>
+                <form onSubmit={forcedPasswordForm.handleSubmit(handleForcedResetPassword)} className="space-y-4">
+                  <FormField control={forcedPasswordForm.control} name="currentPassword" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Temporary Password</FormLabel>
                       <FormControl>
@@ -175,7 +217,7 @@ export default function SetupPage() {
                       <FormMessage />
                     </FormItem>
                   )} />
-                  <FormField control={passwordForm.control} name="newPassword" render={({ field }) => (
+                  <FormField control={forcedPasswordForm.control} name="newPassword" render={({ field }) => (
                     <FormItem>
                       <FormLabel>New Password</FormLabel>
                       <FormControl>
@@ -186,11 +228,11 @@ export default function SetupPage() {
                           </button>
                         </div>
                       </FormControl>
-                      <PasswordStrength password={newPassword} />
+                      <PasswordStrength password={forcedNewPassword} />
                       <FormMessage />
                     </FormItem>
                   )} />
-                  <FormField control={passwordForm.control} name="confirmPassword" render={({ field }) => (
+                  <FormField control={forcedPasswordForm.control} name="confirmPassword" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Confirm New Password</FormLabel>
                       <FormControl><Input type="password" {...field} autoComplete="new-password" /></FormControl>
@@ -210,6 +252,7 @@ export default function SetupPage() {
     );
   }
 
+  // --- Regular first-login setup wizard ---
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-lg space-y-6">
@@ -297,9 +340,9 @@ export default function SetupPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Form {...passwordForm}>
-                <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-4">
-                  <FormField control={passwordForm.control} name="currentPassword" render={({ field }) => (
+              <Form {...setupPasswordForm}>
+                <form onSubmit={setupPasswordForm.handleSubmit(handleSetupPassword)} className="space-y-4">
+                  <FormField control={setupPasswordForm.control} name="currentPassword" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Current Password</FormLabel>
                       <FormControl>
@@ -313,7 +356,7 @@ export default function SetupPage() {
                       <FormMessage />
                     </FormItem>
                   )} />
-                  <FormField control={passwordForm.control} name="newPassword" render={({ field }) => (
+                  <FormField control={setupPasswordForm.control} name="newPassword" render={({ field }) => (
                     <FormItem>
                       <FormLabel>New Password</FormLabel>
                       <FormControl>
@@ -324,11 +367,11 @@ export default function SetupPage() {
                           </button>
                         </div>
                       </FormControl>
-                      <PasswordStrength password={newPassword} />
+                      <PasswordStrength password={setupNewPassword} />
                       <FormMessage />
                     </FormItem>
                   )} />
-                  <FormField control={passwordForm.control} name="confirmPassword" render={({ field }) => (
+                  <FormField control={setupPasswordForm.control} name="confirmPassword" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Confirm New Password</FormLabel>
                       <FormControl><Input type="password" {...field} /></FormControl>
@@ -336,12 +379,19 @@ export default function SetupPage() {
                     </FormItem>
                   )} />
                   <div className="flex gap-3">
+                    {/* Skip is only available when mustChangePassword is false —
+                        i.e. the user already changed their invitation password
+                        in the profile step, making the wizard-step optional. */}
                     {!user?.mustChangePassword && (
                       <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(2)}>
                         Skip for now
                       </Button>
                     )}
-                    <Button type="submit" className={user?.mustChangePassword ? "w-full" : "flex-1"} disabled={saving}>
+                    <Button
+                      type="submit"
+                      className={user?.mustChangePassword ? "w-full" : "flex-1"}
+                      disabled={saving}
+                    >
                       {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                       Change Password
                     </Button>
