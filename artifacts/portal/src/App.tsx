@@ -26,6 +26,8 @@ function onGlobalApiError(error: unknown) {
   const err = error as any;
   if (err?.status === 401 && err?.data?.reason === "force_logout") {
     sessionStorage.setItem("loginNotice", "force_logout");
+    queryClient.clear();
+    window.location.replace("/login");
   }
 }
 

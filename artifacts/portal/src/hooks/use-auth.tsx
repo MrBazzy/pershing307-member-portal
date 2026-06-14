@@ -17,6 +17,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     query: {
       queryKey: getGetCurrentUserQueryKey(),
       retry: false,
+      refetchInterval: (query) => query.state.data?.user ? 30_000 : false,
     }
   });
 
