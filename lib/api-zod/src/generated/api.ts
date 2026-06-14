@@ -338,6 +338,7 @@ export const GetUserResponse = zod.object({
   "mustChangePassword": zod.boolean(),
   "lastLoginAt": zod.string().nullish(),
   "dateOfBirth": zod.coerce.date().nullish(),
+  "birthdayVisibility": zod.enum(['hidden', 'day_month', 'full']).optional(),
   "createdAt": zod.string(),
   "roles": zod.array(zod.object({
   "id": zod.string(),
@@ -838,7 +839,9 @@ export const GetUpcomingBirthdaysResponse = zod.object({
   "lastName": zod.string(),
   "month": zod.number().describe('Month (1-12)'),
   "day": zod.number().describe('Day of month'),
-  "daysUntil": zod.number().describe('Days until next birthday (0 = today)')
+  "daysUntil": zod.number().describe('Days until next birthday (0 = today)'),
+  "year": zod.number().optional().describe('Birth year — only present when member chose full visibility'),
+  "age": zod.number().optional().describe('Current age in years — only present when member chose full visibility')
 }))
 })
 
@@ -856,9 +859,32 @@ export const ListBirthdaysResponse = zod.object({
   "lastName": zod.string(),
   "month": zod.number().describe('Month (1-12)'),
   "day": zod.number().describe('Day of month'),
-  "daysUntil": zod.number().describe('Days until next birthday (0 = today)')
+  "daysUntil": zod.number().describe('Days until next birthday (0 = today)'),
+  "year": zod.number().optional().describe('Birth year — only present when member chose full visibility'),
+  "age": zod.number().optional().describe('Current age in years — only present when member chose full visibility')
 }))
 }))
+})
+
+
+/**
+ * @summary Get the current member's birthday visibility setting
+ */
+export const GetBirthdayVisibilityResponse = zod.object({
+  "visibility": zod.enum(['hidden', 'day_month', 'full'])
+})
+
+
+/**
+ * @summary Update the current member's birthday visibility setting
+ */
+export const UpdateBirthdayVisibilityBody = zod.object({
+  "visibility": zod.enum(['hidden', 'day_month', 'full'])
+})
+
+export const UpdateBirthdayVisibilityResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
 })
 
 

@@ -121,6 +121,7 @@ router.get("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res
       displayName: user.displayName,
       membershipStatus: user.membershipStatus,
       dateOfBirth: user.dateOfBirth ?? null,
+      birthdayVisibility: user.birthdayVisibility,
       isActive: user.isActive,
       emailVerified: user.emailVerified,
       mustChangePassword: user.mustChangePassword,

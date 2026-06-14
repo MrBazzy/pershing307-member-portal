@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db/schema";
-import { eq, and, isNotNull } from "drizzle-orm";
+import { eq, and, isNotNull, ne } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { getLodgeId } from "../lib/config";
 
@@ -14,6 +14,7 @@ const MONTH_NAMES = [
 
 function computeBirthday(dob: string, today: Date) {
   const parts = dob.split("-");
+  const birthYear = parseInt(parts[0], 10);
   const month = parseInt(parts[1], 10);
   const day = parseInt(parts[2], 10);
 
@@ -26,8 +27,29 @@ function computeBirthday(dob: string, today: Date) {
     (nextBirthday.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24),
   );
 
-  return { month, day, daysUntil };
+  const hadBirthdayThisYear = todayMidnight >= new Date(today.getFullYear(), month - 1, day);
+  const age = today.getFullYear() - birthYear - (hadBirthdayThisYear ? 0 : 1);
+
+  return { month, day, daysUntil, birthYear, age };
 }
+
+type BirthdayEntry = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  month: number;
+  day: number;
+  daysUntil: number;
+  year?: number;
+  age?: number;
+};
+
+const VISIBLE_FILTER = and(
+  isNotNull(usersTable.dateOfBirth),
+  ne(usersTable.birthdayVisibility, "hidden"),
+  eq(usersTable.isActive, true),
+  eq(usersTable.membershipStatus, "active"),
+);
 
 router.get("/upcoming", requireAuth(), async (req, res) => {
   const lodgeId = await getLodgeId();
@@ -42,22 +64,22 @@ router.get("/upcoming", requireAuth(), async (req, res) => {
       firstName: usersTable.firstName,
       lastName: usersTable.lastName,
       dateOfBirth: usersTable.dateOfBirth,
+      birthdayVisibility: usersTable.birthdayVisibility,
     })
     .from(usersTable)
-    .where(
-      and(
-        eq(usersTable.lodgeId, lodgeId),
-        eq(usersTable.isActive, true),
-        isNotNull(usersTable.dateOfBirth),
-      ),
-    );
+    .where(and(eq(usersTable.lodgeId, lodgeId), VISIBLE_FILTER));
 
   const today = new Date();
-  const birthdays = users
+  const birthdays: BirthdayEntry[] = users
     .filter((u) => u.dateOfBirth !== null)
     .map((u) => {
-      const { month, day, daysUntil } = computeBirthday(u.dateOfBirth!, today);
-      return { id: u.id, firstName: u.firstName, lastName: u.lastName, month, day, daysUntil };
+      const { month, day, daysUntil, birthYear, age } = computeBirthday(u.dateOfBirth!, today);
+      const entry: BirthdayEntry = { id: u.id, firstName: u.firstName, lastName: u.lastName, month, day, daysUntil };
+      if (u.birthdayVisibility === "full") {
+        entry.year = birthYear;
+        entry.age = age;
+      }
+      return entry;
     })
     .filter((b) => b.daysUntil <= 30)
     .sort((a, b) => a.daysUntil - b.daysUntil);
@@ -78,26 +100,26 @@ router.get("/", requireAuth(), async (req, res) => {
       firstName: usersTable.firstName,
       lastName: usersTable.lastName,
       dateOfBirth: usersTable.dateOfBirth,
+      birthdayVisibility: usersTable.birthdayVisibility,
     })
     .from(usersTable)
-    .where(
-      and(
-        eq(usersTable.lodgeId, lodgeId),
-        eq(usersTable.isActive, true),
-        isNotNull(usersTable.dateOfBirth),
-      ),
-    );
+    .where(and(eq(usersTable.lodgeId, lodgeId), VISIBLE_FILTER));
 
   const today = new Date();
-  const allBirthdays = users
+  const allBirthdays: BirthdayEntry[] = users
     .filter((u) => u.dateOfBirth !== null)
     .map((u) => {
-      const { month, day, daysUntil } = computeBirthday(u.dateOfBirth!, today);
-      return { id: u.id, firstName: u.firstName, lastName: u.lastName, month, day, daysUntil };
+      const { month, day, daysUntil, birthYear, age } = computeBirthday(u.dateOfBirth!, today);
+      const entry: BirthdayEntry = { id: u.id, firstName: u.firstName, lastName: u.lastName, month, day, daysUntil };
+      if (u.birthdayVisibility === "full") {
+        entry.year = birthYear;
+        entry.age = age;
+      }
+      return entry;
     })
     .sort((a, b) => a.month - b.month || a.day - b.day);
 
-  const byMonth: Record<number, typeof allBirthdays> = {};
+  const byMonth: Record<number, BirthdayEntry[]> = {};
   for (const b of allBirthdays) {
     if (!byMonth[b.month]) byMonth[b.month] = [];
     byMonth[b.month].push(b);

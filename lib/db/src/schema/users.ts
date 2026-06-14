@@ -11,6 +11,7 @@ export const usersTable = pgTable("users", {
   lastName: text("last_name").notNull(),
   displayName: text("display_name"),
   dateOfBirth: date("date_of_birth"),
+  birthdayVisibility: text("birthday_visibility").notNull().default("hidden"),
   membershipStatus: text("membership_status").notNull().default("pending"),
   isActive: boolean("is_active").notNull().default(false),
   isBootstrapAdmin: boolean("is_bootstrap_admin").notNull().default(false),

@@ -23,6 +23,7 @@ import type {
   AcceptInvitationInput,
   AdminResetPasswordResult,
   AuditLogResult,
+  BirthdayVisibilityResult,
   BirthdaysByMonthResult,
   BootstrapInput,
   BootstrapResult,
@@ -66,6 +67,7 @@ import type {
   TwoFactorStatus,
   TwoFactorVerifyEnrollInput,
   UpcomingBirthdaysResult,
+  UpdateBirthdayVisibilityInput,
   UpdateDateOfBirthInput,
   UpdateMembershipStatusInput,
   UpdateRoadmapItemInput,
@@ -3694,6 +3696,154 @@ export function useListBirthdays<TData = Awaited<ReturnType<typeof listBirthdays
 
 
 
+
+export const getGetBirthdayVisibilityUrl = () => {
+
+
+
+
+  return `/api/profile/birthday-visibility`
+}
+
+/**
+ * @summary Get the current member's birthday visibility setting
+ */
+export const getBirthdayVisibility = async ( options?: RequestInit): Promise<BirthdayVisibilityResult> => {
+
+  return customFetch<BirthdayVisibilityResult>(getGetBirthdayVisibilityUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBirthdayVisibilityQueryKey = () => {
+    return [
+    `/api/profile/birthday-visibility`
+    ] as const;
+    }
+
+
+export const getGetBirthdayVisibilityQueryOptions = <TData = Awaited<ReturnType<typeof getBirthdayVisibility>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBirthdayVisibility>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBirthdayVisibilityQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBirthdayVisibility>>> = ({ signal }) => getBirthdayVisibility({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBirthdayVisibility>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBirthdayVisibilityQueryResult = NonNullable<Awaited<ReturnType<typeof getBirthdayVisibility>>>
+export type GetBirthdayVisibilityQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the current member's birthday visibility setting
+ */
+
+export function useGetBirthdayVisibility<TData = Awaited<ReturnType<typeof getBirthdayVisibility>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBirthdayVisibility>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBirthdayVisibilityQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateBirthdayVisibilityUrl = () => {
+
+
+
+
+  return `/api/profile/birthday-visibility`
+}
+
+/**
+ * @summary Update the current member's birthday visibility setting
+ */
+export const updateBirthdayVisibility = async (updateBirthdayVisibilityInput: UpdateBirthdayVisibilityInput, options?: RequestInit): Promise<SuccessResult> => {
+
+  return customFetch<SuccessResult>(getUpdateBirthdayVisibilityUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateBirthdayVisibilityInput,)
+  }
+);}
+
+
+
+
+export const getUpdateBirthdayVisibilityMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBirthdayVisibility>>, TError,{data: BodyType<UpdateBirthdayVisibilityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateBirthdayVisibility>>, TError,{data: BodyType<UpdateBirthdayVisibilityInput>}, TContext> => {
+
+const mutationKey = ['updateBirthdayVisibility'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateBirthdayVisibility>>, {data: BodyType<UpdateBirthdayVisibilityInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateBirthdayVisibility(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateBirthdayVisibilityMutationResult = NonNullable<Awaited<ReturnType<typeof updateBirthdayVisibility>>>
+    export type UpdateBirthdayVisibilityMutationBody = BodyType<UpdateBirthdayVisibilityInput>
+    export type UpdateBirthdayVisibilityMutationError = ErrorType<void>
+
+    /**
+ * @summary Update the current member's birthday visibility setting
+ */
+export const useUpdateBirthdayVisibility = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBirthdayVisibility>>, TError,{data: BodyType<UpdateBirthdayVisibilityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateBirthdayVisibility>>,
+        TError,
+        {data: BodyType<UpdateBirthdayVisibilityInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateBirthdayVisibilityMutationOptions(options));
+    }
 
 export const getUpdateDateOfBirthUrl = (id: string,) => {
 

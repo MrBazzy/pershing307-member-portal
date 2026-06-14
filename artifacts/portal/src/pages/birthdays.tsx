@@ -40,7 +40,7 @@ export default function BirthdaysPage() {
             Birthday Calendar
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Celebrating our members — day and month only
+            Celebrating our members
           </p>
         </div>
 
@@ -68,9 +68,16 @@ export default function BirthdaysPage() {
                           <span className="block">{b.day}</span>
                         </span>
                       </div>
-                      <span className="text-sm font-medium text-foreground">
-                        {b.firstName} {b.lastName}
-                      </span>
+                      <div>
+                        <span className="text-sm font-medium text-foreground">
+                          {b.firstName} {b.lastName}
+                        </span>
+                        {b.age !== undefined && (
+                          <p className="text-xs text-muted-foreground">
+                            {b.daysUntil === 0 ? `Turns ${b.age}` : `Turning ${b.age + 1}`} · {b.year}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <span
                       className={`text-xs font-semibold px-2 py-1 rounded-sm ${
@@ -131,11 +138,18 @@ export default function BirthdaysPage() {
                     <div className="divide-y divide-border -mx-2">
                       {month.birthdays.map((b) => (
                         <div key={b.id} className="flex items-center justify-between px-2 py-1.5">
-                          <span className="text-sm text-foreground">
-                            {b.firstName} {b.lastName}
-                          </span>
-                          <span className="text-xs text-muted-foreground tabular-nums">
-                            {MONTH_ABBR[b.month - 1]} {ordinal(b.day)}
+                          <div>
+                            <span className="text-sm text-foreground">
+                              {b.firstName} {b.lastName}
+                            </span>
+                            {b.age !== undefined && (
+                              <p className="text-xs text-muted-foreground">Age {b.age} · {b.year}</p>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground tabular-nums shrink-0 ml-2">
+                            {b.year !== undefined
+                              ? `${MONTH_ABBR[b.month - 1]} ${ordinal(b.day)}, ${b.year}`
+                              : `${MONTH_ABBR[b.month - 1]} ${ordinal(b.day)}`}
                           </span>
                         </div>
                       ))}

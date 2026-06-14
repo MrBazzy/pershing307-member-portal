@@ -75,9 +75,18 @@ function UpcomingBirthdaysWidget() {
                   {b.firstName} {b.lastName}
                 </span>
                 <div className="flex items-center gap-3 shrink-0 ml-2">
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {MONTH_ABBR[b.month - 1]} {b.day}
-                  </span>
+                  <div className="text-right">
+                    <span className="block text-xs text-muted-foreground tabular-nums">
+                      {b.year !== undefined
+                        ? `${MONTH_ABBR[b.month - 1]} ${b.day}, ${b.year}`
+                        : `${MONTH_ABBR[b.month - 1]} ${b.day}`}
+                    </span>
+                    {b.age !== undefined && (
+                      <span className="block text-[10px] text-muted-foreground/70">
+                        {b.daysUntil === 0 ? `Turns ${b.age}` : `Turning ${b.age + 1}`}
+                      </span>
+                    )}
+                  </div>
                   <span
                     className={`text-xs font-medium ${
                       b.daysUntil === 0

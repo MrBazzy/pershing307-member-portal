@@ -206,6 +206,15 @@ export interface RoleDetail {
   permissionLevel: number;
 }
 
+export type UserDetailBirthdayVisibility = typeof UserDetailBirthdayVisibility[keyof typeof UserDetailBirthdayVisibility];
+
+
+export const UserDetailBirthdayVisibility = {
+  hidden: 'hidden',
+  day_month: 'day_month',
+  full: 'full',
+} as const;
+
 export interface UserDetail {
   id: string;
   email: string;
@@ -222,6 +231,7 @@ export interface UserDetail {
   lastLoginAt?: string | null;
   /** @nullable */
   dateOfBirth?: string | null;
+  birthdayVisibility?: UserDetailBirthdayVisibility;
   createdAt: string;
   roles: RoleDetail[];
 }
@@ -512,6 +522,10 @@ export interface BirthdayEntry {
   day: number;
   /** Days until next birthday (0 = today) */
   daysUntil: number;
+  /** Birth year — only present when member chose full visibility */
+  year?: number;
+  /** Current age in years — only present when member chose full visibility */
+  age?: number;
 }
 
 export interface UpcomingBirthdaysResult {
@@ -531,6 +545,32 @@ export interface BirthdaysByMonthResult {
 export interface UpdateDateOfBirthInput {
   /** @nullable */
   dateOfBirth?: string | null;
+}
+
+export type BirthdayVisibilityResultVisibility = typeof BirthdayVisibilityResultVisibility[keyof typeof BirthdayVisibilityResultVisibility];
+
+
+export const BirthdayVisibilityResultVisibility = {
+  hidden: 'hidden',
+  day_month: 'day_month',
+  full: 'full',
+} as const;
+
+export interface BirthdayVisibilityResult {
+  visibility: BirthdayVisibilityResultVisibility;
+}
+
+export type UpdateBirthdayVisibilityInputVisibility = typeof UpdateBirthdayVisibilityInputVisibility[keyof typeof UpdateBirthdayVisibilityInputVisibility];
+
+
+export const UpdateBirthdayVisibilityInputVisibility = {
+  hidden: 'hidden',
+  day_month: 'day_month',
+  full: 'full',
+} as const;
+
+export interface UpdateBirthdayVisibilityInput {
+  visibility: UpdateBirthdayVisibilityInputVisibility;
 }
 
 export type RoadmapItemStatus = typeof RoadmapItemStatus[keyof typeof RoadmapItemStatus];

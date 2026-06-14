@@ -21,6 +21,7 @@ import AdminDegreesPage from "@/pages/admin/degrees";
 import AdminConfigPage from "@/pages/admin/config";
 import AdminRoadmapPage from "@/pages/admin/roadmap";
 import TwoFactorPage from "@/pages/settings/two-factor";
+import ProfileSettingsPage from "@/pages/settings/profile";
 import BirthdaysPage from "@/pages/birthdays";
 import { useEffect } from "react";
 
@@ -171,6 +172,7 @@ function AppRoutes() {
         <Route path="/bootstrap" component={BootstrapPage} />
         <Route path="/setup" component={() => <SetupRoute component={SetupPage} />} />
         <Route path="/dashboard" component={() => <ProtectedRoute component={DashboardPage} />} />
+        <Route path="/settings/profile" component={() => <ProtectedRoute component={ProfileSettingsPage} />} />
         <Route path="/settings/2fa" component={() => <ProtectedRoute component={TwoFactorPage} />} />
         <Route path="/admin/users" component={() => <ProtectedRoute component={AdminUsersPage} />} />
         <Route path="/admin/invitations" component={() => <ProtectedRoute component={AdminInvitationsPage} />} />

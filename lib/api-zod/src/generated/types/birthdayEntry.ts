@@ -16,4 +16,8 @@ export interface BirthdayEntry {
   day: number;
   /** Days until next birthday (0 = today) */
   daysUntil: number;
+  /** Birth year — only present when member chose full visibility */
+  year?: number;
+  /** Current age in years — only present when member chose full visibility */
+  age?: number;
 }

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.2.0
  */
 import type { RoleDetail } from './roleDetail';
+import type { UserDetailBirthdayVisibility } from './userDetailBirthdayVisibility';
 
 export interface UserDetail {
   id: string;
@@ -23,6 +24,7 @@ export interface UserDetail {
   lastLoginAt?: string | null;
   /** @nullable */
   dateOfBirth?: Date | null;
+  birthdayVisibility?: UserDetailBirthdayVisibility;
   createdAt: string;
   roles: RoleDetail[];
 }

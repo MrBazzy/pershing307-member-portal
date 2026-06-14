@@ -31,6 +31,8 @@ tags:
     description: Birthday calendar
   - name: roadmap
     description: Roadmap and upcoming features
+  - name: profile
+    description: Member profile and privacy settings
 paths:
   /healthz:
     get:
@@ -1029,6 +1031,46 @@ paths:
         "401":
           description: Unauthorized
 
+  /profile/birthday-visibility:
+    get:
+      operationId: getBirthdayVisibility
+      tags: [profile]
+      summary: Get the current member's birthday visibility setting
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Current visibility setting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BirthdayVisibilityResult"
+        "401":
+          description: Unauthorized
+    patch:
+      operationId: updateBirthdayVisibility
+      tags: [profile]
+      summary: Update the current member's birthday visibility setting
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBirthdayVisibilityInput"
+      responses:
+        "200":
+          description: Visibility updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "400":
+          description: Invalid visibility value
+        "401":
+          description: Unauthorized
+
   /users/{id}/date-of-birth:
     patch:
       operationId: updateDateOfBirth
@@ -1509,6 +1551,9 @@ components:
         dateOfBirth:
           type: ["string", "null"]
           format: date
+        birthdayVisibility:
+          type: string
+          enum: [hidden, day_month, full]
         createdAt:
           type: string
         roles:
@@ -1993,6 +2038,12 @@ components:
         daysUntil:
           type: integer
           description: Days until next birthday (0 = today)
+        year:
+          type: integer
+          description: Birth year — only present when member chose full visibility
+        age:
+          type: integer
+          description: Current age in years — only present when member chose full visibility
 
     UpcomingBirthdaysResult:
       type: object
@@ -2031,6 +2082,22 @@ components:
         dateOfBirth:
           type: ["string", "null"]
           format: date
+
+    BirthdayVisibilityResult:
+      type: object
+      required: [visibility]
+      properties:
+        visibility:
+          type: string
+          enum: [hidden, day_month, full]
+
+    UpdateBirthdayVisibilityInput:
+      type: object
+      required: [visibility]
+      properties:
+        visibility:
+          type: string
+          enum: [hidden, day_month, full]
 
     RoadmapItem:
       type: object
