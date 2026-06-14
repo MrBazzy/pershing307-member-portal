@@ -148,7 +148,9 @@ export const GetCurrentUserResponse = zod.object({
 }))
 }).and(zod.object({
   "membershipStatus": zod.string().nullish()
-}))
+})).optional(),
+  "pendingTwoFactor": zod.boolean().optional().describe('True when the session has a pending 2FA challenge (password was accepted, TOTP code not yet verified). Returned by \/auth\/me so mobile browsers that reload the page during app-switching can restore the 2FA step without re-entering credentials.\n'),
+  "pendingTwoFactorExpired": zod.boolean().optional().describe('True when a pending 2FA session existed but its 5-minute window has lapsed. The client should show an expiry notice and prompt the user to sign in again.\n')
 })
 
 

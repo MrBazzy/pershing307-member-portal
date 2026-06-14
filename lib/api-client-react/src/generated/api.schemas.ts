@@ -151,7 +151,13 @@ export type CurrentUserResultUser = AuthUser & ({
 });
 
 export interface CurrentUserResult {
-  user: CurrentUserResultUser;
+  user?: CurrentUserResultUser;
+  /** True when the session has a pending 2FA challenge (password was accepted, TOTP code not yet verified). Returned by /auth/me so mobile browsers that reload the page during app-switching can restore the 2FA step without re-entering credentials.
+   */
+  pendingTwoFactor?: boolean;
+  /** True when a pending 2FA session existed but its 5-minute window has lapsed. The client should show an expiry notice and prompt the user to sign in again.
+   */
+  pendingTwoFactorExpired?: boolean;
 }
 
 export interface SuccessResult {

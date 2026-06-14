@@ -7,6 +7,8 @@ interface AuthContextType {
   isLoading: boolean;
   refetch: () => void;
   isAuthenticated: boolean;
+  pendingTwoFactor: boolean;
+  pendingTwoFactorExpired: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,6 +25,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const user = currentUserData?.user ?? null;
   const isAuthenticated = !!user;
+  const pendingTwoFactor = currentUserData?.pendingTwoFactor ?? false;
+  const pendingTwoFactorExpired = currentUserData?.pendingTwoFactorExpired ?? false;
 
   useEffect(() => {
     const handlePageShow = (event: PageTransitionEvent) => {
@@ -35,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, refetch, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, isLoading, refetch, isAuthenticated, pendingTwoFactor, pendingTwoFactorExpired }}>
       {children}
     </AuthContext.Provider>
   );

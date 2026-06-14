@@ -170,6 +170,7 @@ router.post("/login", loginRateLimit, async (req, res) => {
 
   if (tfEnabled) {
     req.session.pendingTwoFactorUserId = user.id;
+    req.session.pendingTwoFactorExpiry = Date.now() + 5 * 60 * 1000;
     req.session.failedTotpAttempts = 0;
     delete req.session.totpLockedUntil;
     res.json({ requiresTwoFactor: true });
@@ -277,6 +278,7 @@ router.post("/login/2fa", twoFaRateLimit, async (req, res) => {
   await db.update(twoFactorSettingsTable).set({ lastUsedAt: new Date(), updatedAt: new Date() }).where(eq(twoFactorSettingsTable.userId, user.id));
 
   delete req.session.pendingTwoFactorUserId;
+  delete req.session.pendingTwoFactorExpiry;
   req.session.userId = user.id;
   req.session.lodgeId = user.lodgeId;
   req.session.twoFactorVerified = true;
@@ -322,8 +324,44 @@ router.post("/logout", requireAuth(), async (req, res) => {
   });
 });
 
-router.get("/me", requireAuth(), async (req, res) => {
-  const userId = req.session!.userId!;
+router.get("/me", async (req, res) => {
+  // Force-logout check (mirrors requireAuth behaviour)
+  if (req.session?.forceLogout) {
+    req.session.destroy(() => {});
+    res.status(401).json({ error: "Your access rights have changed. Please log in again.", reason: "force_logout" });
+    return;
+  }
+
+  // Pending 2FA recovery — session has a pending challenge but no full userId yet.
+  // Returning 200 (not 401) here lets mobile browsers that reload the page while
+  // the user is switching to their authenticator app restore the 2FA step without
+  // re-entering credentials.  The 5-minute expiry is enforced server-side.
+  if (req.session?.pendingTwoFactorUserId && !req.session?.userId) {
+    const expiry = req.session.pendingTwoFactorExpiry ?? 0;
+    const expired = Date.now() > expiry;
+    if (expired) {
+      delete req.session.pendingTwoFactorUserId;
+      delete req.session.pendingTwoFactorExpiry;
+      req.session.save(() => {});
+    }
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.json({ pendingTwoFactor: true, pendingTwoFactorExpired: expired });
+    return;
+  }
+
+  // Normal auth check
+  if (!req.session?.userId) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+
+  const userId = req.session.userId;
   const users = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   const user = users[0];
 

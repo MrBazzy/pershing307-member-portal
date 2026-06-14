@@ -12,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { Loader2, Shield } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -29,11 +30,19 @@ export default function LoginPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
-  const [accessNotice, setAccessNotice] = useState<string | null>(null);
+  const { pendingTwoFactor, pendingTwoFactorExpired } = useAuth();
+
+  // Local state tracks 2FA step when the user just submitted their password in
+  // this browser session (normal desktop flow).  On page reload, this resets to
+  // false — but pendingTwoFactor from the server takes over in that case.
+  const [localTwoFactor, setLocalTwoFactor] = useState(false);
+
+  // Derive the effective 2FA step: server-side session OR local state
+  const showTwoFactor = (pendingTwoFactor && !pendingTwoFactorExpired) || localTwoFactor;
 
   // Check for forced-logout notice on mount (stored by the global API error handler)
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  const [accessNotice, setAccessNotice] = useState<string | null>(null);
   useEffect(() => {
     const stored = sessionStorage.getItem("loginNotice");
     if (stored === "force_logout") {
@@ -61,7 +70,11 @@ export default function LoginPage() {
       {
         onSuccess: (result) => {
           if (result.requiresTwoFactor) {
-            setRequiresTwoFactor(true);
+            setLocalTwoFactor(true);
+            // Refresh /me so the server-side pendingTwoFactor state is loaded
+            // immediately — this seeds the query cache so page reloads on mobile
+            // pick up the pending state from the server rather than local state.
+            queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
           } else {
             queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
             setLocation("/dashboard");
@@ -105,7 +118,84 @@ export default function LoginPage() {
     );
   };
 
-  if (requiresTwoFactor) {
+  const handleBackToLogin = () => {
+    setLocalTwoFactor(false);
+    // Invalidate /me so that if the server still has a pending session the UI
+    // stays consistent; the server will clear it naturally after 5 minutes.
+    queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+  };
+
+  // 2FA session expired (returned from server after 5-minute window lapses)
+  if (pendingTwoFactorExpired) {
+    return (
+      <AuthLayout
+        title="Sign In"
+        subtitle="Access the member portal"
+      >
+        <div className="mb-5 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert">
+          Your 2FA session expired. Please sign in again.
+        </div>
+        <Form {...loginForm}>
+          <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-5">
+            <FormField
+              control={loginForm.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email Address</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      type="email"
+                      placeholder="member@lodge307.org"
+                      autoComplete="email"
+                      autoFocus
+                      data-testid="input-email"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={loginForm.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Password</FormLabel>
+                    <Link href="/forgot-password" className="text-xs text-primary hover:underline" data-testid="link-forgot-password">
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      type="password"
+                      autoComplete="current-password"
+                      data-testid="input-password"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={login.isPending}
+              data-testid="button-login"
+            >
+              {login.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Sign In
+            </Button>
+          </form>
+        </Form>
+      </AuthLayout>
+    );
+  }
+
+  if (showTwoFactor) {
     return (
       <AuthLayout
         title="Two-Factor Authentication"
@@ -152,7 +242,7 @@ export default function LoginPage() {
               type="button"
               variant="ghost"
               className="w-full text-sm"
-              onClick={() => setRequiresTwoFactor(false)}
+              onClick={handleBackToLogin}
             >
               Back to login
             </Button>
