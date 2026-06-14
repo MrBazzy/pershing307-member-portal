@@ -220,6 +220,8 @@ export interface UserDetail {
   mustChangePassword: boolean;
   /** @nullable */
   lastLoginAt?: string | null;
+  /** @nullable */
+  dateOfBirth?: string | null;
   createdAt: string;
   roles: RoleDetail[];
 }
@@ -498,6 +500,123 @@ export interface AuditLogResult {
   logs: AuditLogEntry[];
   limit: number;
   offset: number;
+}
+
+export interface BirthdayEntry {
+  id: string;
+  firstName: string;
+  lastName: string;
+  /** Month (1-12) */
+  month: number;
+  /** Day of month */
+  day: number;
+  /** Days until next birthday (0 = today) */
+  daysUntil: number;
+}
+
+export interface UpcomingBirthdaysResult {
+  birthdays: BirthdayEntry[];
+}
+
+export interface BirthdayMonth {
+  month: number;
+  monthName: string;
+  birthdays: BirthdayEntry[];
+}
+
+export interface BirthdaysByMonthResult {
+  months: BirthdayMonth[];
+}
+
+export interface UpdateDateOfBirthInput {
+  /** @nullable */
+  dateOfBirth?: string | null;
+}
+
+export type RoadmapItemStatus = typeof RoadmapItemStatus[keyof typeof RoadmapItemStatus];
+
+
+export const RoadmapItemStatus = {
+  planned: 'planned',
+  'in-progress': 'in-progress',
+  completed: 'completed',
+  'future-idea': 'future-idea',
+} as const;
+
+export interface RoadmapItem {
+  id: string;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  status: RoadmapItemStatus;
+  sortOrder: number;
+  isVisible: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RoadmapListResult {
+  items: RoadmapItem[];
+}
+
+export type CreateRoadmapItemInputStatus = typeof CreateRoadmapItemInputStatus[keyof typeof CreateRoadmapItemInputStatus];
+
+
+export const CreateRoadmapItemInputStatus = {
+  planned: 'planned',
+  'in-progress': 'in-progress',
+  completed: 'completed',
+  'future-idea': 'future-idea',
+} as const;
+
+export interface CreateRoadmapItemInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  title: string;
+  /**
+     * @maxLength 1000
+     * @nullable
+     */
+  description?: string | null;
+  status: CreateRoadmapItemInputStatus;
+  sortOrder?: number;
+}
+
+export type UpdateRoadmapItemInputStatus = typeof UpdateRoadmapItemInputStatus[keyof typeof UpdateRoadmapItemInputStatus];
+
+
+export const UpdateRoadmapItemInputStatus = {
+  planned: 'planned',
+  'in-progress': 'in-progress',
+  completed: 'completed',
+  'future-idea': 'future-idea',
+} as const;
+
+export interface UpdateRoadmapItemInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  title?: string;
+  /**
+     * @maxLength 1000
+     * @nullable
+     */
+  description?: string | null;
+  status?: UpdateRoadmapItemInputStatus;
+  sortOrder?: number;
+  isVisible?: boolean;
+}
+
+export interface ReorderRoadmapEntry {
+  id: string;
+  sortOrder: number;
+}
+
+export interface ReorderRoadmapInput {
+  items: ReorderRoadmapEntry[];
 }
 
 export type ListUsersParams = {

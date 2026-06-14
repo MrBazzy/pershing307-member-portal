@@ -1,4 +1,4 @@
-import { pgTable, text, boolean, integer, timestamp, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, integer, timestamp, date, unique } from "drizzle-orm/pg-core";
 import { lodgesTable } from "./lodges";
 
 export const usersTable = pgTable("users", {
@@ -10,6 +10,7 @@ export const usersTable = pgTable("users", {
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   displayName: text("display_name"),
+  dateOfBirth: date("date_of_birth"),
   membershipStatus: text("membership_status").notNull().default("pending"),
   isActive: boolean("is_active").notNull().default(false),
   isBootstrapAdmin: boolean("is_bootstrap_admin").notNull().default(false),

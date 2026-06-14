@@ -23,6 +23,7 @@ import type {
   AcceptInvitationInput,
   AdminResetPasswordResult,
   AuditLogResult,
+  BirthdaysByMonthResult,
   BootstrapInput,
   BootstrapResult,
   BootstrapStatus,
@@ -30,6 +31,7 @@ import type {
   CleanupInvitationsResult,
   ConfigListResult,
   ConfigUpdateInput,
+  CreateRoadmapItemInput,
   CurrentUserResult,
   DegreeDefinitionListResult,
   DegreeDefinitionUpdateInput,
@@ -50,7 +52,10 @@ import type {
   LoginInput,
   LoginResult,
   ProfileUpdateInput,
+  ReorderRoadmapInput,
   ResetPasswordInput,
+  RoadmapItem,
+  RoadmapListResult,
   RoleAssignment,
   RoleListResult,
   SmtpTestResult,
@@ -60,7 +65,10 @@ import type {
   TwoFactorInput,
   TwoFactorStatus,
   TwoFactorVerifyEnrollInput,
+  UpcomingBirthdaysResult,
+  UpdateDateOfBirthInput,
   UpdateMembershipStatusInput,
+  UpdateRoadmapItemInput,
   UserDegreeListResult,
   UserDetailResult,
   UserDomainAccessListResult,
@@ -3532,4 +3540,591 @@ export function useListAuditLogs<TData = Awaited<ReturnType<typeof listAuditLogs
 
 
 
+
+export const getGetUpcomingBirthdaysUrl = () => {
+
+
+
+
+  return `/api/birthdays/upcoming`
+}
+
+/**
+ * @summary Get upcoming birthdays (next 30 days)
+ */
+export const getUpcomingBirthdays = async ( options?: RequestInit): Promise<UpcomingBirthdaysResult> => {
+
+  return customFetch<UpcomingBirthdaysResult>(getGetUpcomingBirthdaysUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetUpcomingBirthdaysQueryKey = () => {
+    return [
+    `/api/birthdays/upcoming`
+    ] as const;
+    }
+
+
+export const getGetUpcomingBirthdaysQueryOptions = <TData = Awaited<ReturnType<typeof getUpcomingBirthdays>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUpcomingBirthdays>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUpcomingBirthdaysQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUpcomingBirthdays>>> = ({ signal }) => getUpcomingBirthdays({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUpcomingBirthdays>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUpcomingBirthdaysQueryResult = NonNullable<Awaited<ReturnType<typeof getUpcomingBirthdays>>>
+export type GetUpcomingBirthdaysQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get upcoming birthdays (next 30 days)
+ */
+
+export function useGetUpcomingBirthdays<TData = Awaited<ReturnType<typeof getUpcomingBirthdays>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUpcomingBirthdays>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetUpcomingBirthdaysQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getListBirthdaysUrl = () => {
+
+
+
+
+  return `/api/birthdays`
+}
+
+/**
+ * @summary List all birthdays grouped by month
+ */
+export const listBirthdays = async ( options?: RequestInit): Promise<BirthdaysByMonthResult> => {
+
+  return customFetch<BirthdaysByMonthResult>(getListBirthdaysUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListBirthdaysQueryKey = () => {
+    return [
+    `/api/birthdays`
+    ] as const;
+    }
+
+
+export const getListBirthdaysQueryOptions = <TData = Awaited<ReturnType<typeof listBirthdays>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBirthdays>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListBirthdaysQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listBirthdays>>> = ({ signal }) => listBirthdays({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBirthdays>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListBirthdaysQueryResult = NonNullable<Awaited<ReturnType<typeof listBirthdays>>>
+export type ListBirthdaysQueryError = ErrorType<void>
+
+
+/**
+ * @summary List all birthdays grouped by month
+ */
+
+export function useListBirthdays<TData = Awaited<ReturnType<typeof listBirthdays>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBirthdays>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListBirthdaysQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateDateOfBirthUrl = (id: string,) => {
+
+
+
+
+  return `/api/users/${id}/date-of-birth`
+}
+
+/**
+ * @summary Update a member's date of birth (Site Admin only)
+ */
+export const updateDateOfBirth = async (id: string,
+    updateDateOfBirthInput: UpdateDateOfBirthInput, options?: RequestInit): Promise<SuccessResult> => {
+
+  return customFetch<SuccessResult>(getUpdateDateOfBirthUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateDateOfBirthInput,)
+  }
+);}
+
+
+
+
+export const getUpdateDateOfBirthMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDateOfBirth>>, TError,{id: string;data: BodyType<UpdateDateOfBirthInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDateOfBirth>>, TError,{id: string;data: BodyType<UpdateDateOfBirthInput>}, TContext> => {
+
+const mutationKey = ['updateDateOfBirth'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDateOfBirth>>, {id: string;data: BodyType<UpdateDateOfBirthInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateDateOfBirth(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateDateOfBirthMutationResult = NonNullable<Awaited<ReturnType<typeof updateDateOfBirth>>>
+    export type UpdateDateOfBirthMutationBody = BodyType<UpdateDateOfBirthInput>
+    export type UpdateDateOfBirthMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a member's date of birth (Site Admin only)
+ */
+export const useUpdateDateOfBirth = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDateOfBirth>>, TError,{id: string;data: BodyType<UpdateDateOfBirthInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateDateOfBirth>>,
+        TError,
+        {id: string;data: BodyType<UpdateDateOfBirthInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateDateOfBirthMutationOptions(options));
+    }
+
+export const getListRoadmapItemsUrl = () => {
+
+
+
+
+  return `/api/roadmap`
+}
+
+/**
+ * @summary List roadmap items (visible only for members, all for admins)
+ */
+export const listRoadmapItems = async ( options?: RequestInit): Promise<RoadmapListResult> => {
+
+  return customFetch<RoadmapListResult>(getListRoadmapItemsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListRoadmapItemsQueryKey = () => {
+    return [
+    `/api/roadmap`
+    ] as const;
+    }
+
+
+export const getListRoadmapItemsQueryOptions = <TData = Awaited<ReturnType<typeof listRoadmapItems>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRoadmapItems>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListRoadmapItemsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listRoadmapItems>>> = ({ signal }) => listRoadmapItems({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listRoadmapItems>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListRoadmapItemsQueryResult = NonNullable<Awaited<ReturnType<typeof listRoadmapItems>>>
+export type ListRoadmapItemsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List roadmap items (visible only for members, all for admins)
+ */
+
+export function useListRoadmapItems<TData = Awaited<ReturnType<typeof listRoadmapItems>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRoadmapItems>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListRoadmapItemsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateRoadmapItemUrl = () => {
+
+
+
+
+  return `/api/roadmap`
+}
+
+/**
+ * @summary Create a roadmap item (Site Admin only)
+ */
+export const createRoadmapItem = async (createRoadmapItemInput: CreateRoadmapItemInput, options?: RequestInit): Promise<RoadmapItem> => {
+
+  return customFetch<RoadmapItem>(getCreateRoadmapItemUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createRoadmapItemInput,)
+  }
+);}
+
+
+
+
+export const getCreateRoadmapItemMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRoadmapItem>>, TError,{data: BodyType<CreateRoadmapItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createRoadmapItem>>, TError,{data: BodyType<CreateRoadmapItemInput>}, TContext> => {
+
+const mutationKey = ['createRoadmapItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createRoadmapItem>>, {data: BodyType<CreateRoadmapItemInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createRoadmapItem(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateRoadmapItemMutationResult = NonNullable<Awaited<ReturnType<typeof createRoadmapItem>>>
+    export type CreateRoadmapItemMutationBody = BodyType<CreateRoadmapItemInput>
+    export type CreateRoadmapItemMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a roadmap item (Site Admin only)
+ */
+export const useCreateRoadmapItem = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRoadmapItem>>, TError,{data: BodyType<CreateRoadmapItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createRoadmapItem>>,
+        TError,
+        {data: BodyType<CreateRoadmapItemInput>},
+        TContext
+      > => {
+      return useMutation(getCreateRoadmapItemMutationOptions(options));
+    }
+
+export const getReorderRoadmapItemsUrl = () => {
+
+
+
+
+  return `/api/roadmap/reorder`
+}
+
+/**
+ * @summary Reorder roadmap items (Site Admin only)
+ */
+export const reorderRoadmapItems = async (reorderRoadmapInput: ReorderRoadmapInput, options?: RequestInit): Promise<SuccessResult> => {
+
+  return customFetch<SuccessResult>(getReorderRoadmapItemsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reorderRoadmapInput,)
+  }
+);}
+
+
+
+
+export const getReorderRoadmapItemsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reorderRoadmapItems>>, TError,{data: BodyType<ReorderRoadmapInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reorderRoadmapItems>>, TError,{data: BodyType<ReorderRoadmapInput>}, TContext> => {
+
+const mutationKey = ['reorderRoadmapItems'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reorderRoadmapItems>>, {data: BodyType<ReorderRoadmapInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  reorderRoadmapItems(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReorderRoadmapItemsMutationResult = NonNullable<Awaited<ReturnType<typeof reorderRoadmapItems>>>
+    export type ReorderRoadmapItemsMutationBody = BodyType<ReorderRoadmapInput>
+    export type ReorderRoadmapItemsMutationError = ErrorType<void>
+
+    /**
+ * @summary Reorder roadmap items (Site Admin only)
+ */
+export const useReorderRoadmapItems = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reorderRoadmapItems>>, TError,{data: BodyType<ReorderRoadmapInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reorderRoadmapItems>>,
+        TError,
+        {data: BodyType<ReorderRoadmapInput>},
+        TContext
+      > => {
+      return useMutation(getReorderRoadmapItemsMutationOptions(options));
+    }
+
+export const getUpdateRoadmapItemUrl = (id: string,) => {
+
+
+
+
+  return `/api/roadmap/${id}`
+}
+
+/**
+ * @summary Update a roadmap item (Site Admin only)
+ */
+export const updateRoadmapItem = async (id: string,
+    updateRoadmapItemInput: UpdateRoadmapItemInput, options?: RequestInit): Promise<RoadmapItem> => {
+
+  return customFetch<RoadmapItem>(getUpdateRoadmapItemUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateRoadmapItemInput,)
+  }
+);}
+
+
+
+
+export const getUpdateRoadmapItemMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateRoadmapItem>>, TError,{id: string;data: BodyType<UpdateRoadmapItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateRoadmapItem>>, TError,{id: string;data: BodyType<UpdateRoadmapItemInput>}, TContext> => {
+
+const mutationKey = ['updateRoadmapItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateRoadmapItem>>, {id: string;data: BodyType<UpdateRoadmapItemInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateRoadmapItem(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateRoadmapItemMutationResult = NonNullable<Awaited<ReturnType<typeof updateRoadmapItem>>>
+    export type UpdateRoadmapItemMutationBody = BodyType<UpdateRoadmapItemInput>
+    export type UpdateRoadmapItemMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a roadmap item (Site Admin only)
+ */
+export const useUpdateRoadmapItem = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateRoadmapItem>>, TError,{id: string;data: BodyType<UpdateRoadmapItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateRoadmapItem>>,
+        TError,
+        {id: string;data: BodyType<UpdateRoadmapItemInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateRoadmapItemMutationOptions(options));
+    }
+
+export const getDeleteRoadmapItemUrl = (id: string,) => {
+
+
+
+
+  return `/api/roadmap/${id}`
+}
+
+/**
+ * @summary Delete a roadmap item (Site Admin only)
+ */
+export const deleteRoadmapItem = async (id: string, options?: RequestInit): Promise<SuccessResult> => {
+
+  return customFetch<SuccessResult>(getDeleteRoadmapItemUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteRoadmapItemMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRoadmapItem>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteRoadmapItem>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteRoadmapItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteRoadmapItem>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteRoadmapItem(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteRoadmapItemMutationResult = NonNullable<Awaited<ReturnType<typeof deleteRoadmapItem>>>
+
+    export type DeleteRoadmapItemMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a roadmap item (Site Admin only)
+ */
+export const useDeleteRoadmapItem = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRoadmapItem>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteRoadmapItem>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDeleteRoadmapItemMutationOptions(options));
+    }
 

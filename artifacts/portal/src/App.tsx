@@ -19,7 +19,9 @@ import AdminAuditLogPage from "@/pages/admin/audit-log";
 import AdminDomainsPage from "@/pages/admin/domains";
 import AdminDegreesPage from "@/pages/admin/degrees";
 import AdminConfigPage from "@/pages/admin/config";
+import AdminRoadmapPage from "@/pages/admin/roadmap";
 import TwoFactorPage from "@/pages/settings/two-factor";
+import BirthdaysPage from "@/pages/birthdays";
 import { useEffect } from "react";
 
 function onGlobalApiError(error: unknown) {
@@ -176,6 +178,8 @@ function AppRoutes() {
         <Route path="/admin/degrees" component={() => <ProtectedRoute component={AdminDegreesPage} />} />
         <Route path="/admin/config" component={() => <ProtectedRoute component={AdminConfigPage} />} />
         <Route path="/admin/audit-log" component={() => <ProtectedRoute component={AdminAuditLogPage} />} />
+        <Route path="/admin/roadmap" component={() => <ProtectedRoute component={AdminRoadmapPage} />} />
+        <Route path="/birthdays" component={() => <ProtectedRoute component={BirthdaysPage} />} />
         <Route component={NotFound} />
       </Switch>
     </BootstrapCheck>

@@ -9,6 +9,8 @@ import rolesRouter from "./roles";
 import domainsRouter from "./domains";
 import degreesRouter from "./degrees";
 import configAdminRouter from "./config-admin";
+import birthdaysRouter from "./birthdays";
+import roadmapRouter from "./roadmap";
 
 const router: IRouter = Router();
 
@@ -22,5 +24,7 @@ router.use("/roles", rolesRouter);
 router.use("/domains", domainsRouter);
 router.use("/degree-definitions", degreesRouter);
 router.use("/config", configAdminRouter);
+router.use("/birthdays", birthdaysRouter);
+router.use("/roadmap", roadmapRouter);
 
 export default router;

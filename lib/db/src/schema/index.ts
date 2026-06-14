@@ -12,3 +12,4 @@ export * from "./password-reset-tokens";
 export * from "./two-factor-settings";
 export * from "./sessions";
 export * from "./audit-logs";
+export * from "./roadmap-items";

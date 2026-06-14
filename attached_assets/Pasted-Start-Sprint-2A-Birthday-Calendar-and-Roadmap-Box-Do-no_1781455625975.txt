@@ -1,0 +1,132 @@
+Start Sprint 2A: Birthday Calendar and Roadmap Box.
+
+Do not implement Documents yet.
+Do not implement Lodge Calendar yet.
+
+Goal:
+Implement the first member-facing feature: the Birthday Calendar.
+Also add a Roadmap / Upcoming Features box so members can see which features are planned next.
+
+SPRINT 2A SCOPE
+
+1. Birthday Calendar
+
+Implement:
+- Birthday overview page
+- Upcoming birthdays widget on dashboard
+- Birthday list by month
+- Birthday list by upcoming date
+- Highlight birthdays within the next 30 days
+- Show day and month by default
+- Do not show birth year or age unless explicitly configured later
+
+2. Member Birthday Data
+
+Use existing member profile data if already present.
+If date of birth field does not exist yet, add it.
+
+Requirements:
+- Date of birth can be maintained by Site Administrator and PM Super Administrator.
+- Member can later maintain own date of birth, but this may be deferred.
+- Birthday visibility must respect privacy settings where available.
+- Only Active members should appear in the birthday calendar.
+- Inactive, Suspended, Pending members must not appear.
+
+3. Birthday Privacy
+
+Default:
+- Show day and month only.
+- Hide birth year.
+- Hide age.
+
+Future configurable options:
+- Show birthday
+- Hide birthday
+- Show day/month only
+- Show full date
+
+For Sprint 2A, implement safe default:
+- day/month only.
+
+4. Dashboard Birthday Widget
+
+Add dashboard card:
+
+"Upcoming Birthdays"
+
+Show:
+- Name
+- Date
+- Days remaining
+
+Example:
+Brother John Smith
+18 March
+In 5 days
+
+5. Roadmap / Upcoming Features Box
+
+Add dashboard card:
+
+"Coming Next"
+
+This card should show planned future features.
+
+Initial roadmap items:
+- Sprint 2B: Documents
+- Sprint 2C: Lodge Calendar
+- Sprint 3: Announcements and Notifications
+- Sprint 4: Suggestions
+- Future: Heritage Module
+
+Requirements:
+- Visible to all logged-in users.
+- Editable by Site Administrator and PM Super Administrator.
+- Stored in database, not hardcoded.
+- Status field:
+  - Planned
+  - In Progress
+  - Completed
+  - Future Idea
+
+6. Administration
+
+Add admin screen:
+Roadmap Management
+
+Allow Site Administrator and PM Super Administrator to:
+- Add roadmap item
+- Edit roadmap item
+- Change status
+- Reorder items
+- Hide/show item
+
+7. Audit Logging
+
+Log:
+- Date of birth updated
+- Roadmap item created
+- Roadmap item updated
+- Roadmap item hidden
+- Roadmap item reordered
+
+8. Security
+
+- Only authorized administrators may edit birthday data and roadmap.
+- Normal members can view birthday calendar and roadmap only.
+- Birthday calendar must only show Active members.
+
+9. UI
+
+Keep it simple and elegant.
+Use the existing dashboard style.
+Do not start major visual redesign yet.
+
+10. Stop after Sprint 2A.
+
+After implementation, provide:
+- files changed
+- database tables/fields added
+- test procedure
+- known limitations
+- what should be tested before Sprint 2B

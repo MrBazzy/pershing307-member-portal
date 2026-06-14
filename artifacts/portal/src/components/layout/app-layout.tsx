@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Users, Mail, FileText, LogOut, ChevronRight,
-  Shield, Globe, GraduationCap, Settings, Menu, X,
+  Shield, Globe, GraduationCap, Settings, Menu, X, Cake, Map,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -22,10 +22,12 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/birthdays", label: "Birthdays", icon: Cake },
   { href: "/admin/users", label: "Members", icon: Users, adminOnly: true },
   { href: "/admin/invitations", label: "Invitations", icon: Mail, adminOnly: true },
   { href: "/admin/domains", label: "Domains", icon: Globe, adminOnly: true },
   { href: "/admin/degrees", label: "Degrees", icon: GraduationCap, adminOnly: true },
+  { href: "/admin/roadmap", label: "Roadmap", icon: Map, adminOnly: true },
   { href: "/admin/config", label: "Configuration", icon: Settings, adminOnly: true },
   { href: "/admin/audit-log", label: "Audit Log", icon: FileText, adminOnly: true },
 ];
@@ -46,7 +48,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const queryClient = useQueryClient();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const isAdmin = user?.roles?.some((r) => r.permissionLevel >= 70) ?? false;
+  const isAdmin = user?.roles?.some((r) => r.permissionLevel >= 80) ?? false;
   const isPmSuperAdmin = user?.roles?.some((r) => r.permissionLevel >= 90) ?? false;
 
   const handleLogout = () => {

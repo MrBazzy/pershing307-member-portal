@@ -337,6 +337,7 @@ export const GetUserResponse = zod.object({
   "emailVerified": zod.boolean(),
   "mustChangePassword": zod.boolean(),
   "lastLoginAt": zod.string().nullish(),
+  "dateOfBirth": zod.coerce.date().nullish(),
   "createdAt": zod.string(),
   "roles": zod.array(zod.object({
   "id": zod.string(),
@@ -824,6 +825,153 @@ export const ListAuditLogsResponse = zod.object({
 })),
   "limit": zod.number(),
   "offset": zod.number()
+})
+
+
+/**
+ * @summary Get upcoming birthdays (next 30 days)
+ */
+export const GetUpcomingBirthdaysResponse = zod.object({
+  "birthdays": zod.array(zod.object({
+  "id": zod.string(),
+  "firstName": zod.string(),
+  "lastName": zod.string(),
+  "month": zod.number().describe('Month (1-12)'),
+  "day": zod.number().describe('Day of month'),
+  "daysUntil": zod.number().describe('Days until next birthday (0 = today)')
+}))
+})
+
+
+/**
+ * @summary List all birthdays grouped by month
+ */
+export const ListBirthdaysResponse = zod.object({
+  "months": zod.array(zod.object({
+  "month": zod.number(),
+  "monthName": zod.string(),
+  "birthdays": zod.array(zod.object({
+  "id": zod.string(),
+  "firstName": zod.string(),
+  "lastName": zod.string(),
+  "month": zod.number().describe('Month (1-12)'),
+  "day": zod.number().describe('Day of month'),
+  "daysUntil": zod.number().describe('Days until next birthday (0 = today)')
+}))
+}))
+})
+
+
+/**
+ * @summary Update a member's date of birth (Site Admin only)
+ */
+export const UpdateDateOfBirthParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UpdateDateOfBirthBody = zod.object({
+  "dateOfBirth": zod.coerce.date().nullish()
+})
+
+export const UpdateDateOfBirthResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary List roadmap items (visible only for members, all for admins)
+ */
+export const ListRoadmapItemsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "status": zod.enum(['planned', 'in-progress', 'completed', 'future-idea']),
+  "sortOrder": zod.number(),
+  "isVisible": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Create a roadmap item (Site Admin only)
+ */
+export const createRoadmapItemBodyTitleMax = 200;
+
+export const createRoadmapItemBodyDescriptionMax = 1000;
+
+
+
+export const CreateRoadmapItemBody = zod.object({
+  "title": zod.string().min(1).max(createRoadmapItemBodyTitleMax),
+  "description": zod.string().max(createRoadmapItemBodyDescriptionMax).nullish(),
+  "status": zod.enum(['planned', 'in-progress', 'completed', 'future-idea']),
+  "sortOrder": zod.number().optional()
+})
+
+
+/**
+ * @summary Reorder roadmap items (Site Admin only)
+ */
+export const ReorderRoadmapItemsBody = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "sortOrder": zod.number()
+}))
+})
+
+export const ReorderRoadmapItemsResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary Update a roadmap item (Site Admin only)
+ */
+export const UpdateRoadmapItemParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateRoadmapItemBodyTitleMax = 200;
+
+export const updateRoadmapItemBodyDescriptionMax = 1000;
+
+
+
+export const UpdateRoadmapItemBody = zod.object({
+  "title": zod.string().min(1).max(updateRoadmapItemBodyTitleMax).optional(),
+  "description": zod.string().max(updateRoadmapItemBodyDescriptionMax).nullish(),
+  "status": zod.enum(['planned', 'in-progress', 'completed', 'future-idea']).optional(),
+  "sortOrder": zod.number().optional(),
+  "isVisible": zod.boolean().optional()
+})
+
+export const UpdateRoadmapItemResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "status": zod.enum(['planned', 'in-progress', 'completed', 'future-idea']),
+  "sortOrder": zod.number(),
+  "isVisible": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Delete a roadmap item (Site Admin only)
+ */
+export const DeleteRoadmapItemParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteRoadmapItemResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
 })
 
 

@@ -120,6 +120,7 @@ router.get("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res
       lastName: user.lastName,
       displayName: user.displayName,
       membershipStatus: user.membershipStatus,
+      dateOfBirth: user.dateOfBirth ?? null,
       isActive: user.isActive,
       emailVerified: user.emailVerified,
       mustChangePassword: user.mustChangePassword,
@@ -800,6 +801,53 @@ router.patch("/:id/membership-status", requireAuth(), requireRole(SITE_ADMIN_LEV
     targetType: "user",
     targetId,
     detail: { from: prevStatus, to: newStatus, sessionsInvalidated: membershipSessionsInvalidated },
+    ipAddress: getClientIp(req),
+  });
+
+  res.json({ success: true });
+});
+
+const dateOfBirthSchema = z.object({
+  dateOfBirth: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable(),
+});
+
+router.patch("/:id/date-of-birth", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const targetId = String(req.params.id);
+  const actorId = req.session!.userId!;
+  const lodgeId = await getLodgeId();
+
+  const parsed = dateOfBirthSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid date format. Expected YYYY-MM-DD or null." });
+    return;
+  }
+
+  const existing = await db
+    .select({ id: usersTable.id, dateOfBirth: usersTable.dateOfBirth })
+    .from(usersTable)
+    .where(and(eq(usersTable.id, targetId), eq(usersTable.lodgeId, lodgeId!)))
+    .limit(1);
+
+  if (existing.length === 0) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  await db
+    .update(usersTable)
+    .set({ dateOfBirth: parsed.data.dateOfBirth, updatedAt: new Date() })
+    .where(eq(usersTable.id, targetId));
+
+  await writeAuditLog({
+    lodgeId,
+    actorId,
+    action: "DOB_UPDATED",
+    targetType: "user",
+    targetId,
+    detail: { previous: existing[0].dateOfBirth, updated: parsed.data.dateOfBirth },
     ipAddress: getClientIp(req),
   });
 

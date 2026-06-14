@@ -27,6 +27,10 @@ tags:
     description: Portal configuration
   - name: audit
     description: Audit log
+  - name: birthdays
+    description: Birthday calendar
+  - name: roadmap
+    description: Roadmap and upcoming features
 paths:
   /healthz:
     get:
@@ -991,6 +995,192 @@ paths:
               schema:
                 $ref: "#/components/schemas/AuditLogResult"
 
+  /birthdays/upcoming:
+    get:
+      operationId: getUpcomingBirthdays
+      tags: [birthdays]
+      summary: Get upcoming birthdays (next 30 days)
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Upcoming birthdays
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpcomingBirthdaysResult"
+        "401":
+          description: Unauthorized
+
+  /birthdays:
+    get:
+      operationId: listBirthdays
+      tags: [birthdays]
+      summary: List all birthdays grouped by month
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Birthdays by month
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BirthdaysByMonthResult"
+        "401":
+          description: Unauthorized
+
+  /users/{id}/date-of-birth:
+    patch:
+      operationId: updateDateOfBirth
+      tags: [users]
+      summary: Update a member's date of birth (Site Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDateOfBirthInput"
+      responses:
+        "200":
+          description: Date of birth updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "400":
+          description: Invalid date format
+        "403":
+          description: Forbidden
+        "404":
+          description: User not found
+
+  /roadmap:
+    get:
+      operationId: listRoadmapItems
+      tags: [roadmap]
+      summary: List roadmap items (visible only for members, all for admins)
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Roadmap items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoadmapListResult"
+        "401":
+          description: Unauthorized
+    post:
+      operationId: createRoadmapItem
+      tags: [roadmap]
+      summary: Create a roadmap item (Site Admin only)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRoadmapItemInput"
+      responses:
+        "201":
+          description: Item created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoadmapItem"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+
+  /roadmap/reorder:
+    post:
+      operationId: reorderRoadmapItems
+      tags: [roadmap]
+      summary: Reorder roadmap items (Site Admin only)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderRoadmapInput"
+      responses:
+        "200":
+          description: Reordered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "403":
+          description: Forbidden
+
+  /roadmap/{id}:
+    put:
+      operationId: updateRoadmapItem
+      tags: [roadmap]
+      summary: Update a roadmap item (Site Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRoadmapItemInput"
+      responses:
+        "200":
+          description: Item updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoadmapItem"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+        "404":
+          description: Item not found
+    delete:
+      operationId: deleteRoadmapItem
+      tags: [roadmap]
+      summary: Delete a roadmap item (Site Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Item deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "403":
+          description: Forbidden
+        "404":
+          description: Item not found
+
 components:
   schemas:
     HealthStatus:
@@ -1316,6 +1506,9 @@ components:
           type: boolean
         lastLoginAt:
           type: ["string", "null"]
+        dateOfBirth:
+          type: ["string", "null"]
+          format: date
         createdAt:
           type: string
         roles:
@@ -1780,3 +1973,145 @@ components:
           type: integer
         offset:
           type: integer
+
+    BirthdayEntry:
+      type: object
+      required: [id, firstName, lastName, month, day, daysUntil]
+      properties:
+        id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        month:
+          type: integer
+          description: Month (1-12)
+        day:
+          type: integer
+          description: Day of month
+        daysUntil:
+          type: integer
+          description: Days until next birthday (0 = today)
+
+    UpcomingBirthdaysResult:
+      type: object
+      required: [birthdays]
+      properties:
+        birthdays:
+          type: array
+          items:
+            $ref: "#/components/schemas/BirthdayEntry"
+
+    BirthdayMonth:
+      type: object
+      required: [month, monthName, birthdays]
+      properties:
+        month:
+          type: integer
+        monthName:
+          type: string
+        birthdays:
+          type: array
+          items:
+            $ref: "#/components/schemas/BirthdayEntry"
+
+    BirthdaysByMonthResult:
+      type: object
+      required: [months]
+      properties:
+        months:
+          type: array
+          items:
+            $ref: "#/components/schemas/BirthdayMonth"
+
+    UpdateDateOfBirthInput:
+      type: object
+      properties:
+        dateOfBirth:
+          type: ["string", "null"]
+          format: date
+
+    RoadmapItem:
+      type: object
+      required: [id, title, status, sortOrder, isVisible, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [planned, in-progress, completed, future-idea]
+        sortOrder:
+          type: integer
+        isVisible:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    RoadmapListResult:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoadmapItem"
+
+    CreateRoadmapItemInput:
+      type: object
+      required: [title, status]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: ["string", "null"]
+          maxLength: 1000
+        status:
+          type: string
+          enum: [planned, in-progress, completed, future-idea]
+        sortOrder:
+          type: integer
+
+    UpdateRoadmapItemInput:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: ["string", "null"]
+          maxLength: 1000
+        status:
+          type: string
+          enum: [planned, in-progress, completed, future-idea]
+        sortOrder:
+          type: integer
+        isVisible:
+          type: boolean
+
+    ReorderRoadmapEntry:
+      type: object
+      required: [id, sortOrder]
+      properties:
+        id:
+          type: string
+        sortOrder:
+          type: integer
+
+    ReorderRoadmapInput:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReorderRoadmapEntry"

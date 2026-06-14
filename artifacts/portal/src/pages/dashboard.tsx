@@ -1,12 +1,29 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useListAuditLogs, useListUsers } from "@workspace/api-client-react";
+import {
+  useListAuditLogs,
+  useListUsers,
+  useGetUpcomingBirthdays,
+  useListRoadmapItems,
+} from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Activity, Shield, Clock } from "lucide-react";
+import { Users, Activity, Shield, Clock, Cake, Map } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "wouter";
+
+const MONTH_ABBR = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
+  "planned":     { label: "Planned",     cls: "bg-gray-100 text-gray-700 border-gray-200" },
+  "in-progress": { label: "In Progress", cls: "bg-blue-100 text-blue-700 border-blue-200" },
+  "completed":   { label: "Completed",   cls: "bg-green-100 text-green-700 border-green-200" },
+  "future-idea": { label: "Future Idea", cls: "bg-purple-100 text-purple-700 border-purple-200" },
+};
 
 function ActionBadge({ action }: { action: string }) {
   const colorMap: Record<string, string> = {
@@ -31,12 +48,140 @@ function ActionBadge({ action }: { action: string }) {
   );
 }
 
+function UpcomingBirthdaysWidget() {
+  const { data, isLoading } = useGetUpcomingBirthdays();
+  const birthdays = data?.birthdays ?? [];
+
+  return (
+    <Card className="border-card-border" data-testid="widget-upcoming-birthdays">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          <Cake className="h-4 w-4 text-muted-foreground" />
+          Upcoming Birthdays
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-8 w-full" />
+            ))}
+          </div>
+        ) : birthdays.length > 0 ? (
+          <div className="divide-y divide-border -mx-2">
+            {birthdays.slice(0, 5).map((b) => (
+              <div key={b.id} className="flex items-center justify-between px-2 py-2">
+                <span className="text-sm font-medium text-foreground">
+                  {b.firstName} {b.lastName}
+                </span>
+                <div className="flex items-center gap-3 shrink-0 ml-2">
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {MONTH_ABBR[b.month - 1]} {b.day}
+                  </span>
+                  <span
+                    className={`text-xs font-medium ${
+                      b.daysUntil === 0
+                        ? "text-amber-600"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {b.daysUntil === 0
+                      ? "Today!"
+                      : b.daysUntil === 1
+                      ? "Tomorrow"
+                      : `In ${b.daysUntil}d`}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-6">
+            No birthdays in the next 30 days
+          </p>
+        )}
+        <div className="mt-3 pt-3 border-t border-border">
+          <Link href="/birthdays" className="text-xs text-primary hover:underline" data-testid="link-birthday-calendar">
+            View full calendar →
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RoadmapWidget({ isAdmin }: { isAdmin: boolean }) {
+  const { data, isLoading } = useListRoadmapItems();
+  const items = data?.items ?? [];
+  const featured = items.filter((i) => i.status !== "completed").slice(0, 5);
+  const completedCount = items.filter((i) => i.status === "completed").length;
+
+  return (
+    <Card className="border-card-border" data-testid="widget-roadmap">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-semibold flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Map className="h-4 w-4 text-muted-foreground" />
+            Coming Next
+          </span>
+          {isAdmin && (
+            <Link
+              href="/admin/roadmap"
+              className="text-xs text-primary hover:underline font-normal"
+              data-testid="link-manage-roadmap"
+            >
+              Manage →
+            </Link>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-8 w-full" />
+            ))}
+          </div>
+        ) : featured.length > 0 ? (
+          <div className="space-y-2">
+            {featured.map((item) => {
+              const cfg = STATUS_CONFIG[item.status] ?? STATUS_CONFIG["planned"];
+              return (
+                <div key={item.id} className="flex items-start gap-2 py-0.5">
+                  <span
+                    className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border shrink-0 mt-0.5 ${cfg.cls}`}
+                  >
+                    {cfg.label}
+                  </span>
+                  <span className="text-sm text-foreground leading-snug">{item.title}</span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-6">
+            No upcoming features to show
+          </p>
+        )}
+        {completedCount > 0 && (
+          <div className="mt-3 pt-3 border-t border-border">
+            <p className="text-xs text-muted-foreground">
+              {completedCount} feature{completedCount !== 1 ? "s" : ""} already completed
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
+  const isAdmin = user?.roles?.some((r) => r.permissionLevel >= 80) ?? false;
+
   const { data: usersData, isLoading: usersLoading } = useListUsers();
   const { data: auditData, isLoading: auditLoading } = useListAuditLogs({ limit: 5, offset: 0 });
 
-  const isAdmin = user?.roles?.some((r) => r.permissionLevel >= 70) ?? false;
   const totalMembers = usersData?.users?.length ?? 0;
   const activeMembers = usersData?.users?.filter((u) => u.membershipStatus === "active").length ?? 0;
 
@@ -75,6 +220,11 @@ export default function DashboardPage() {
           </div>
         )}
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <UpcomingBirthdaysWidget />
+          <RoadmapWidget isAdmin={isAdmin} />
+        </div>
+
         {isAdmin && (
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -112,20 +262,6 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
-        )}
-
-        {!isAdmin && (
-          <Card className="border-card-border">
-            <CardContent className="pt-6">
-              <div className="text-center py-4">
-                <Shield className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm font-medium text-foreground">Member Portal</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  You are signed in as <strong>{user?.email}</strong>
-                </p>
-              </div>
-            </CardContent>
-          </Card>
         )}
       </div>
     </AppLayout>

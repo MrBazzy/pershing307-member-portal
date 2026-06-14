@@ -21,6 +21,8 @@ export interface UserDetail {
   mustChangePassword: boolean;
   /** @nullable */
   lastLoginAt?: string | null;
+  /** @nullable */
+  dateOfBirth?: Date | null;
   createdAt: string;
   roles: RoleDetail[];
 }
