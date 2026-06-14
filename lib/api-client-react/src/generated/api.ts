@@ -34,6 +34,7 @@ import type {
   ConfigUpdateInput,
   CreateRoadmapItemInput,
   CurrentUserResult,
+  DateOfBirthResult,
   DegreeDefinitionListResult,
   DegreeDefinitionUpdateInput,
   DegreeInput,
@@ -3685,6 +3686,83 @@ export function useListBirthdays<TData = Awaited<ReturnType<typeof listBirthdays
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListBirthdaysQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetOwnDateOfBirthUrl = () => {
+
+
+
+
+  return `/api/profile/date-of-birth`
+}
+
+/**
+ * @summary Get the current member's own date of birth (read-only)
+ */
+export const getOwnDateOfBirth = async ( options?: RequestInit): Promise<DateOfBirthResult> => {
+
+  return customFetch<DateOfBirthResult>(getGetOwnDateOfBirthUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOwnDateOfBirthQueryKey = () => {
+    return [
+    `/api/profile/date-of-birth`
+    ] as const;
+    }
+
+
+export const getGetOwnDateOfBirthQueryOptions = <TData = Awaited<ReturnType<typeof getOwnDateOfBirth>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOwnDateOfBirth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOwnDateOfBirthQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOwnDateOfBirth>>> = ({ signal }) => getOwnDateOfBirth({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOwnDateOfBirth>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetOwnDateOfBirthQueryResult = NonNullable<Awaited<ReturnType<typeof getOwnDateOfBirth>>>
+export type GetOwnDateOfBirthQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the current member's own date of birth (read-only)
+ */
+
+export function useGetOwnDateOfBirth<TData = Awaited<ReturnType<typeof getOwnDateOfBirth>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOwnDateOfBirth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetOwnDateOfBirthQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

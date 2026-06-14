@@ -29,6 +29,7 @@ export * from './createRoadmapItemInput';
 export * from './createRoadmapItemInputStatus';
 export * from './currentUserResult';
 export * from './currentUserResultUser';
+export * from './dateOfBirthResult';
 export * from './degreeDefinition';
 export * from './degreeDefinitionListResult';
 export * from './degreeDefinitionUpdateInput';

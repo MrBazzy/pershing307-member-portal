@@ -9,6 +9,23 @@ import { getLodgeId } from "../lib/config";
 
 const router = Router();
 
+router.get("/date-of-birth", requireAuth(), async (req, res) => {
+  const actorId = req.session!.userId!;
+
+  const rows = await db
+    .select({ dateOfBirth: usersTable.dateOfBirth })
+    .from(usersTable)
+    .where(eq(usersTable.id, actorId))
+    .limit(1);
+
+  if (rows.length === 0) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  res.json({ dateOfBirth: rows[0].dateOfBirth ?? null });
+});
+
 const visibilitySchema = z.object({
   visibility: z.enum(["hidden", "day_month", "full"]),
 });

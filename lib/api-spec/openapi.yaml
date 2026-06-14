@@ -1031,6 +1031,23 @@ paths:
         "401":
           description: Unauthorized
 
+  /profile/date-of-birth:
+    get:
+      operationId: getOwnDateOfBirth
+      tags: [profile]
+      summary: Get the current member's own date of birth (read-only)
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Current member's date of birth
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DateOfBirthResult"
+        "401":
+          description: Unauthorized
+
   /profile/birthday-visibility:
     get:
       operationId: getBirthdayVisibility
@@ -2078,6 +2095,14 @@ components:
 
     UpdateDateOfBirthInput:
       type: object
+      properties:
+        dateOfBirth:
+          type: ["string", "null"]
+          format: date
+
+    DateOfBirthResult:
+      type: object
+      required: [dateOfBirth]
       properties:
         dateOfBirth:
           type: ["string", "null"]

@@ -547,6 +547,11 @@ export interface UpdateDateOfBirthInput {
   dateOfBirth?: string | null;
 }
 
+export interface DateOfBirthResult {
+  /** @nullable */
+  dateOfBirth: string | null;
+}
+
 export type BirthdayVisibilityResultVisibility = typeof BirthdayVisibilityResultVisibility[keyof typeof BirthdayVisibilityResultVisibility];
 
 

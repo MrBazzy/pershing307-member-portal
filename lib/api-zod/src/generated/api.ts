@@ -868,6 +868,14 @@ export const ListBirthdaysResponse = zod.object({
 
 
 /**
+ * @summary Get the current member's own date of birth (read-only)
+ */
+export const GetOwnDateOfBirthResponse = zod.object({
+  "dateOfBirth": zod.coerce.date().nullable()
+})
+
+
+/**
  * @summary Get the current member's birthday visibility setting
  */
 export const GetBirthdayVisibilityResponse = zod.object({

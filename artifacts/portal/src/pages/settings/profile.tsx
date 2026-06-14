@@ -8,10 +8,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetBirthdayVisibility,
   useUpdateBirthdayVisibility,
+  useGetOwnDateOfBirth,
   getGetBirthdayVisibilityQueryKey,
 } from "@workspace/api-client-react";
 import { Cake, Calendar, EyeOff, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { format, parseISO } from "date-fns";
 
 type Visibility = "hidden" | "day_month" | "full";
 
@@ -39,6 +41,7 @@ const OPTIONS: { value: Visibility; label: string; description: string; Icon: Re
 export default function ProfileSettingsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: dobData, isLoading: isDobLoading } = useGetOwnDateOfBirth();
   const { data, isLoading } = useGetBirthdayVisibility();
   const mutation = useUpdateBirthdayVisibility();
 
@@ -80,6 +83,26 @@ export default function ProfileSettingsPage() {
             Manage how your information is shared with other lodge members.
           </p>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Date of Birth</CardTitle>
+            <CardDescription>
+              Your date of birth on file. To update it, contact a lodge administrator.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isDobLoading ? (
+              <Skeleton className="h-8 w-48" />
+            ) : dobData?.dateOfBirth ? (
+              <p className="text-sm font-medium text-foreground">
+                {format(parseISO(dobData.dateOfBirth), "MMMM d, yyyy")}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">No date of birth on file.</p>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
