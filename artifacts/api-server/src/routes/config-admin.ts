@@ -103,7 +103,7 @@ router.get("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) =
     isReadOnly: meta.isReadOnly,
   }));
 
-  res.json({ config });
+  res.json({ config, smtpPasswordConfigured: !!process.env.SMTP_PASS });
 });
 
 router.post("/test-smtp", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {

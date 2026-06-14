@@ -20,12 +20,32 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useListConfig, useUpdateConfig, getListConfigQueryKey } from "@workspace/api-client-react";
+import {
+  useListConfig,
+  useUpdateConfig,
+  useTestSmtp,
+  getListConfigQueryKey,
+} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Settings, Lock, Save, Info, Loader2, AlertTriangle, ShieldAlert, Mail } from "lucide-react";
+import {
+  Settings,
+  Lock,
+  Save,
+  Info,
+  Loader2,
+  AlertTriangle,
+  ShieldAlert,
+  Mail,
+  Send,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 
 const updateSchema = z.object({ value: z.string() });
 type UpdateValues = z.infer<typeof updateSchema>;
+
+const testSchema = z.object({ to: z.string().email("Enter a valid email address") });
+type TestValues = z.infer<typeof testSchema>;
 
 const KEY_INPUT_TYPES: Record<string, string> = {
   smtp_port: "number",
@@ -115,7 +135,7 @@ function ConfigRow({
                     <span className="text-foreground">{entry.value || "(not set)"}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">New: </span>
+                    <span className="text-muted-foreground">New:&nbsp;&nbsp;&nbsp;&nbsp; </span>
                     <span className="text-foreground font-semibold">{pendingValue || "(empty)"}</span>
                   </div>
                 </div>
@@ -210,28 +230,164 @@ function ConfigRow({
   );
 }
 
-function SmtpPasswordRow() {
+function SmtpPasswordRow({ configured }: { configured: boolean }) {
   return (
     <div className="py-4 space-y-2">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-0.5 flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium">SMTP Password</span>
-            <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono text-muted-foreground">
-              SMTP_PASS
-            </code>
-            <Badge variant="outline" className="text-xs gap-1 border-amber-300 text-amber-700 bg-amber-50">
-              <ShieldAlert className="h-2.5 w-2.5" />
-              Env secret only
+      <div className="space-y-0.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-medium">SMTP Password</span>
+          <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono text-muted-foreground">
+            SMTP_PASS
+          </code>
+          <Badge
+            variant="outline"
+            className="text-xs gap-1 border-amber-300 text-amber-700 bg-amber-50"
+          >
+            <ShieldAlert className="h-2.5 w-2.5" />
+            Replit Secret only
+          </Badge>
+          {configured ? (
+            <Badge
+              variant="outline"
+              className="text-xs gap-1 border-green-300 text-green-700 bg-green-50"
+            >
+              <CheckCircle2 className="h-2.5 w-2.5" />
+              Configured
             </Badge>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Set the <code className="font-mono">SMTP_PASS</code> environment variable. The password is never
-            stored in the database and cannot be configured here.
-          </p>
+          ) : (
+            <Badge
+              variant="outline"
+              className="text-xs gap-1 border-red-300 text-red-700 bg-red-50"
+            >
+              <XCircle className="h-2.5 w-2.5" />
+              Not configured
+            </Badge>
+          )}
         </div>
+        <p className="text-xs text-muted-foreground">
+          The SMTP password is managed as the{" "}
+          <code className="font-mono">SMTP_PASS</code> Replit Secret — it is
+          never stored in the database and cannot be set here. Add or update it
+          in the <strong>Secrets</strong> tab of your Replit workspace, then
+          restart the API Server.
+        </p>
       </div>
-      <p className="text-sm text-muted-foreground italic">Protected — configure via environment secret</p>
+    </div>
+  );
+}
+
+function SendTestEmailSection() {
+  const { toast } = useToast();
+  const testSmtp = useTestSmtp();
+  const [result, setResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+
+  const form = useForm<TestValues>({
+    resolver: zodResolver(testSchema),
+    defaultValues: { to: "" },
+  });
+
+  const handleSend = (values: TestValues) => {
+    setResult(null);
+    testSmtp.mutate(
+      { data: { to: values.to } },
+      {
+        onSuccess: (data) => {
+          setResult({
+            success: true,
+            message: data.message ?? "Test email sent successfully.",
+          });
+        },
+        onError: (e: any) => {
+          const msg =
+            e?.data?.details ?? e?.data?.error ?? "Failed to send test email.";
+          setResult({ success: false, message: msg });
+          if (e?.status === 503) {
+            toast({
+              title: "SMTP not configured",
+              description:
+                "Set smtp_host and the SMTP_PASS secret before sending a test email.",
+              variant: "destructive",
+            });
+          }
+        },
+      }
+    );
+  };
+
+  return (
+    <div className="border rounded-lg px-4 pb-4">
+      <div className="py-3 flex items-center gap-1.5">
+        <Send className="h-3.5 w-3.5 text-muted-foreground" />
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          Send Test Email
+        </h2>
+      </div>
+      <Separator />
+      <div className="pt-4 space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Verify your SMTP configuration by sending a test message. The result
+          is recorded in the Audit Log.
+        </p>
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(handleSend)}
+            className="flex gap-2"
+          >
+            <FormField
+              control={form.control}
+              name="to"
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <FormControl>
+                    <Input
+                      {...field}
+                      type="email"
+                      placeholder="recipient@example.com"
+                      autoComplete="email"
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setResult(null);
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button
+              type="submit"
+              disabled={testSmtp.isPending}
+            >
+              {testSmtp.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Send className="h-4 w-4 mr-2" />
+              )}
+              Send
+            </Button>
+          </form>
+        </Form>
+
+        {result && (
+          <div
+            className={`rounded-md border px-3 py-2.5 text-sm flex items-start gap-2.5 ${
+              result.success
+                ? "border-green-200 bg-green-50 text-green-800"
+                : "border-red-200 bg-red-50 text-red-800"
+            }`}
+          >
+            {result.success ? (
+              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+            ) : (
+              <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
+            )}
+            <span>{result.message}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -243,19 +399,25 @@ export default function AdminConfigPage() {
   const updateMutation = useUpdateConfig();
 
   const config = data?.config ?? [];
+  const smtpPasswordConfigured = data?.smtpPasswordConfigured ?? false;
 
   const lodgeEntries = config.filter((c) =>
     ["lodge_name", "lodge_number", "lodge_timezone"].includes(c.key)
   );
   const smtpEntries = config.filter((c) =>
-    ["smtp_host", "smtp_port", "smtp_user", "smtp_from_email", "smtp_from_name", "smtp_reply_to"].includes(c.key)
+    [
+      "smtp_host",
+      "smtp_port",
+      "smtp_user",
+      "smtp_from_email",
+      "smtp_from_name",
+      "smtp_reply_to",
+    ].includes(c.key)
   );
   const sessionEntries = config.filter((c) =>
     ["session_timeout_min", "lockout_max_attempts", "lockout_duration_min"].includes(c.key)
   );
-  const securityEntries = config.filter((c) =>
-    ["require_2fa_roles"].includes(c.key)
-  );
+  const securityEntries = config.filter((c) => ["require_2fa_roles"].includes(c.key));
   const inviteEntries = config.filter((c) =>
     ["invite_expiry_days", "reset_expiry_hours"].includes(c.key)
   );
@@ -291,7 +453,8 @@ export default function AdminConfigPage() {
             <Settings className="h-6 w-6" /> Configuration
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Manage portal settings. SMTP Password is an environment secret and cannot be set here.
+            Manage portal settings. SMTP password is a Replit Secret and is
+            never stored in the database.
           </p>
         </div>
 
@@ -308,7 +471,10 @@ export default function AdminConfigPage() {
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                   Lodge Information
                 </h2>
-                <Badge variant="outline" className="text-xs gap-1 ml-auto border-blue-200 text-blue-700 bg-blue-50">
+                <Badge
+                  variant="outline"
+                  className="text-xs gap-1 ml-auto border-blue-200 text-blue-700 bg-blue-50"
+                >
                   <Info className="h-2.5 w-2.5" />
                   Confirmation required
                 </Badge>
@@ -327,9 +493,9 @@ export default function AdminConfigPage() {
             </div>
 
             <div className="border rounded-lg px-4">
-              <div className="py-3 flex items-center gap-2">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                  <Mail className="h-3.5 w-3.5" />
+              <div className="py-3 flex items-center gap-1.5">
+                <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                   Email Configuration
                 </h2>
               </div>
@@ -338,9 +504,11 @@ export default function AdminConfigPage() {
                 {smtpEntries.map((entry) => (
                   <ConfigRow key={entry.key} entry={entry} onSave={handleSave} />
                 ))}
-                <SmtpPasswordRow />
+                <SmtpPasswordRow configured={smtpPasswordConfigured} />
               </div>
             </div>
+
+            <SendTestEmailSection />
 
             <div className="border rounded-lg px-4">
               <h2 className="text-sm font-semibold py-3 text-muted-foreground uppercase tracking-wide">
@@ -384,8 +552,8 @@ export default function AdminConfigPage() {
                 Changes take effect after the next request.
               </p>
               <p className="text-xs">
-                Session timeout changes apply to new sessions only. To force existing sessions to
-                expire, restart the API server.
+                Session timeout changes apply to new sessions only. To force
+                existing sessions to expire, restart the API server.
               </p>
             </div>
           </div>

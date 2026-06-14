@@ -9,4 +9,7 @@ import type { ConfigEntry } from './configEntry';
 
 export interface ConfigListResult {
   config: ConfigEntry[];
+  /** True when the SMTP_PASS environment variable is present on the server. The password itself is never returned.
+   */
+  smtpPasswordConfigured?: boolean;
 }

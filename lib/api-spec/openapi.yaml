@@ -1546,6 +1546,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ConfigEntry"
+        smtpPasswordConfigured:
+          type: boolean
+          description: >
+            True when the SMTP_PASS environment variable is present on the
+            server. The password itself is never returned.
 
     ConfigUpdateInput:
       type: object

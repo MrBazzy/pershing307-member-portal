@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { seedSmtpFromEnv } from "./lib/smtp-seed";
 
 const rawPort = process.env["PORT"];
 
@@ -22,4 +23,10 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  // Seed SMTP database config from environment variables if any are present.
+  // This keeps the admin UI in sync with env-var-based deployments.
+  seedSmtpFromEnv().catch((e) =>
+    logger.warn({ err: e }, "SMTP env seed skipped — lodge may not be bootstrapped yet")
+  );
 });

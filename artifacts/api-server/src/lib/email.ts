@@ -3,12 +3,13 @@ import { getConfig } from "./config";
 import { logger } from "./logger";
 
 async function createTransport() {
-  const host = await getConfig("smtp_host");
-  const port = parseInt((await getConfig("smtp_port")) ?? "587", 10);
-  const user = await getConfig("smtp_user");
+  // Environment variables take priority over database config; SMTP_PASS is env-only.
+  const host = process.env.SMTP_HOST ?? await getConfig("smtp_host");
+  const port = parseInt(process.env.SMTP_PORT ?? (await getConfig("smtp_port")) ?? "587", 10);
+  const user = process.env.SMTP_USER ?? await getConfig("smtp_user");
   const pass = process.env.SMTP_PASS;
-  const fromEmail = (await getConfig("smtp_from_email")) ?? "noreply@localhost";
-  const fromName = (await getConfig("smtp_from_name")) ?? "Portal";
+  const fromEmail = process.env.SMTP_FROM ?? (await getConfig("smtp_from_email")) ?? "noreply@localhost";
+  const fromName = process.env.SMTP_FROM_NAME ?? (await getConfig("smtp_from_name")) ?? "Portal";
 
   if (!host) {
     return null;

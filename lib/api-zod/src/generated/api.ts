@@ -745,7 +745,8 @@ export const ListConfigResponse = zod.object({
   "value": zod.string().nullable(),
   "description": zod.string(),
   "isReadOnly": zod.boolean()
-}))
+})),
+  "smtpPasswordConfigured": zod.boolean().optional().describe('True when the SMTP_PASS environment variable is present on the server. The password itself is never returned.\n')
 })
 
 
