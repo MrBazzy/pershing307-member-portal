@@ -56,7 +56,7 @@ externalPort = 8081
   [userenv.shared]
   APP_BASE_URL = "https://0356d3f0-abb2-474e-9e4f-67d0ed75cacb-00-hkofcdgokpt9.kirk.replit.dev"
 SMTP_HOST = "smtp-auth.mailprotect.be"
-SMTP_PORT = "465"
+SMTP_PORT = "587"
 SMTP_USER = "portal@fmdmail.be"
 SMPT_PASS = "i654IaYKTaBUvciz"
 SMTP_FROM = "portal@fmdmail.be"
