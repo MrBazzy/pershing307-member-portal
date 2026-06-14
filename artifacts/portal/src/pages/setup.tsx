@@ -3,8 +3,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocation } from "wouter";
-import { useQueryClient } from "@tanstack/react-query";
-import { getGetCurrentUserQueryKey } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -51,7 +49,6 @@ const SETUP_STEPS = [
 
 export default function SetupPage() {
   const { user, refetch } = useAuth();
-  const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [step, setStep] = useState(0);
@@ -60,20 +57,21 @@ export default function SetupPage() {
   const [showNew, setShowNew] = useState(false);
 
   /**
-   * One-way latch: once hasTemporaryPassword is seen as true it stays true
-   * for this component's lifetime, even after the password is changed and the
-   * server clears the flag.  Prevents a mid-flight re-render from switching
-   * away from the forced-reset UI before navigation completes.
+   * One-way latch: fires only when BOTH mustChangePassword AND
+   * hasTemporaryPassword are true simultaneously (admin-forced reset).
+   * Requiring mustChangePassword means a background refetch returning a stale
+   * hasTemporaryPassword:true can never re-arm this latch once the password
+   * change has been committed (server sets mustChangePassword:false immediately).
    */
   const forcedResetLatched = useRef(false);
   const [forcedReset, setForcedReset] = useState(false);
 
   useEffect(() => {
-    if (user?.hasTemporaryPassword && !forcedResetLatched.current) {
+    if (user?.mustChangePassword && user?.hasTemporaryPassword && !forcedResetLatched.current) {
       forcedResetLatched.current = true;
       setForcedReset(true);
     }
-  }, [user?.hasTemporaryPassword]);
+  }, [user?.mustChangePassword, user?.hasTemporaryPassword]);
 
   const profileForm = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
@@ -91,7 +89,21 @@ export default function SetupPage() {
 
   const forcedNewPassword = forcedPasswordForm.watch("newPassword");
 
-  // --- Forced-reset: always navigates to /dashboard on success ---
+  // --- Forced-reset: full page reload on success ---
+  // window.location.replace is used deliberately instead of setLocation or
+  // queryClient manipulation:
+  //
+  // Problem: after the password change, if the user also has profileSetupRequired=true,
+  // ProtectedRoute redirects back to /setup. SetupPage remounts fresh (latch=false).
+  // A background /me refetch that was in-flight from the 30s poll interval can complete
+  // BEFORE the new SetupPage's useEffect fires, overwriting hasTemporaryPassword back
+  // to true in the TanStack Query cache. The newly-mounted useEffect then sees
+  // hasTemporaryPassword=true, re-arms the latch, and shows the forced-reset UI again.
+  //
+  // window.location.replace destroys all React and TanStack Query state entirely.
+  // The fresh page load fetches /me once from the server (mustChangePassword=false,
+  // hasTemporaryPassword=false guaranteed since the DB was updated before the 200 response).
+  // There are no race conditions or stale cache entries possible.
   const handleForcedResetPassword = async (values: PasswordValues) => {
     setSaving(true);
     try {
@@ -103,18 +115,15 @@ export default function SetupPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to change password");
-      // Synchronously clear forced-reset flags in the query cache so ProtectedRoute
-      // sees mustChangePassword=false in the same render that processes the navigation.
-      // Awaiting refetch() resolves the Promise before React has applied the cache
-      // update to component state, causing ProtectedRoute to redirect back to /setup.
-      queryClient.setQueryData(getGetCurrentUserQueryKey(), (old: any) => {
-        if (!old?.user) return old;
-        return { ...old, user: { ...old.user, mustChangePassword: false, hasTemporaryPassword: false } };
-      });
-      setLocation("/dashboard");
+      // Full page reload to /dashboard. ProtectedRoute will redirect to /setup for the
+      // profile wizard if profileSetupRequired=true — that is correct and expected.
+      // The forced-reset UI will NOT appear because:
+      //   1. hasTemporaryPassword=false from the fresh server /me response
+      //   2. The hardened latch also requires mustChangePassword=true (now false)
+      window.location.replace(`${BASE_URL}/dashboard`);
+      // setSaving(false) intentionally omitted on success: the page is navigating away.
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
-    } finally {
       setSaving(false);
     }
   };
