@@ -3,6 +3,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocation } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
+import { getGetCurrentUserQueryKey } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -49,6 +51,7 @@ const SETUP_STEPS = [
 
 export default function SetupPage() {
   const { user, refetch } = useAuth();
+  const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [step, setStep] = useState(0);
@@ -100,7 +103,14 @@ export default function SetupPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to change password");
-      await refetch();
+      // Synchronously clear forced-reset flags in the query cache so ProtectedRoute
+      // sees mustChangePassword=false in the same render that processes the navigation.
+      // Awaiting refetch() resolves the Promise before React has applied the cache
+      // update to component state, causing ProtectedRoute to redirect back to /setup.
+      queryClient.setQueryData(getGetCurrentUserQueryKey(), (old: any) => {
+        if (!old?.user) return old;
+        return { ...old, user: { ...old.user, mustChangePassword: false, hasTemporaryPassword: false } };
+      });
       setLocation("/dashboard");
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
