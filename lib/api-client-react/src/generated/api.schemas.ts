@@ -731,9 +731,15 @@ export interface BoardCategory {
   id: string;
   name: string;
   slug: string;
+  /** @nullable */
+  description?: string | null;
   sortOrder: number;
   isSystem: boolean;
   isActive: boolean;
+  /** @nullable */
+  createdBy?: string | null;
+  /** @nullable */
+  lastModifiedBy?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -746,9 +752,15 @@ export interface EventCategory {
   id: string;
   name: string;
   slug: string;
+  /** @nullable */
+  description?: string | null;
   sortOrder: number;
   isSystem: boolean;
   isActive: boolean;
+  /** @nullable */
+  createdBy?: string | null;
+  /** @nullable */
+  lastModifiedBy?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -764,6 +776,11 @@ export interface CreateCategoryInput {
      */
   name: string;
   /**
+     * @maxLength 500
+     * @nullable
+     */
+  description?: string | null;
+  /**
      * @minLength 1
      * @maxLength 100
      */
@@ -778,12 +795,26 @@ export interface UpdateCategoryInput {
      */
   name?: string;
   /**
+     * @maxLength 500
+     * @nullable
+     */
+  description?: string | null;
+  /**
      * @minLength 1
      * @maxLength 100
      */
   slug?: string;
   sortOrder?: number;
   isActive?: boolean;
+}
+
+export type ReorderCategoriesInputItemsItem = {
+  id: string;
+  sortOrder: number;
+};
+
+export interface ReorderCategoriesInput {
+  items: ReorderCategoriesInputItemsItem[];
 }
 
 export type TracingBoardEntryVisibility = typeof TracingBoardEntryVisibility[keyof typeof TracingBoardEntryVisibility];

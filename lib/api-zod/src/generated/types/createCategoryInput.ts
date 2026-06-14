@@ -13,6 +13,11 @@ export interface CreateCategoryInput {
      */
   name: string;
   /**
+     * @maxLength 500
+     * @nullable
+     */
+  description?: string | null;
+  /**
      * @minLength 1
      * @maxLength 100
      */

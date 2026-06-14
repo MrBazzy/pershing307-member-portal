@@ -77,6 +77,8 @@ export * from './loginInput';
 export * from './loginResult';
 export * from './profileUpdateInput';
 export * from './protectedDomain';
+export * from './reorderCategoriesInput';
+export * from './reorderCategoriesInputItemsItem';
 export * from './reorderRoadmapEntry';
 export * from './reorderRoadmapInput';
 export * from './resetPasswordInput';

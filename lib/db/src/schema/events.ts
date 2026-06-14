@@ -16,6 +16,7 @@ export const eventsTable = pgTable("events", {
   organizerId: text("organizer_id").references(() => usersTable.id),
   location: text("location"),
   createdBy: text("created_by").references(() => usersTable.id),
+  lastModifiedBy: text("last_modified_by").references(() => usersTable.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [

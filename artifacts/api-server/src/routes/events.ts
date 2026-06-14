@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import { eventsTable, eventCategoriesTable } from "@workspace/db/schema";
-import { eq, and, gte, inArray, asc } from "drizzle-orm";
+import { eq, and, gte, inArray, asc, count } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 import { writeAuditLog, getClientIp } from "../lib/audit";
@@ -13,27 +13,33 @@ const router = Router();
 const SITE_ADMIN_LEVEL = 80;
 
 const DEFAULT_EVENT_CATEGORIES = [
-  "Committee Meeting",
-  "Candidate Interview",
-  "Home Visit",
-  "Board Meeting",
-  "Practice Session",
-  "Charity Event",
-  "External Visit",
-  "Other",
+  { name: "Committee Meeting", description: "Lodge committee meetings" },
+  { name: "Candidate Interview", description: "Interviews for prospective candidates" },
+  { name: "Home Visit", description: "Visits to members or candidates at home" },
+  { name: "Board Meeting", description: "Board of General Purposes meetings" },
+  { name: "Practice Session", description: "Ritual practice and rehearsals" },
+  { name: "Charity Event", description: "Charity fundraising and community events" },
+  { name: "External Visit", description: "Visits to or from other lodges" },
+  { name: "Other", description: "Miscellaneous events" },
 ];
 
 const categoryCreateSchema = z.object({
   name: z.string().min(1).max(100),
+  description: z.string().max(500).nullable().optional(),
   slug: z.string().min(1).max(100).optional(),
   sortOrder: z.number().int().optional(),
 });
 
 const categoryUpdateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).nullable().optional(),
   slug: z.string().min(1).max(100).optional(),
   sortOrder: z.number().int().optional(),
   isActive: z.boolean().optional(),
+});
+
+const categoryReorderSchema = z.object({
+  items: z.array(z.object({ id: z.string(), sortOrder: z.number().int() })).min(1),
 });
 
 const eventCreateSchema = z.object({
@@ -71,6 +77,8 @@ function formatEvent(e: typeof eventsTable.$inferSelect, categoryName?: string |
     visibility: e.visibility,
     organizerId: e.organizerId ?? null,
     location: e.location ?? null,
+    createdBy: e.createdBy ?? null,
+    lastModifiedBy: e.lastModifiedBy ?? null,
     createdAt: e.createdAt.toISOString(),
     updatedAt: e.updatedAt.toISOString(),
   };
@@ -81,9 +89,12 @@ function formatCategory(c: typeof eventCategoriesTable.$inferSelect) {
     id: c.id,
     name: c.name,
     slug: c.slug,
+    description: c.description ?? null,
     sortOrder: c.sortOrder,
     isSystem: c.isSystem,
     isActive: c.isActive,
+    createdBy: c.createdBy ?? null,
+    lastModifiedBy: c.lastModifiedBy ?? null,
     createdAt: c.createdAt.toISOString(),
     updatedAt: c.updatedAt.toISOString(),
   };
@@ -96,9 +107,10 @@ async function ensureDefaultCategories(lodgeId: string): Promise<void> {
     .where(eq(eventCategoriesTable.lodgeId, lodgeId));
   if (existing.length > 0) return;
   await db.insert(eventCategoriesTable).values(
-    DEFAULT_EVENT_CATEGORIES.map((name, i) => ({
+    DEFAULT_EVENT_CATEGORIES.map(({ name, description }, i) => ({
       lodgeId,
       name,
+      description,
       slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
       sortOrder: i,
       isSystem: true,
@@ -135,11 +147,40 @@ router.post("/categories", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (
 
   const [cat] = await db
     .insert(eventCategoriesTable)
-    .values({ lodgeId: lodgeId!, name: parsed.data.name, slug, sortOrder, isSystem: false, isActive: true })
+    .values({
+      lodgeId: lodgeId!,
+      name: parsed.data.name,
+      description: parsed.data.description ?? null,
+      slug,
+      sortOrder,
+      isSystem: false,
+      isActive: true,
+      createdBy: actorId,
+      lastModifiedBy: actorId,
+    })
     .returning();
 
-  await writeAuditLog({ lodgeId, actorId, action: "EVENT_CATEGORY_CREATED", targetType: "event_category", targetId: cat.id, detail: { name: cat.name }, ipAddress: getClientIp(req) });
+  await writeAuditLog({ lodgeId, actorId, action: "EVENT_CATEGORY_CREATED", targetType: "event_category", targetId: cat.id, detail: { name: cat.name, description: cat.description }, ipAddress: getClientIp(req) });
   res.status(201).json(formatCategory(cat));
+});
+
+router.post("/categories/reorder", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const lodgeId = await getLodgeId();
+  const actorId = req.session!.userId!;
+
+  const parsed = categoryReorderSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid request", issues: parsed.error.issues }); return; }
+
+  await Promise.all(
+    parsed.data.items.map(({ id, sortOrder }) =>
+      db.update(eventCategoriesTable)
+        .set({ sortOrder, updatedAt: new Date(), lastModifiedBy: actorId })
+        .where(and(eq(eventCategoriesTable.id, id), eq(eventCategoriesTable.lodgeId, lodgeId!)))
+    )
+  );
+
+  await writeAuditLog({ lodgeId, actorId, action: "EVENT_CATEGORY_REORDERED", targetType: "event_category", detail: { items: parsed.data.items }, ipAddress: getClientIp(req) });
+  res.json({ success: true });
 });
 
 router.put("/categories/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
@@ -153,15 +194,18 @@ router.put("/categories/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), asyn
   const existing = await db.select().from(eventCategoriesTable).where(and(eq(eventCategoriesTable.id, catId), eq(eventCategoriesTable.lodgeId, lodgeId!))).limit(1);
   if (existing.length === 0) { res.status(404).json({ error: "Category not found" }); return; }
 
-  const updates: Partial<typeof eventCategoriesTable.$inferInsert> = { updatedAt: new Date() };
+  const updates: Partial<typeof eventCategoriesTable.$inferInsert> = { updatedAt: new Date(), lastModifiedBy: actorId };
   if (parsed.data.name !== undefined) updates.name = parsed.data.name;
+  if (parsed.data.description !== undefined) updates.description = parsed.data.description;
   if (parsed.data.slug !== undefined) updates.slug = parsed.data.slug;
   if (parsed.data.sortOrder !== undefined) updates.sortOrder = parsed.data.sortOrder;
   if (parsed.data.isActive !== undefined) updates.isActive = parsed.data.isActive;
 
   const [cat] = await db.update(eventCategoriesTable).set(updates).where(eq(eventCategoriesTable.id, catId)).returning();
 
-  await writeAuditLog({ lodgeId, actorId, action: "EVENT_CATEGORY_UPDATED", targetType: "event_category", targetId: cat.id, detail: { name: cat.name, changes: parsed.data }, ipAddress: getClientIp(req) });
+  const wasDisabled = parsed.data.isActive === false && existing[0].isActive === true;
+  const auditAction = wasDisabled ? "EVENT_CATEGORY_DISABLED" : "EVENT_CATEGORY_UPDATED";
+  await writeAuditLog({ lodgeId, actorId, action: auditAction, targetType: "event_category", targetId: cat.id, detail: { name: cat.name, changes: parsed.data }, ipAddress: getClientIp(req) });
   res.json(formatCategory(cat));
 });
 
@@ -172,6 +216,16 @@ router.delete("/categories/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), a
 
   const existing = await db.select().from(eventCategoriesTable).where(and(eq(eventCategoriesTable.id, catId), eq(eventCategoriesTable.lodgeId, lodgeId!))).limit(1);
   if (existing.length === 0) { res.status(404).json({ error: "Category not found" }); return; }
+
+  const [{ inUseCount }] = await db
+    .select({ inUseCount: count() })
+    .from(eventsTable)
+    .where(and(eq(eventsTable.categoryId, catId), eq(eventsTable.lodgeId, lodgeId!)));
+
+  if (inUseCount > 0) {
+    res.status(409).json({ error: "Category is in use", inUseCount, suggestion: "Disable the category instead of deleting it." });
+    return;
+  }
 
   await db.delete(eventCategoriesTable).where(eq(eventCategoriesTable.id, catId));
   await writeAuditLog({ lodgeId, actorId, action: "EVENT_CATEGORY_DELETED", targetType: "event_category", targetId: catId, detail: { name: existing[0].name }, ipAddress: getClientIp(req) });
@@ -255,6 +309,7 @@ router.post("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) 
       organizerId: actorId,
       location: parsed.data.location ?? null,
       createdBy: actorId,
+      lastModifiedBy: actorId,
     })
     .returning();
 
@@ -273,7 +328,7 @@ router.put("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res
   const existing = await db.select().from(eventsTable).where(and(eq(eventsTable.id, eventId), eq(eventsTable.lodgeId, lodgeId!))).limit(1);
   if (existing.length === 0) { res.status(404).json({ error: "Event not found" }); return; }
 
-  const updates: Partial<typeof eventsTable.$inferInsert> = { updatedAt: new Date() };
+  const updates: Partial<typeof eventsTable.$inferInsert> = { updatedAt: new Date(), lastModifiedBy: actorId };
   if (parsed.data.title !== undefined) updates.title = parsed.data.title;
   if (parsed.data.description !== undefined) updates.description = parsed.data.description;
   if (parsed.data.date !== undefined) updates.date = parsed.data.date;

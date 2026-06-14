@@ -10,9 +10,15 @@ export interface BoardCategory {
   id: string;
   name: string;
   slug: string;
+  /** @nullable */
+  description?: string | null;
   sortOrder: number;
   isSystem: boolean;
   isActive: boolean;
+  /** @nullable */
+  createdBy?: string | null;
+  /** @nullable */
+  lastModifiedBy?: string | null;
   createdAt: string;
   updatedAt: string;
 }

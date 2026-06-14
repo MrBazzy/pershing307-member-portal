@@ -6,7 +6,7 @@ import {
   tracingBoardCategoriesTable,
   lodgeYearsTable,
 } from "@workspace/db/schema";
-import { eq, and, gte, inArray, asc } from "drizzle-orm";
+import { eq, and, gte, inArray, asc, count } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 import { writeAuditLog, getClientIp } from "../lib/audit";
@@ -17,29 +17,35 @@ const router = Router();
 const SITE_ADMIN_LEVEL = 80;
 
 const DEFAULT_TB_CATEGORIES = [
-  "Regular Meeting",
-  "Degree Night",
-  "Installation Meeting",
-  "Festive Board",
-  "Ladies Night",
-  "Burns Supper",
-  "Whisky Tasting",
-  "Social Event",
-  "External Visit",
-  "Other",
+  { name: "Regular Meeting", description: "Standard lodge meetings" },
+  { name: "Degree Night", description: "Degree ceremonies and workings" },
+  { name: "Installation Meeting", description: "Installation of lodge officers" },
+  { name: "Festive Board", description: "Formal dining after meetings" },
+  { name: "Ladies Night", description: "Social events including ladies" },
+  { name: "Burns Supper", description: "Annual Burns Night celebration" },
+  { name: "Whisky Tasting", description: "Whisky appreciation evenings" },
+  { name: "Social Event", description: "Informal social gatherings" },
+  { name: "External Visit", description: "Visits to or from other lodges" },
+  { name: "Other", description: "Miscellaneous activities" },
 ];
 
 const categoryCreateSchema = z.object({
   name: z.string().min(1).max(100),
+  description: z.string().max(500).nullable().optional(),
   slug: z.string().min(1).max(100).optional(),
   sortOrder: z.number().int().optional(),
 });
 
 const categoryUpdateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).nullable().optional(),
   slug: z.string().min(1).max(100).optional(),
   sortOrder: z.number().int().optional(),
   isActive: z.boolean().optional(),
+});
+
+const categoryReorderSchema = z.object({
+  items: z.array(z.object({ id: z.string(), sortOrder: z.number().int() })).min(1),
 });
 
 const entryCreateSchema = z.object({
@@ -79,6 +85,8 @@ function formatEntry(e: typeof tracingBoardEntriesTable.$inferSelect, categoryNa
     categoryId: e.categoryId ?? null,
     categoryName: categoryName ?? null,
     visibility: e.visibility,
+    createdBy: e.createdBy ?? null,
+    lastModifiedBy: e.lastModifiedBy ?? null,
     createdAt: e.createdAt.toISOString(),
     updatedAt: e.updatedAt.toISOString(),
   };
@@ -89,9 +97,12 @@ function formatCategory(c: typeof tracingBoardCategoriesTable.$inferSelect) {
     id: c.id,
     name: c.name,
     slug: c.slug,
+    description: c.description ?? null,
     sortOrder: c.sortOrder,
     isSystem: c.isSystem,
     isActive: c.isActive,
+    createdBy: c.createdBy ?? null,
+    lastModifiedBy: c.lastModifiedBy ?? null,
     createdAt: c.createdAt.toISOString(),
     updatedAt: c.updatedAt.toISOString(),
   };
@@ -104,9 +115,10 @@ async function ensureDefaultCategories(lodgeId: string): Promise<void> {
     .where(eq(tracingBoardCategoriesTable.lodgeId, lodgeId));
   if (existing.length > 0) return;
   await db.insert(tracingBoardCategoriesTable).values(
-    DEFAULT_TB_CATEGORIES.map((name, i) => ({
+    DEFAULT_TB_CATEGORIES.map(({ name, description }, i) => ({
       lodgeId,
       name,
+      description,
       slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
       sortOrder: i,
       isSystem: true,
@@ -146,11 +158,40 @@ router.post("/categories", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (
 
   const [cat] = await db
     .insert(tracingBoardCategoriesTable)
-    .values({ lodgeId: lodgeId!, name: parsed.data.name, slug, sortOrder, isSystem: false, isActive: true })
+    .values({
+      lodgeId: lodgeId!,
+      name: parsed.data.name,
+      description: parsed.data.description ?? null,
+      slug,
+      sortOrder,
+      isSystem: false,
+      isActive: true,
+      createdBy: actorId,
+      lastModifiedBy: actorId,
+    })
     .returning();
 
-  await writeAuditLog({ lodgeId, actorId, action: "TB_CATEGORY_CREATED", targetType: "tb_category", targetId: cat.id, detail: { name: cat.name }, ipAddress: getClientIp(req) });
+  await writeAuditLog({ lodgeId, actorId, action: "TB_CATEGORY_CREATED", targetType: "tb_category", targetId: cat.id, detail: { name: cat.name, description: cat.description }, ipAddress: getClientIp(req) });
   res.status(201).json(formatCategory(cat));
+});
+
+router.post("/categories/reorder", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const lodgeId = await getLodgeId();
+  const actorId = req.session!.userId!;
+
+  const parsed = categoryReorderSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid request", issues: parsed.error.issues }); return; }
+
+  await Promise.all(
+    parsed.data.items.map(({ id, sortOrder }) =>
+      db.update(tracingBoardCategoriesTable)
+        .set({ sortOrder, updatedAt: new Date(), lastModifiedBy: actorId })
+        .where(and(eq(tracingBoardCategoriesTable.id, id), eq(tracingBoardCategoriesTable.lodgeId, lodgeId!)))
+    )
+  );
+
+  await writeAuditLog({ lodgeId, actorId, action: "TB_CATEGORY_REORDERED", targetType: "tb_category", detail: { items: parsed.data.items }, ipAddress: getClientIp(req) });
+  res.json({ success: true });
 });
 
 router.put("/categories/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
@@ -164,15 +205,18 @@ router.put("/categories/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), asyn
   const existing = await db.select().from(tracingBoardCategoriesTable).where(and(eq(tracingBoardCategoriesTable.id, catId), eq(tracingBoardCategoriesTable.lodgeId, lodgeId!))).limit(1);
   if (existing.length === 0) { res.status(404).json({ error: "Category not found" }); return; }
 
-  const updates: Partial<typeof tracingBoardCategoriesTable.$inferInsert> = { updatedAt: new Date() };
+  const updates: Partial<typeof tracingBoardCategoriesTable.$inferInsert> = { updatedAt: new Date(), lastModifiedBy: actorId };
   if (parsed.data.name !== undefined) updates.name = parsed.data.name;
+  if (parsed.data.description !== undefined) updates.description = parsed.data.description;
   if (parsed.data.slug !== undefined) updates.slug = parsed.data.slug;
   if (parsed.data.sortOrder !== undefined) updates.sortOrder = parsed.data.sortOrder;
   if (parsed.data.isActive !== undefined) updates.isActive = parsed.data.isActive;
 
   const [cat] = await db.update(tracingBoardCategoriesTable).set(updates).where(eq(tracingBoardCategoriesTable.id, catId)).returning();
 
-  await writeAuditLog({ lodgeId, actorId, action: "TB_CATEGORY_UPDATED", targetType: "tb_category", targetId: cat.id, detail: { name: cat.name, changes: parsed.data }, ipAddress: getClientIp(req) });
+  const wasDisabled = parsed.data.isActive === false && existing[0].isActive === true;
+  const auditAction = wasDisabled ? "TB_CATEGORY_DISABLED" : "TB_CATEGORY_UPDATED";
+  await writeAuditLog({ lodgeId, actorId, action: auditAction, targetType: "tb_category", targetId: cat.id, detail: { name: cat.name, changes: parsed.data }, ipAddress: getClientIp(req) });
   res.json(formatCategory(cat));
 });
 
@@ -183,6 +227,16 @@ router.delete("/categories/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), a
 
   const existing = await db.select().from(tracingBoardCategoriesTable).where(and(eq(tracingBoardCategoriesTable.id, catId), eq(tracingBoardCategoriesTable.lodgeId, lodgeId!))).limit(1);
   if (existing.length === 0) { res.status(404).json({ error: "Category not found" }); return; }
+
+  const [{ inUseCount }] = await db
+    .select({ inUseCount: count() })
+    .from(tracingBoardEntriesTable)
+    .where(and(eq(tracingBoardEntriesTable.categoryId, catId), eq(tracingBoardEntriesTable.lodgeId, lodgeId!)));
+
+  if (inUseCount > 0) {
+    res.status(409).json({ error: "Category is in use", inUseCount, suggestion: "Disable the category instead of deleting it." });
+    return;
+  }
 
   await db.delete(tracingBoardCategoriesTable).where(eq(tracingBoardCategoriesTable.id, catId));
   await writeAuditLog({ lodgeId, actorId, action: "TB_CATEGORY_DELETED", targetType: "tb_category", targetId: catId, detail: { name: existing[0].name }, ipAddress: getClientIp(req) });
@@ -289,6 +343,7 @@ router.post("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) 
       categoryId: parsed.data.categoryId ?? null,
       visibility: parsed.data.visibility,
       createdBy: actorId,
+      lastModifiedBy: actorId,
     })
     .returning();
 
@@ -307,7 +362,7 @@ router.put("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res
   const existing = await db.select().from(tracingBoardEntriesTable).where(and(eq(tracingBoardEntriesTable.id, entryId), eq(tracingBoardEntriesTable.lodgeId, lodgeId!))).limit(1);
   if (existing.length === 0) { res.status(404).json({ error: "Entry not found" }); return; }
 
-  const updates: Partial<typeof tracingBoardEntriesTable.$inferInsert> = { updatedAt: new Date() };
+  const updates: Partial<typeof tracingBoardEntriesTable.$inferInsert> = { updatedAt: new Date(), lastModifiedBy: actorId };
   if (parsed.data.title !== undefined) updates.title = parsed.data.title;
   if (parsed.data.date !== undefined) updates.date = parsed.data.date;
   if (parsed.data.startTime !== undefined) updates.startTime = parsed.data.startTime;

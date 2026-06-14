@@ -1444,6 +1444,27 @@ paths:
         "403":
           description: Forbidden
 
+  /tracing-board/categories/reorder:
+    post:
+      operationId: reorderTracingBoardCategories
+      tags: [tracing-board]
+      summary: Reorder tracing board categories
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderCategoriesInput"
+      responses:
+        "200":
+          description: Reordered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "403":
+          description: Forbidden
+
   /tracing-board/categories/{id}:
     put:
       operationId: updateTracingBoardCategory
@@ -1629,6 +1650,27 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EventCategory"
+        "403":
+          description: Forbidden
+
+  /events/categories/reorder:
+    post:
+      operationId: reorderEventCategories
+      tags: [events]
+      summary: Reorder event categories
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderCategoriesInput"
+      responses:
+        "200":
+          description: Reordered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
         "403":
           description: Forbidden
 
@@ -2838,12 +2880,18 @@ components:
           type: string
         slug:
           type: string
+        description:
+          type: ["string", "null"]
         sortOrder:
           type: integer
         isSystem:
           type: boolean
         isActive:
           type: boolean
+        createdBy:
+          type: ["string", "null"]
+        lastModifiedBy:
+          type: ["string", "null"]
         createdAt:
           type: string
         updatedAt:
@@ -2868,12 +2916,18 @@ components:
           type: string
         slug:
           type: string
+        description:
+          type: ["string", "null"]
         sortOrder:
           type: integer
         isSystem:
           type: boolean
         isActive:
           type: boolean
+        createdBy:
+          type: ["string", "null"]
+        lastModifiedBy:
+          type: ["string", "null"]
         createdAt:
           type: string
         updatedAt:
@@ -2896,6 +2950,9 @@ components:
           type: string
           minLength: 1
           maxLength: 100
+        description:
+          type: ["string", "null"]
+          maxLength: 500
         slug:
           type: string
           minLength: 1
@@ -2910,6 +2967,9 @@ components:
           type: string
           minLength: 1
           maxLength: 100
+        description:
+          type: ["string", "null"]
+          maxLength: 500
         slug:
           type: string
           minLength: 1
@@ -2918,6 +2978,21 @@ components:
           type: integer
         isActive:
           type: boolean
+
+    ReorderCategoriesInput:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [id, sortOrder]
+            properties:
+              id:
+                type: string
+              sortOrder:
+                type: integer
 
     TracingBoardEntry:
       type: object

@@ -17,6 +17,7 @@ export const tracingBoardEntriesTable = pgTable("tracing_board_entries", {
   categoryId: text("category_id").references(() => tracingBoardCategoriesTable.id),
   visibility: text("visibility").notNull().default("members"),
   createdBy: text("created_by").references(() => usersTable.id),
+  lastModifiedBy: text("last_modified_by").references(() => usersTable.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [

@@ -1165,9 +1165,12 @@ export const ListTracingBoardCategoriesResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "slug": zod.string(),
+  "description": zod.string().nullish(),
   "sortOrder": zod.number(),
   "isSystem": zod.boolean(),
   "isActive": zod.boolean(),
+  "createdBy": zod.string().nullish(),
+  "lastModifiedBy": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 }))
@@ -1179,14 +1182,33 @@ export const ListTracingBoardCategoriesResponse = zod.object({
  */
 export const createTracingBoardCategoryBodyNameMax = 100;
 
+export const createTracingBoardCategoryBodyDescriptionMax = 500;
+
 export const createTracingBoardCategoryBodySlugMax = 100;
 
 
 
 export const CreateTracingBoardCategoryBody = zod.object({
   "name": zod.string().min(1).max(createTracingBoardCategoryBodyNameMax),
+  "description": zod.string().max(createTracingBoardCategoryBodyDescriptionMax).nullish(),
   "slug": zod.string().min(1).max(createTracingBoardCategoryBodySlugMax).optional(),
   "sortOrder": zod.number().optional()
+})
+
+
+/**
+ * @summary Reorder tracing board categories
+ */
+export const ReorderTracingBoardCategoriesBody = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "sortOrder": zod.number()
+}))
+})
+
+export const ReorderTracingBoardCategoriesResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
 })
 
 
@@ -1199,12 +1221,15 @@ export const UpdateTracingBoardCategoryParams = zod.object({
 
 export const updateTracingBoardCategoryBodyNameMax = 100;
 
+export const updateTracingBoardCategoryBodyDescriptionMax = 500;
+
 export const updateTracingBoardCategoryBodySlugMax = 100;
 
 
 
 export const UpdateTracingBoardCategoryBody = zod.object({
   "name": zod.string().min(1).max(updateTracingBoardCategoryBodyNameMax).optional(),
+  "description": zod.string().max(updateTracingBoardCategoryBodyDescriptionMax).nullish(),
   "slug": zod.string().min(1).max(updateTracingBoardCategoryBodySlugMax).optional(),
   "sortOrder": zod.number().optional(),
   "isActive": zod.boolean().optional()
@@ -1214,9 +1239,12 @@ export const UpdateTracingBoardCategoryResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "slug": zod.string(),
+  "description": zod.string().nullish(),
   "sortOrder": zod.number(),
   "isSystem": zod.boolean(),
   "isActive": zod.boolean(),
+  "createdBy": zod.string().nullish(),
+  "lastModifiedBy": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -1379,9 +1407,12 @@ export const ListEventCategoriesResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "slug": zod.string(),
+  "description": zod.string().nullish(),
   "sortOrder": zod.number(),
   "isSystem": zod.boolean(),
   "isActive": zod.boolean(),
+  "createdBy": zod.string().nullish(),
+  "lastModifiedBy": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 }))
@@ -1393,14 +1424,33 @@ export const ListEventCategoriesResponse = zod.object({
  */
 export const createEventCategoryBodyNameMax = 100;
 
+export const createEventCategoryBodyDescriptionMax = 500;
+
 export const createEventCategoryBodySlugMax = 100;
 
 
 
 export const CreateEventCategoryBody = zod.object({
   "name": zod.string().min(1).max(createEventCategoryBodyNameMax),
+  "description": zod.string().max(createEventCategoryBodyDescriptionMax).nullish(),
   "slug": zod.string().min(1).max(createEventCategoryBodySlugMax).optional(),
   "sortOrder": zod.number().optional()
+})
+
+
+/**
+ * @summary Reorder event categories
+ */
+export const ReorderEventCategoriesBody = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "sortOrder": zod.number()
+}))
+})
+
+export const ReorderEventCategoriesResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
 })
 
 
@@ -1413,12 +1463,15 @@ export const UpdateEventCategoryParams = zod.object({
 
 export const updateEventCategoryBodyNameMax = 100;
 
+export const updateEventCategoryBodyDescriptionMax = 500;
+
 export const updateEventCategoryBodySlugMax = 100;
 
 
 
 export const UpdateEventCategoryBody = zod.object({
   "name": zod.string().min(1).max(updateEventCategoryBodyNameMax).optional(),
+  "description": zod.string().max(updateEventCategoryBodyDescriptionMax).nullish(),
   "slug": zod.string().min(1).max(updateEventCategoryBodySlugMax).optional(),
   "sortOrder": zod.number().optional(),
   "isActive": zod.boolean().optional()
@@ -1428,9 +1481,12 @@ export const UpdateEventCategoryResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "slug": zod.string(),
+  "description": zod.string().nullish(),
   "sortOrder": zod.number(),
   "isSystem": zod.boolean(),
   "isActive": zod.boolean(),
+  "createdBy": zod.string().nullish(),
+  "lastModifiedBy": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
