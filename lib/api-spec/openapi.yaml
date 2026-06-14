@@ -2190,7 +2190,7 @@ components:
           maxLength: 200
         description:
           type: ["string", "null"]
-          maxLength: 1000
+          maxLength: 5000
         status:
           type: string
           enum: [planned, in-progress, completed, future-idea]
@@ -2206,7 +2206,7 @@ components:
           maxLength: 200
         description:
           type: ["string", "null"]
-          maxLength: 1000
+          maxLength: 5000
         status:
           type: string
           enum: [planned, in-progress, completed, future-idea]

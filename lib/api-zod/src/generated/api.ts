@@ -948,7 +948,7 @@ export const ListRoadmapItemsResponse = zod.object({
  */
 export const createRoadmapItemBodyTitleMax = 200;
 
-export const createRoadmapItemBodyDescriptionMax = 1000;
+export const createRoadmapItemBodyDescriptionMax = 5000;
 
 
 
@@ -985,7 +985,7 @@ export const UpdateRoadmapItemParams = zod.object({
 
 export const updateRoadmapItemBodyTitleMax = 200;
 
-export const updateRoadmapItemBodyDescriptionMax = 1000;
+export const updateRoadmapItemBodyDescriptionMax = 5000;
 
 
 

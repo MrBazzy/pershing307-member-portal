@@ -40,7 +40,7 @@ export default function BirthdaysPage() {
             Birthday Calendar
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Celebrating our members
+            Celebrating our Brethren
           </p>
         </div>
 

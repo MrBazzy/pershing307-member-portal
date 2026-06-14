@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useListAuditLogs,
@@ -9,8 +10,9 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Activity, Shield, Clock, Cake, Map } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Users, Activity, Shield, Clock, Cake, Map, ChevronRight } from "lucide-react";
+import { formatDistanceToNow, format } from "date-fns";
 import { Link } from "wouter";
 
 const MONTH_ABBR = [
@@ -119,68 +121,138 @@ function UpcomingBirthdaysWidget() {
   );
 }
 
+interface RoadmapItemShape {
+  id: string;
+  title: string;
+  description?: string | null;
+  status: string;
+  sortOrder: number;
+  isVisible: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function RoadmapDetailSheet({
+  item,
+  onClose,
+}: {
+  item: RoadmapItemShape | null;
+  onClose: () => void;
+}) {
+  const cfg = item ? (STATUS_CONFIG[item.status] ?? STATUS_CONFIG["planned"]) : null;
+  return (
+    <Sheet open={!!item} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        {item && cfg && (
+          <>
+            <SheetHeader className="pb-4">
+              <SheetTitle className="font-serif pr-6">{item.title}</SheetTitle>
+            </SheetHeader>
+            <div className="space-y-5">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Status</p>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${cfg.cls}`}>
+                  {cfg.label}
+                </span>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Description</p>
+                {item.description ? (
+                  <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                    {item.description}
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No description provided.</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Last Updated</p>
+                <p className="text-sm text-muted-foreground">
+                  {format(new Date(item.updatedAt), "MMMM d, yyyy")}
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 function RoadmapWidget({ isAdmin }: { isAdmin: boolean }) {
   const { data, isLoading } = useListRoadmapItems();
-  const items = data?.items ?? [];
+  const [selectedItem, setSelectedItem] = useState<RoadmapItemShape | null>(null);
+
+  const items = (data?.items ?? []) as RoadmapItemShape[];
   const featured = items.filter((i) => i.status !== "completed").slice(0, 5);
   const completedCount = items.filter((i) => i.status === "completed").length;
 
   return (
-    <Card className="border-card-border" data-testid="widget-roadmap">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            <Map className="h-4 w-4 text-muted-foreground" />
-            Coming Next
-          </span>
-          {isAdmin && (
-            <Link
-              href="/admin/roadmap"
-              className="text-xs text-primary hover:underline font-normal"
-              data-testid="link-manage-roadmap"
-            >
-              Manage →
-            </Link>
-          )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-8 w-full" />
-            ))}
-          </div>
-        ) : featured.length > 0 ? (
-          <div className="space-y-2">
-            {featured.map((item) => {
-              const cfg = STATUS_CONFIG[item.status] ?? STATUS_CONFIG["planned"];
-              return (
-                <div key={item.id} className="flex items-start gap-2 py-0.5">
-                  <span
-                    className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border shrink-0 mt-0.5 ${cfg.cls}`}
+    <>
+      <Card className="border-card-border" data-testid="widget-roadmap">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <Map className="h-4 w-4 text-muted-foreground" />
+              Coming Next
+            </span>
+            {isAdmin && (
+              <Link
+                href="/admin/roadmap"
+                className="text-xs text-primary hover:underline font-normal"
+                data-testid="link-manage-roadmap"
+              >
+                Manage →
+              </Link>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-8 w-full" />
+              ))}
+            </div>
+          ) : featured.length > 0 ? (
+            <div className="space-y-1">
+              {featured.map((item) => {
+                const cfg = STATUS_CONFIG[item.status] ?? STATUS_CONFIG["planned"];
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setSelectedItem(item)}
+                    className="w-full flex items-start gap-2 py-1.5 px-1 rounded-sm text-left hover:bg-accent/50 transition-colors group"
+                    data-testid={`roadmap-item-${item.id}`}
                   >
-                    {cfg.label}
-                  </span>
-                  <span className="text-sm text-foreground leading-snug">{item.title}</span>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground text-center py-6">
-            No upcoming features to show
-          </p>
-        )}
-        {completedCount > 0 && (
-          <div className="mt-3 pt-3 border-t border-border">
-            <p className="text-xs text-muted-foreground">
-              {completedCount} feature{completedCount !== 1 ? "s" : ""} already completed
+                    <span
+                      className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border shrink-0 mt-0.5 ${cfg.cls}`}
+                    >
+                      {cfg.label}
+                    </span>
+                    <span className="text-sm text-foreground leading-snug flex-1">{item.title}</span>
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-muted-foreground shrink-0 mt-0.5 transition-colors" />
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              No upcoming features to show
             </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          )}
+          {completedCount > 0 && (
+            <div className="mt-3 pt-3 border-t border-border">
+              <p className="text-xs text-muted-foreground">
+                {completedCount} feature{completedCount !== 1 ? "s" : ""} already completed
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      <RoadmapDetailSheet item={selectedItem} onClose={() => setSelectedItem(null)} />
+    </>
   );
 }
 

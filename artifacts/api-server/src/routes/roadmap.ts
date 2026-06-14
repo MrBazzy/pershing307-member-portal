@@ -13,14 +13,14 @@ const SITE_ADMIN_LEVEL = 80;
 
 const createSchema = z.object({
   title: z.string().min(1).max(200),
-  description: z.string().max(1000).nullable().optional(),
+  description: z.string().max(5000).nullable().optional(),
   status: z.enum(["planned", "in-progress", "completed", "future-idea"]),
   sortOrder: z.number().int().optional(),
 });
 
 const updateSchema = z.object({
   title: z.string().min(1).max(200).optional(),
-  description: z.string().max(1000).nullable().optional(),
+  description: z.string().max(5000).nullable().optional(),
   status: z.enum(["planned", "in-progress", "completed", "future-idea"]).optional(),
   sortOrder: z.number().int().optional(),
   isVisible: z.boolean().optional(),

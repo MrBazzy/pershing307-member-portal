@@ -621,7 +621,7 @@ export interface CreateRoadmapItemInput {
      */
   title: string;
   /**
-     * @maxLength 1000
+     * @maxLength 5000
      * @nullable
      */
   description?: string | null;
@@ -646,7 +646,7 @@ export interface UpdateRoadmapItemInput {
      */
   title?: string;
   /**
-     * @maxLength 1000
+     * @maxLength 5000
      * @nullable
      */
   description?: string | null;

@@ -330,12 +330,15 @@ export default function AdminRoadmapPage() {
                   id="roadmap-description"
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  maxLength={1000}
-                  rows={3}
-                  className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
-                  placeholder="Brief description of this feature..."
+                  maxLength={5000}
+                  rows={6}
+                  className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y"
+                  placeholder="Describe what this feature will deliver, implementation notes, and any relevant details..."
                   data-testid="input-roadmap-description"
                 />
+                <p className="text-[11px] text-muted-foreground text-right">
+                  {form.description.length}/5000
+                </p>
               </div>
 
               <div className="space-y-1.5">
