@@ -1047,6 +1047,31 @@ paths:
                 $ref: "#/components/schemas/DateOfBirthResult"
         "401":
           description: Unauthorized
+    patch:
+      operationId: updateOwnDateOfBirth
+      tags: [profile]
+      summary: Update own date of birth (Member and above; Visitors cannot)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDateOfBirthInput"
+      responses:
+        "200":
+          description: Date of birth updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "400":
+          description: Invalid date format
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden (Visitor role)
 
   /profile/birthday-visibility:
     get:

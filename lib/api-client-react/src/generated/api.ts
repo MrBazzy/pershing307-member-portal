@@ -3775,6 +3775,77 @@ export function useGetOwnDateOfBirth<TData = Awaited<ReturnType<typeof getOwnDat
 
 
 
+export const getUpdateOwnDateOfBirthUrl = () => {
+
+
+
+
+  return `/api/profile/date-of-birth`
+}
+
+/**
+ * @summary Update own date of birth (Member and above; Visitors cannot)
+ */
+export const updateOwnDateOfBirth = async (updateDateOfBirthInput: UpdateDateOfBirthInput, options?: RequestInit): Promise<SuccessResult> => {
+
+  return customFetch<SuccessResult>(getUpdateOwnDateOfBirthUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateDateOfBirthInput,)
+  }
+);}
+
+
+
+
+export const getUpdateOwnDateOfBirthMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnDateOfBirth>>, TError,{data: BodyType<UpdateDateOfBirthInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOwnDateOfBirth>>, TError,{data: BodyType<UpdateDateOfBirthInput>}, TContext> => {
+
+const mutationKey = ['updateOwnDateOfBirth'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOwnDateOfBirth>>, {data: BodyType<UpdateDateOfBirthInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateOwnDateOfBirth(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOwnDateOfBirthMutationResult = NonNullable<Awaited<ReturnType<typeof updateOwnDateOfBirth>>>
+    export type UpdateOwnDateOfBirthMutationBody = BodyType<UpdateDateOfBirthInput>
+    export type UpdateOwnDateOfBirthMutationError = ErrorType<void>
+
+    /**
+ * @summary Update own date of birth (Member and above; Visitors cannot)
+ */
+export const useUpdateOwnDateOfBirth = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnDateOfBirth>>, TError,{data: BodyType<UpdateDateOfBirthInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateOwnDateOfBirth>>,
+        TError,
+        {data: BodyType<UpdateDateOfBirthInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateOwnDateOfBirthMutationOptions(options));
+    }
+
 export const getGetBirthdayVisibilityUrl = () => {
 
 

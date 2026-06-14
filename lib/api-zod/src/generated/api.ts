@@ -876,6 +876,19 @@ export const GetOwnDateOfBirthResponse = zod.object({
 
 
 /**
+ * @summary Update own date of birth (Member and above; Visitors cannot)
+ */
+export const UpdateOwnDateOfBirthBody = zod.object({
+  "dateOfBirth": zod.coerce.date().nullish()
+})
+
+export const UpdateOwnDateOfBirthResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
  * @summary Get the current member's birthday visibility setting
  */
 export const GetBirthdayVisibilityResponse = zod.object({
