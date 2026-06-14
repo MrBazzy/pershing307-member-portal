@@ -427,6 +427,11 @@ router.post("/:id/roles", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (r
     return;
   }
 
+  if (roles[0].slug === "pm-super-administrator" && (req.userPermissionLevel ?? 0) < PM_SUPER_ADMIN_LEVEL) {
+    res.status(403).json({ error: "Only a PM Super Administrator may grant the PM Super Administrator role." });
+    return;
+  }
+
   await db
     .insert(userRolesTable)
     .values({ userId: targetId, roleId, grantedBy: actorId })
@@ -460,6 +465,10 @@ router.delete("/:id/roles/:roleId", requireAuth(), requireRole(SITE_ADMIN_LEVEL)
     .limit(1);
 
   if (roles[0]?.slug === "pm-super-administrator") {
+    if ((req.userPermissionLevel ?? 0) < PM_SUPER_ADMIN_LEVEL) {
+      res.status(403).json({ error: "Only a PM Super Administrator may remove the PM Super Administrator role." });
+      return;
+    }
     const pmSuperRowsRevoke = await db
       .select({ userId: userRolesTable.userId })
       .from(userRolesTable)

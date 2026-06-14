@@ -292,7 +292,9 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
   };
 
   const currentRoleIds = new Set(user?.roles?.map((r) => r.id));
-  const availableRoles = rolesData?.roles?.filter((r) => !currentRoleIds.has(r.id)) ?? [];
+  const availableRoles = rolesData?.roles?.filter(
+    (r) => !currentRoleIds.has(r.id) && (isPmSuperAdmin || r.permissionLevel < 90)
+  ) ?? [];
   const grantedDomainIds = new Set(userDomains.map((d) => d.domainId));
   const availableDomains = allDomains.filter((d) => !grantedDomainIds.has(d.id));
 
@@ -390,14 +392,16 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
                             <span className="text-sm font-medium">{role.name}</span>
                             <span className="text-xs text-muted-foreground ml-2">L{role.permissionLevel}</span>
                           </div>
-                          <Button
-                            variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                            onClick={() => revokeRole.mutate({ id: userId!, roleId: role.id }, { onSuccess: () => { invalidate(); toast({ title: "Role revoked" }); } })}
-                            disabled={revokeRole.isPending}
-                            data-testid={`button-revoke-role-${role.id}`}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                          {(isPmSuperAdmin || role.permissionLevel < 90) && (
+                            <Button
+                              variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                              onClick={() => revokeRole.mutate({ id: userId!, roleId: role.id }, { onSuccess: () => { invalidate(); toast({ title: "Role revoked" }); } })}
+                              disabled={revokeRole.isPending}
+                              data-testid={`button-revoke-role-${role.id}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>
