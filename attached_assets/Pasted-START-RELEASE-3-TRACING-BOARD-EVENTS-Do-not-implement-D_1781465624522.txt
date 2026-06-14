@@ -1,0 +1,294 @@
+START RELEASE 3 — TRACING BOARD & EVENTS
+
+Do not implement Document Library yet.
+Do not implement Notifications yet.
+
+Goal:
+Create the official Lodge Tracing Board and Event Management modules.
+
+The Tracing Board represents the official lodge year planning.
+Events represent all other activities outside the official Tracing Board.
+
+====================================================
+PART A — TRACING BOARD
+
+1. Lodge Year Management
+
+Create a Lodge Year entity.
+
+Examples:
+
+* 2025-2026
+* 2026-2027
+* 2027-2028
+
+Each Lodge Year must have a status:
+
+* Draft
+* Active
+* Archived
+
+Rules:
+
+* Only one Lodge Year may be Active at any time.
+* Historical Lodge Years must remain viewable.
+* Active Lodge Year is shown by default.
+
+====================================================
+2. Tracing Board Entries
+
+Each Tracing Board entry must support:
+
+* Title (required)
+* Date (required)
+* Start Time (optional)
+* End Time (optional)
+* Location (optional)
+* Description (optional)
+* Category (required)
+* Visibility (required)
+
+====================================================
+3. Tracing Board Categories
+
+Default categories:
+
+* Regular Meeting
+* Degree Night
+* Installation Meeting
+* Festive Board
+* Ladies Night
+* Burns Supper
+* Whisky Tasting
+* Social Event
+* External Visit
+* Other
+
+Categories must be configurable by administrators.
+
+====================================================
+4. Tracing Board Visibility
+
+Support:
+
+* Members
+* EA+
+* FC+
+* MM Only
+* Officers
+* Past Masters
+
+Definitions:
+
+EA+:
+Entered Apprentice, Fellowcraft, Master Mason
+
+FC+:
+Fellowcraft, Master Mason
+
+MM Only:
+Master Mason only
+
+Officers:
+Secretary
+Treasurer
+Junior Warden
+Senior Warden
+Worshipful Master
+
+Past Masters:
+Past Master role
+
+Visibility must be enforced on backend and frontend.
+
+====================================================
+5. Tracing Board Views
+
+Provide:
+
+A. Tracing Board Overview
+
+* Current Active Lodge Year
+* Chronological view
+
+B. Historical Tracing Boards
+
+* Browse archived years
+
+C. Dashboard Widget
+
+“Upcoming Lodge Activities”
+
+Show next 5 visible Tracing Board entries.
+
+====================================================
+PART B — EVENTS
+
+Events are independent from the Tracing Board.
+
+Examples:
+
+* Committee Meeting
+* Candidate Interview
+* Home Visit
+* Board Meeting
+* Practice Session
+* Charity Event
+* External Visit
+
+====================================================
+6. Event Fields
+
+Each event supports:
+
+* Title (required)
+* Description (optional)
+* Date (required)
+* Start Time (optional)
+* End Time (optional)
+* Category (required)
+* Visibility (required)
+* Organizer (automatic)
+* Location (optional)
+
+====================================================
+7. Event Categories
+
+Default categories:
+
+* Committee Meeting
+* Candidate Interview
+* Home Visit
+* Board Meeting
+* Practice Session
+* Charity Event
+* External Visit
+* Other
+
+Categories must be configurable.
+
+====================================================
+8. Event Visibility
+
+Support:
+
+* Members
+* EA+
+* FC+
+* MM Only
+* Officers
+* Past Masters
+
+Use same permission model as Tracing Board.
+
+====================================================
+9. Event Views
+
+Provide:
+
+A. Agenda View
+
+* Upcoming events sorted by date
+
+B. Month Calendar View
+
+* Traditional calendar layout
+
+C. Dashboard Widget
+
+“Upcoming Events”
+
+Show next 5 visible events.
+
+====================================================
+10. Administration
+
+Only:
+
+* Site Administrator
+* PM Super Administrator
+
+may:
+
+* Create Lodge Years
+* Activate Lodge Years
+* Archive Lodge Years
+* Create Tracing Board entries
+* Edit Tracing Board entries
+* Delete Tracing Board entries
+* Create Events
+* Edit Events
+* Delete Events
+* Manage Categories
+
+====================================================
+11. Audit Logging
+
+Log:
+
+* Lodge Year created
+* Lodge Year activated
+* Lodge Year archived
+* Tracing Board entry created
+* Tracing Board entry modified
+* Tracing Board entry deleted
+* Event created
+* Event modified
+* Event deleted
+* Category created
+* Category modified
+* Category deleted
+
+====================================================
+12. Security
+
+Requirements:
+
+* Visibility enforced on backend APIs.
+* Hidden entries must never be returned to unauthorized users.
+* Historical data must remain read-only.
+* Permission checks must not rely solely on UI.
+
+====================================================
+13. UI
+
+Keep the design consistent with Release 1 and Release 2.
+
+Add navigation items:
+
+* Tracing Board
+* Events
+
+Dashboard Widgets:
+
+* Upcoming Lodge Activities
+* Upcoming Events
+
+Use clean and simple layouts.
+
+====================================================
+14. DO NOT IMPLEMENT YET
+
+Future Releases:
+
+* RSVP
+* Attendance tracking
+* Email reminders
+* Notifications
+* Outlook integration
+* Google Calendar integration
+* ICS export
+* Mobile push notifications
+
+====================================================
+15. DELIVERY
+
+When implementation is complete provide:
+
+* Files changed
+* Database tables added/modified
+* New permissions added
+* New navigation items
+* Test procedure
+* Known limitations
+* Recommended Release 3 test plan

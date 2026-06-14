@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Users, Mail, FileText, LogOut, ChevronRight,
   Shield, Globe, GraduationCap, Settings, Menu, X, Cake, Map, UserCircle,
+  BookOpen, CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -22,11 +23,15 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/tracing-board", label: "Tracing Board", icon: BookOpen },
+  { href: "/events", label: "Events", icon: CalendarDays },
   { href: "/birthdays", label: "Birthdays", icon: Cake },
   { href: "/admin/users", label: "Members", icon: Users, adminOnly: true },
   { href: "/admin/invitations", label: "Invitations", icon: Mail, adminOnly: true },
   { href: "/admin/domains", label: "Domains", icon: Globe, adminOnly: true },
   { href: "/admin/degrees", label: "Degrees", icon: GraduationCap, adminOnly: true },
+  { href: "/admin/tracing-board", label: "Tracing Board Mgmt", icon: BookOpen, adminOnly: true },
+  { href: "/admin/events", label: "Events Mgmt", icon: CalendarDays, adminOnly: true },
   { href: "/admin/roadmap", label: "Roadmap", icon: Map, adminOnly: true },
   { href: "/admin/config", label: "Configuration", icon: Settings, adminOnly: true },
   { href: "/admin/audit-log", label: "Audit Log", icon: FileText, adminOnly: true },

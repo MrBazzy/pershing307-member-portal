@@ -1022,3 +1022,563 @@ export const DeleteRoadmapItemResponse = zod.object({
 })
 
 
+/**
+ * @summary List all lodge years
+ */
+export const ListLodgeYearsResponse = zod.object({
+  "years": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "startYear": zod.number(),
+  "endYear": zod.number(),
+  "status": zod.enum(['draft', 'active', 'archived']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Create a new lodge year
+ */
+export const createLodgeYearBodyTitleMax = 100;
+
+export const createLodgeYearBodyStartYearMin = 2000;
+export const createLodgeYearBodyStartYearMax = 2100;
+
+export const createLodgeYearBodyEndYearMin = 2000;
+export const createLodgeYearBodyEndYearMax = 2100;
+
+
+
+export const CreateLodgeYearBody = zod.object({
+  "title": zod.string().min(1).max(createLodgeYearBodyTitleMax),
+  "startYear": zod.number().min(createLodgeYearBodyStartYearMin).max(createLodgeYearBodyStartYearMax),
+  "endYear": zod.number().min(createLodgeYearBodyEndYearMin).max(createLodgeYearBodyEndYearMax)
+})
+
+
+/**
+ * @summary Get the currently active lodge year
+ */
+export const GetActiveLodgeYearResponse = zod.object({
+  "year": zod.union([zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "startYear": zod.number(),
+  "endYear": zod.number(),
+  "status": zod.enum(['draft', 'active', 'archived']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Update a lodge year
+ */
+export const UpdateLodgeYearParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateLodgeYearBodyTitleMax = 100;
+
+export const updateLodgeYearBodyStartYearMin = 2000;
+export const updateLodgeYearBodyStartYearMax = 2100;
+
+export const updateLodgeYearBodyEndYearMin = 2000;
+export const updateLodgeYearBodyEndYearMax = 2100;
+
+
+
+export const UpdateLodgeYearBody = zod.object({
+  "title": zod.string().min(1).max(updateLodgeYearBodyTitleMax).optional(),
+  "startYear": zod.number().min(updateLodgeYearBodyStartYearMin).max(updateLodgeYearBodyStartYearMax).optional(),
+  "endYear": zod.number().min(updateLodgeYearBodyEndYearMin).max(updateLodgeYearBodyEndYearMax).optional()
+})
+
+export const UpdateLodgeYearResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "startYear": zod.number(),
+  "endYear": zod.number(),
+  "status": zod.enum(['draft', 'active', 'archived']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Delete a draft lodge year
+ */
+export const DeleteLodgeYearParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteLodgeYearResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary Activate a lodge year (archives any currently active year)
+ */
+export const ActivateLodgeYearParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const ActivateLodgeYearResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "startYear": zod.number(),
+  "endYear": zod.number(),
+  "status": zod.enum(['draft', 'active', 'archived']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Archive a lodge year
+ */
+export const ArchiveLodgeYearParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const ArchiveLodgeYearResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "startYear": zod.number(),
+  "endYear": zod.number(),
+  "status": zod.enum(['draft', 'active', 'archived']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary List tracing board categories
+ */
+export const ListTracingBoardCategoriesResponse = zod.object({
+  "categories": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "sortOrder": zod.number(),
+  "isSystem": zod.boolean(),
+  "isActive": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Create a tracing board category
+ */
+export const createTracingBoardCategoryBodyNameMax = 100;
+
+export const createTracingBoardCategoryBodySlugMax = 100;
+
+
+
+export const CreateTracingBoardCategoryBody = zod.object({
+  "name": zod.string().min(1).max(createTracingBoardCategoryBodyNameMax),
+  "slug": zod.string().min(1).max(createTracingBoardCategoryBodySlugMax).optional(),
+  "sortOrder": zod.number().optional()
+})
+
+
+/**
+ * @summary Update a tracing board category
+ */
+export const UpdateTracingBoardCategoryParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateTracingBoardCategoryBodyNameMax = 100;
+
+export const updateTracingBoardCategoryBodySlugMax = 100;
+
+
+
+export const UpdateTracingBoardCategoryBody = zod.object({
+  "name": zod.string().min(1).max(updateTracingBoardCategoryBodyNameMax).optional(),
+  "slug": zod.string().min(1).max(updateTracingBoardCategoryBodySlugMax).optional(),
+  "sortOrder": zod.number().optional(),
+  "isActive": zod.boolean().optional()
+})
+
+export const UpdateTracingBoardCategoryResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "sortOrder": zod.number(),
+  "isSystem": zod.boolean(),
+  "isActive": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Delete a tracing board category
+ */
+export const DeleteTracingBoardCategoryParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteTracingBoardCategoryResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary Get next N upcoming visible tracing board entries
+ */
+export const getUpcomingTracingBoardEntriesQueryLimitDefault = 5;
+
+export const GetUpcomingTracingBoardEntriesQueryParams = zod.object({
+  "limit": zod.coerce.number().default(getUpcomingTracingBoardEntriesQueryLimitDefault)
+})
+
+export const GetUpcomingTracingBoardEntriesResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "id": zod.string(),
+  "lodgeYearId": zod.string(),
+  "title": zod.string(),
+  "date": zod.coerce.date(),
+  "startTime": zod.string().nullish(),
+  "endTime": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "categoryId": zod.string().nullish(),
+  "categoryName": zod.string().nullish(),
+  "visibility": zod.enum(['members', 'ea_plus', 'fc_plus', 'mm_only', 'officers', 'past_masters']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary List tracing board entries for a lodge year
+ */
+export const ListTracingBoardEntriesQueryParams = zod.object({
+  "lodgeYearId": zod.coerce.string().optional()
+})
+
+export const ListTracingBoardEntriesResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "id": zod.string(),
+  "lodgeYearId": zod.string(),
+  "title": zod.string(),
+  "date": zod.coerce.date(),
+  "startTime": zod.string().nullish(),
+  "endTime": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "categoryId": zod.string().nullish(),
+  "categoryName": zod.string().nullish(),
+  "visibility": zod.enum(['members', 'ea_plus', 'fc_plus', 'mm_only', 'officers', 'past_masters']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})),
+  "lodgeYearId": zod.string().nullish()
+})
+
+
+/**
+ * @summary Create a tracing board entry
+ */
+export const createTracingBoardEntryBodyTitleMax = 300;
+
+export const createTracingBoardEntryBodyLocationMax = 300;
+
+export const createTracingBoardEntryBodyDescriptionMax = 5000;
+
+
+
+export const CreateTracingBoardEntryBody = zod.object({
+  "lodgeYearId": zod.string(),
+  "title": zod.string().min(1).max(createTracingBoardEntryBodyTitleMax),
+  "date": zod.coerce.date(),
+  "startTime": zod.string().nullish(),
+  "endTime": zod.string().nullish(),
+  "location": zod.string().max(createTracingBoardEntryBodyLocationMax).nullish(),
+  "description": zod.string().max(createTracingBoardEntryBodyDescriptionMax).nullish(),
+  "categoryId": zod.string().nullish(),
+  "visibility": zod.enum(['members', 'ea_plus', 'fc_plus', 'mm_only', 'officers', 'past_masters'])
+})
+
+
+/**
+ * @summary Update a tracing board entry
+ */
+export const UpdateTracingBoardEntryParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateTracingBoardEntryBodyTitleMax = 300;
+
+export const updateTracingBoardEntryBodyLocationMax = 300;
+
+export const updateTracingBoardEntryBodyDescriptionMax = 5000;
+
+
+
+export const UpdateTracingBoardEntryBody = zod.object({
+  "lodgeYearId": zod.string().optional(),
+  "title": zod.string().min(1).max(updateTracingBoardEntryBodyTitleMax).optional(),
+  "date": zod.coerce.date().optional(),
+  "startTime": zod.string().nullish(),
+  "endTime": zod.string().nullish(),
+  "location": zod.string().max(updateTracingBoardEntryBodyLocationMax).nullish(),
+  "description": zod.string().max(updateTracingBoardEntryBodyDescriptionMax).nullish(),
+  "categoryId": zod.string().nullish(),
+  "visibility": zod.enum(['members', 'ea_plus', 'fc_plus', 'mm_only', 'officers', 'past_masters']).optional()
+})
+
+export const UpdateTracingBoardEntryResponse = zod.object({
+  "id": zod.string(),
+  "lodgeYearId": zod.string(),
+  "title": zod.string(),
+  "date": zod.coerce.date(),
+  "startTime": zod.string().nullish(),
+  "endTime": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "categoryId": zod.string().nullish(),
+  "categoryName": zod.string().nullish(),
+  "visibility": zod.enum(['members', 'ea_plus', 'fc_plus', 'mm_only', 'officers', 'past_masters']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Delete a tracing board entry
+ */
+export const DeleteTracingBoardEntryParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteTracingBoardEntryResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary List event categories
+ */
+export const ListEventCategoriesResponse = zod.object({
+  "categories": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "sortOrder": zod.number(),
+  "isSystem": zod.boolean(),
+  "isActive": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Create an event category
+ */
+export const createEventCategoryBodyNameMax = 100;
+
+export const createEventCategoryBodySlugMax = 100;
+
+
+
+export const CreateEventCategoryBody = zod.object({
+  "name": zod.string().min(1).max(createEventCategoryBodyNameMax),
+  "slug": zod.string().min(1).max(createEventCategoryBodySlugMax).optional(),
+  "sortOrder": zod.number().optional()
+})
+
+
+/**
+ * @summary Update an event category
+ */
+export const UpdateEventCategoryParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateEventCategoryBodyNameMax = 100;
+
+export const updateEventCategoryBodySlugMax = 100;
+
+
+
+export const UpdateEventCategoryBody = zod.object({
+  "name": zod.string().min(1).max(updateEventCategoryBodyNameMax).optional(),
+  "slug": zod.string().min(1).max(updateEventCategoryBodySlugMax).optional(),
+  "sortOrder": zod.number().optional(),
+  "isActive": zod.boolean().optional()
+})
+
+export const UpdateEventCategoryResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "sortOrder": zod.number(),
+  "isSystem": zod.boolean(),
+  "isActive": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Delete an event category
+ */
+export const DeleteEventCategoryParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteEventCategoryResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary Get next N upcoming visible events
+ */
+export const getUpcomingEventsQueryLimitDefault = 5;
+
+export const GetUpcomingEventsQueryParams = zod.object({
+  "limit": zod.coerce.number().default(getUpcomingEventsQueryLimitDefault)
+})
+
+export const GetUpcomingEventsResponse = zod.object({
+  "events": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "date": zod.coerce.date(),
+  "startTime": zod.string().nullish(),
+  "endTime": zod.string().nullish(),
+  "categoryId": zod.string().nullish(),
+  "categoryName": zod.string().nullish(),
+  "visibility": zod.enum(['members', 'ea_plus', 'fc_plus', 'mm_only', 'officers', 'past_masters']),
+  "organizerId": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary List events
+ */
+export const ListEventsQueryParams = zod.object({
+  "from": zod.date().optional()
+})
+
+export const ListEventsResponse = zod.object({
+  "events": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "date": zod.coerce.date(),
+  "startTime": zod.string().nullish(),
+  "endTime": zod.string().nullish(),
+  "categoryId": zod.string().nullish(),
+  "categoryName": zod.string().nullish(),
+  "visibility": zod.enum(['members', 'ea_plus', 'fc_plus', 'mm_only', 'officers', 'past_masters']),
+  "organizerId": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Create an event
+ */
+export const createEventBodyTitleMax = 300;
+
+export const createEventBodyDescriptionMax = 5000;
+
+export const createEventBodyLocationMax = 300;
+
+
+
+export const CreateEventBody = zod.object({
+  "title": zod.string().min(1).max(createEventBodyTitleMax),
+  "description": zod.string().max(createEventBodyDescriptionMax).nullish(),
+  "date": zod.coerce.date(),
+  "startTime": zod.string().nullish(),
+  "endTime": zod.string().nullish(),
+  "categoryId": zod.string().nullish(),
+  "visibility": zod.enum(['members', 'ea_plus', 'fc_plus', 'mm_only', 'officers', 'past_masters']),
+  "location": zod.string().max(createEventBodyLocationMax).nullish()
+})
+
+
+/**
+ * @summary Update an event
+ */
+export const UpdateEventParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateEventBodyTitleMax = 300;
+
+export const updateEventBodyDescriptionMax = 5000;
+
+export const updateEventBodyLocationMax = 300;
+
+
+
+export const UpdateEventBody = zod.object({
+  "title": zod.string().min(1).max(updateEventBodyTitleMax).optional(),
+  "description": zod.string().max(updateEventBodyDescriptionMax).nullish(),
+  "date": zod.coerce.date().optional(),
+  "startTime": zod.string().nullish(),
+  "endTime": zod.string().nullish(),
+  "categoryId": zod.string().nullish(),
+  "visibility": zod.enum(['members', 'ea_plus', 'fc_plus', 'mm_only', 'officers', 'past_masters']).optional(),
+  "location": zod.string().max(updateEventBodyLocationMax).nullish()
+})
+
+export const UpdateEventResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "date": zod.coerce.date(),
+  "startTime": zod.string().nullish(),
+  "endTime": zod.string().nullish(),
+  "categoryId": zod.string().nullish(),
+  "categoryName": zod.string().nullish(),
+  "visibility": zod.enum(['members', 'ea_plus', 'fc_plus', 'mm_only', 'officers', 'past_masters']),
+  "organizerId": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Delete an event
+ */
+export const DeleteEventParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteEventResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+

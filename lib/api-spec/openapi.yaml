@@ -33,6 +33,12 @@ tags:
     description: Roadmap and upcoming features
   - name: profile
     description: Member profile and privacy settings
+  - name: lodge-years
+    description: Lodge year management
+  - name: tracing-board
+    description: Tracing Board entries and categories
+  - name: events
+    description: Lodge events
 paths:
   /healthz:
     get:
@@ -1265,6 +1271,524 @@ paths:
         "404":
           description: Item not found
 
+  /lodge-years:
+    get:
+      operationId: listLodgeYears
+      tags: [lodge-years]
+      summary: List all lodge years
+      responses:
+        "200":
+          description: Lodge years list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LodgeYearListResult"
+    post:
+      operationId: createLodgeYear
+      tags: [lodge-years]
+      summary: Create a new lodge year
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLodgeYearInput"
+      responses:
+        "201":
+          description: Lodge year created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LodgeYear"
+        "403":
+          description: Forbidden
+
+  /lodge-years/active:
+    get:
+      operationId: getActiveLodgeYear
+      tags: [lodge-years]
+      summary: Get the currently active lodge year
+      responses:
+        "200":
+          description: Active lodge year (or null)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActiveLodgeYearResult"
+
+  /lodge-years/{id}:
+    put:
+      operationId: updateLodgeYear
+      tags: [lodge-years]
+      summary: Update a lodge year
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLodgeYearInput"
+      responses:
+        "200":
+          description: Updated lodge year
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LodgeYear"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteLodgeYear
+      tags: [lodge-years]
+      summary: Delete a draft lodge year
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /lodge-years/{id}/activate:
+    post:
+      operationId: activateLodgeYear
+      tags: [lodge-years]
+      summary: Activate a lodge year (archives any currently active year)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Activated lodge year
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LodgeYear"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /lodge-years/{id}/archive:
+    post:
+      operationId: archiveLodgeYear
+      tags: [lodge-years]
+      summary: Archive a lodge year
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Archived lodge year
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LodgeYear"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /tracing-board/categories:
+    get:
+      operationId: listTracingBoardCategories
+      tags: [tracing-board]
+      summary: List tracing board categories
+      responses:
+        "200":
+          description: Categories list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoardCategoryListResult"
+    post:
+      operationId: createTracingBoardCategory
+      tags: [tracing-board]
+      summary: Create a tracing board category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCategoryInput"
+      responses:
+        "201":
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoardCategory"
+        "403":
+          description: Forbidden
+
+  /tracing-board/categories/{id}:
+    put:
+      operationId: updateTracingBoardCategory
+      tags: [tracing-board]
+      summary: Update a tracing board category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCategoryInput"
+      responses:
+        "200":
+          description: Updated category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoardCategory"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteTracingBoardCategory
+      tags: [tracing-board]
+      summary: Delete a tracing board category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /tracing-board/upcoming:
+    get:
+      operationId: getUpcomingTracingBoardEntries
+      tags: [tracing-board]
+      summary: Get next N upcoming visible tracing board entries
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 5
+      responses:
+        "200":
+          description: Upcoming entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TracingBoardEntryListResult"
+
+  /tracing-board:
+    get:
+      operationId: listTracingBoardEntries
+      tags: [tracing-board]
+      summary: List tracing board entries for a lodge year
+      parameters:
+        - name: lodgeYearId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Entries list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TracingBoardListResult"
+    post:
+      operationId: createTracingBoardEntry
+      tags: [tracing-board]
+      summary: Create a tracing board entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTracingBoardEntryInput"
+      responses:
+        "201":
+          description: Entry created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TracingBoardEntry"
+        "403":
+          description: Forbidden
+
+  /tracing-board/{id}:
+    put:
+      operationId: updateTracingBoardEntry
+      tags: [tracing-board]
+      summary: Update a tracing board entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTracingBoardEntryInput"
+      responses:
+        "200":
+          description: Updated entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TracingBoardEntry"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteTracingBoardEntry
+      tags: [tracing-board]
+      summary: Delete a tracing board entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /events/categories:
+    get:
+      operationId: listEventCategories
+      tags: [events]
+      summary: List event categories
+      responses:
+        "200":
+          description: Categories list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventCategoryListResult"
+    post:
+      operationId: createEventCategory
+      tags: [events]
+      summary: Create an event category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCategoryInput"
+      responses:
+        "201":
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventCategory"
+        "403":
+          description: Forbidden
+
+  /events/categories/{id}:
+    put:
+      operationId: updateEventCategory
+      tags: [events]
+      summary: Update an event category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCategoryInput"
+      responses:
+        "200":
+          description: Updated category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventCategory"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteEventCategory
+      tags: [events]
+      summary: Delete an event category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /events/upcoming:
+    get:
+      operationId: getUpcomingEvents
+      tags: [events]
+      summary: Get next N upcoming visible events
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 5
+      responses:
+        "200":
+          description: Upcoming events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventListResult"
+
+  /events:
+    get:
+      operationId: listEvents
+      tags: [events]
+      summary: List events
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Events list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventListResult"
+    post:
+      operationId: createEvent
+      tags: [events]
+      summary: Create an event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventInput"
+      responses:
+        "201":
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "403":
+          description: Forbidden
+
+  /events/{id}:
+    put:
+      operationId: updateEvent
+      tags: [events]
+      summary: Update an event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEventInput"
+      responses:
+        "200":
+          description: Updated event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteEvent
+      tags: [events]
+      summary: Delete an event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
 components:
   schemas:
     HealthStatus:
@@ -2232,3 +2756,370 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ReorderRoadmapEntry"
+
+    LodgeYear:
+      type: object
+      required: [id, title, startYear, endYear, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        startYear:
+          type: integer
+        endYear:
+          type: integer
+        status:
+          type: string
+          enum: [draft, active, archived]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    LodgeYearListResult:
+      type: object
+      required: [years]
+      properties:
+        years:
+          type: array
+          items:
+            $ref: "#/components/schemas/LodgeYear"
+
+    ActiveLodgeYearResult:
+      type: object
+      required: [year]
+      properties:
+        year:
+          oneOf:
+            - $ref: "#/components/schemas/LodgeYear"
+            - type: "null"
+
+    CreateLodgeYearInput:
+      type: object
+      required: [title, startYear, endYear]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        startYear:
+          type: integer
+          minimum: 2000
+          maximum: 2100
+        endYear:
+          type: integer
+          minimum: 2000
+          maximum: 2100
+
+    UpdateLodgeYearInput:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        startYear:
+          type: integer
+          minimum: 2000
+          maximum: 2100
+        endYear:
+          type: integer
+          minimum: 2000
+          maximum: 2100
+
+    BoardCategory:
+      type: object
+      required: [id, name, slug, sortOrder, isSystem, isActive, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        sortOrder:
+          type: integer
+        isSystem:
+          type: boolean
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    BoardCategoryListResult:
+      type: object
+      required: [categories]
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/BoardCategory"
+
+    EventCategory:
+      type: object
+      required: [id, name, slug, sortOrder, isSystem, isActive, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        sortOrder:
+          type: integer
+        isSystem:
+          type: boolean
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    EventCategoryListResult:
+      type: object
+      required: [categories]
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventCategory"
+
+    CreateCategoryInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 100
+        sortOrder:
+          type: integer
+
+    UpdateCategoryInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 100
+        sortOrder:
+          type: integer
+        isActive:
+          type: boolean
+
+    TracingBoardEntry:
+      type: object
+      required: [id, lodgeYearId, title, date, visibility, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        lodgeYearId:
+          type: string
+        title:
+          type: string
+        date:
+          type: string
+          format: date
+        startTime:
+          type: ["string", "null"]
+        endTime:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        categoryId:
+          type: ["string", "null"]
+        categoryName:
+          type: ["string", "null"]
+        visibility:
+          type: string
+          enum: [members, ea_plus, fc_plus, mm_only, officers, past_masters]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    TracingBoardEntryListResult:
+      type: object
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/TracingBoardEntry"
+
+    TracingBoardListResult:
+      type: object
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/TracingBoardEntry"
+        lodgeYearId:
+          type: ["string", "null"]
+
+    CreateTracingBoardEntryInput:
+      type: object
+      required: [lodgeYearId, title, date, visibility]
+      properties:
+        lodgeYearId:
+          type: string
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+        date:
+          type: string
+          format: date
+        startTime:
+          type: ["string", "null"]
+        endTime:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+          maxLength: 300
+        description:
+          type: ["string", "null"]
+          maxLength: 5000
+        categoryId:
+          type: ["string", "null"]
+        visibility:
+          type: string
+          enum: [members, ea_plus, fc_plus, mm_only, officers, past_masters]
+
+    UpdateTracingBoardEntryInput:
+      type: object
+      properties:
+        lodgeYearId:
+          type: string
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+        date:
+          type: string
+          format: date
+        startTime:
+          type: ["string", "null"]
+        endTime:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+          maxLength: 300
+        description:
+          type: ["string", "null"]
+          maxLength: 5000
+        categoryId:
+          type: ["string", "null"]
+        visibility:
+          type: string
+          enum: [members, ea_plus, fc_plus, mm_only, officers, past_masters]
+
+    Event:
+      type: object
+      required: [id, title, date, visibility, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        date:
+          type: string
+          format: date
+        startTime:
+          type: ["string", "null"]
+        endTime:
+          type: ["string", "null"]
+        categoryId:
+          type: ["string", "null"]
+        categoryName:
+          type: ["string", "null"]
+        visibility:
+          type: string
+          enum: [members, ea_plus, fc_plus, mm_only, officers, past_masters]
+        organizerId:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    EventListResult:
+      type: object
+      required: [events]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+
+    CreateEventInput:
+      type: object
+      required: [title, date, visibility]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+        description:
+          type: ["string", "null"]
+          maxLength: 5000
+        date:
+          type: string
+          format: date
+        startTime:
+          type: ["string", "null"]
+        endTime:
+          type: ["string", "null"]
+        categoryId:
+          type: ["string", "null"]
+        visibility:
+          type: string
+          enum: [members, ea_plus, fc_plus, mm_only, officers, past_masters]
+        location:
+          type: ["string", "null"]
+          maxLength: 300
+
+    UpdateEventInput:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+        description:
+          type: ["string", "null"]
+          maxLength: 5000
+        date:
+          type: string
+          format: date
+        startTime:
+          type: ["string", "null"]
+        endTime:
+          type: ["string", "null"]
+        categoryId:
+          type: ["string", "null"]
+        visibility:
+          type: string
+          enum: [members, ea_plus, fc_plus, mm_only, officers, past_masters]
+        location:
+          type: ["string", "null"]
+          maxLength: 300

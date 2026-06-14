@@ -13,3 +13,8 @@ export * from "./two-factor-settings";
 export * from "./sessions";
 export * from "./audit-logs";
 export * from "./roadmap-items";
+export * from "./lodge-years";
+export * from "./tracing-board-categories";
+export * from "./tracing-board-entries";
+export * from "./event-categories";
+export * from "./events";

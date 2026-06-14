@@ -5,14 +5,16 @@ import {
   useListUsers,
   useGetUpcomingBirthdays,
   useListRoadmapItems,
+  useGetUpcomingTracingBoardEntries,
+  useGetUpcomingEvents,
 } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Users, Activity, Shield, Clock, Cake, Map, ChevronRight } from "lucide-react";
-import { formatDistanceToNow, format } from "date-fns";
+import { Users, Activity, Shield, Clock, Cake, Map, ChevronRight, BookOpen, CalendarDays } from "lucide-react";
+import { formatDistanceToNow, format, parseISO } from "date-fns";
 import { Link } from "wouter";
 
 const MONTH_ABBR = [
@@ -256,6 +258,134 @@ function RoadmapWidget({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
+function UpcomingActivitiesWidget({ isAdmin }: { isAdmin: boolean }) {
+  const { data, isLoading } = useGetUpcomingTracingBoardEntries({ limit: 5 });
+  const entries = (data?.entries ?? []) as Array<{
+    id: string; title: string; date: string; startTime: string | null;
+    location: string | null; categoryName: string | null;
+  }>;
+
+  return (
+    <Card className="border-card-border">
+      <CardHeader className="pb-2 flex flex-row items-center justify-between">
+        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          <BookOpen className="h-4 w-4 text-muted-foreground" />
+          Upcoming Activities
+        </CardTitle>
+        <Link href="/tracing-board" className="text-xs text-primary hover:underline">View all</Link>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-9 w-full" />)}
+          </div>
+        ) : entries.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">No upcoming activities</p>
+        ) : (
+          <div className="space-y-2">
+            {entries.map((e) => (
+              <div key={e.id} className="flex items-start gap-2 py-1.5 border-b border-border last:border-0">
+                <div className="flex flex-col items-center justify-center w-9 shrink-0 bg-muted rounded-sm py-1">
+                  <span className="text-[9px] font-semibold text-muted-foreground uppercase leading-none">
+                    {format(parseISO(e.date), "MMM")}
+                  </span>
+                  <span className="text-sm font-bold text-foreground leading-tight">
+                    {format(parseISO(e.date), "d")}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-foreground leading-snug truncate">{e.title}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {e.startTime ?? ""}
+                    {e.startTime && e.location ? " · " : ""}
+                    {e.location ?? ""}
+                  </p>
+                </div>
+                {e.categoryName && (
+                  <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded shrink-0">
+                    {e.categoryName}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {isAdmin && (
+          <div className="mt-3 pt-2 border-t border-border">
+            <Link href="/admin/tracing-board" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+              Manage Tracing Board →
+            </Link>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function UpcomingEventsWidget({ isAdmin }: { isAdmin: boolean }) {
+  const { data, isLoading } = useGetUpcomingEvents({ limit: 5 });
+  const events = (data?.events ?? []) as Array<{
+    id: string; title: string; date: string; startTime: string | null;
+    location: string | null; categoryName: string | null;
+  }>;
+
+  return (
+    <Card className="border-card-border">
+      <CardHeader className="pb-2 flex flex-row items-center justify-between">
+        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          Upcoming Events
+        </CardTitle>
+        <Link href="/events" className="text-xs text-primary hover:underline">View all</Link>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-9 w-full" />)}
+          </div>
+        ) : events.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">No upcoming events</p>
+        ) : (
+          <div className="space-y-2">
+            {events.map((e) => (
+              <div key={e.id} className="flex items-start gap-2 py-1.5 border-b border-border last:border-0">
+                <div className="flex flex-col items-center justify-center w-9 shrink-0 bg-muted rounded-sm py-1">
+                  <span className="text-[9px] font-semibold text-muted-foreground uppercase leading-none">
+                    {format(parseISO(e.date), "MMM")}
+                  </span>
+                  <span className="text-sm font-bold text-foreground leading-tight">
+                    {format(parseISO(e.date), "d")}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-foreground leading-snug truncate">{e.title}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {e.startTime ?? ""}
+                    {e.startTime && e.location ? " · " : ""}
+                    {e.location ?? ""}
+                  </p>
+                </div>
+                {e.categoryName && (
+                  <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded shrink-0">
+                    {e.categoryName}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {isAdmin && (
+          <div className="mt-3 pt-2 border-t border-border">
+            <Link href="/admin/events" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+              Manage Events →
+            </Link>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const isAdmin = user?.roles?.some((r) => r.permissionLevel >= 80) ?? false;
@@ -304,6 +434,11 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <UpcomingBirthdaysWidget />
           <RoadmapWidget isAdmin={isAdmin} />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <UpcomingActivitiesWidget isAdmin={isAdmin} />
+          <UpcomingEventsWidget isAdmin={isAdmin} />
         </div>
 
         {isAdmin && (

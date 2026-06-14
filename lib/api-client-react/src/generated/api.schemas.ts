@@ -664,6 +664,365 @@ export interface ReorderRoadmapInput {
   items: ReorderRoadmapEntry[];
 }
 
+export type LodgeYearStatus = typeof LodgeYearStatus[keyof typeof LodgeYearStatus];
+
+
+export const LodgeYearStatus = {
+  draft: 'draft',
+  active: 'active',
+  archived: 'archived',
+} as const;
+
+export interface LodgeYear {
+  id: string;
+  title: string;
+  startYear: number;
+  endYear: number;
+  status: LodgeYearStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LodgeYearListResult {
+  years: LodgeYear[];
+}
+
+export interface ActiveLodgeYearResult {
+  year: LodgeYear | null;
+}
+
+export interface CreateLodgeYearInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  title: string;
+  /**
+     * @minimum 2000
+     * @maximum 2100
+     */
+  startYear: number;
+  /**
+     * @minimum 2000
+     * @maximum 2100
+     */
+  endYear: number;
+}
+
+export interface UpdateLodgeYearInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  title?: string;
+  /**
+     * @minimum 2000
+     * @maximum 2100
+     */
+  startYear?: number;
+  /**
+     * @minimum 2000
+     * @maximum 2100
+     */
+  endYear?: number;
+}
+
+export interface BoardCategory {
+  id: string;
+  name: string;
+  slug: string;
+  sortOrder: number;
+  isSystem: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BoardCategoryListResult {
+  categories: BoardCategory[];
+}
+
+export interface EventCategory {
+  id: string;
+  name: string;
+  slug: string;
+  sortOrder: number;
+  isSystem: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EventCategoryListResult {
+  categories: EventCategory[];
+}
+
+export interface CreateCategoryInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  name: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  slug?: string;
+  sortOrder?: number;
+}
+
+export interface UpdateCategoryInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  name?: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  slug?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
+export type TracingBoardEntryVisibility = typeof TracingBoardEntryVisibility[keyof typeof TracingBoardEntryVisibility];
+
+
+export const TracingBoardEntryVisibility = {
+  members: 'members',
+  ea_plus: 'ea_plus',
+  fc_plus: 'fc_plus',
+  mm_only: 'mm_only',
+  officers: 'officers',
+  past_masters: 'past_masters',
+} as const;
+
+export interface TracingBoardEntry {
+  id: string;
+  lodgeYearId: string;
+  title: string;
+  date: string;
+  /** @nullable */
+  startTime?: string | null;
+  /** @nullable */
+  endTime?: string | null;
+  /** @nullable */
+  location?: string | null;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  categoryId?: string | null;
+  /** @nullable */
+  categoryName?: string | null;
+  visibility: TracingBoardEntryVisibility;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TracingBoardEntryListResult {
+  entries: TracingBoardEntry[];
+}
+
+export interface TracingBoardListResult {
+  entries: TracingBoardEntry[];
+  /** @nullable */
+  lodgeYearId?: string | null;
+}
+
+export type CreateTracingBoardEntryInputVisibility = typeof CreateTracingBoardEntryInputVisibility[keyof typeof CreateTracingBoardEntryInputVisibility];
+
+
+export const CreateTracingBoardEntryInputVisibility = {
+  members: 'members',
+  ea_plus: 'ea_plus',
+  fc_plus: 'fc_plus',
+  mm_only: 'mm_only',
+  officers: 'officers',
+  past_masters: 'past_masters',
+} as const;
+
+export interface CreateTracingBoardEntryInput {
+  lodgeYearId: string;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  title: string;
+  date: string;
+  /** @nullable */
+  startTime?: string | null;
+  /** @nullable */
+  endTime?: string | null;
+  /**
+     * @maxLength 300
+     * @nullable
+     */
+  location?: string | null;
+  /**
+     * @maxLength 5000
+     * @nullable
+     */
+  description?: string | null;
+  /** @nullable */
+  categoryId?: string | null;
+  visibility: CreateTracingBoardEntryInputVisibility;
+}
+
+export type UpdateTracingBoardEntryInputVisibility = typeof UpdateTracingBoardEntryInputVisibility[keyof typeof UpdateTracingBoardEntryInputVisibility];
+
+
+export const UpdateTracingBoardEntryInputVisibility = {
+  members: 'members',
+  ea_plus: 'ea_plus',
+  fc_plus: 'fc_plus',
+  mm_only: 'mm_only',
+  officers: 'officers',
+  past_masters: 'past_masters',
+} as const;
+
+export interface UpdateTracingBoardEntryInput {
+  lodgeYearId?: string;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  title?: string;
+  date?: string;
+  /** @nullable */
+  startTime?: string | null;
+  /** @nullable */
+  endTime?: string | null;
+  /**
+     * @maxLength 300
+     * @nullable
+     */
+  location?: string | null;
+  /**
+     * @maxLength 5000
+     * @nullable
+     */
+  description?: string | null;
+  /** @nullable */
+  categoryId?: string | null;
+  visibility?: UpdateTracingBoardEntryInputVisibility;
+}
+
+export type EventVisibility = typeof EventVisibility[keyof typeof EventVisibility];
+
+
+export const EventVisibility = {
+  members: 'members',
+  ea_plus: 'ea_plus',
+  fc_plus: 'fc_plus',
+  mm_only: 'mm_only',
+  officers: 'officers',
+  past_masters: 'past_masters',
+} as const;
+
+export interface Event {
+  id: string;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  date: string;
+  /** @nullable */
+  startTime?: string | null;
+  /** @nullable */
+  endTime?: string | null;
+  /** @nullable */
+  categoryId?: string | null;
+  /** @nullable */
+  categoryName?: string | null;
+  visibility: EventVisibility;
+  /** @nullable */
+  organizerId?: string | null;
+  /** @nullable */
+  location?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EventListResult {
+  events: Event[];
+}
+
+export type CreateEventInputVisibility = typeof CreateEventInputVisibility[keyof typeof CreateEventInputVisibility];
+
+
+export const CreateEventInputVisibility = {
+  members: 'members',
+  ea_plus: 'ea_plus',
+  fc_plus: 'fc_plus',
+  mm_only: 'mm_only',
+  officers: 'officers',
+  past_masters: 'past_masters',
+} as const;
+
+export interface CreateEventInput {
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  title: string;
+  /**
+     * @maxLength 5000
+     * @nullable
+     */
+  description?: string | null;
+  date: string;
+  /** @nullable */
+  startTime?: string | null;
+  /** @nullable */
+  endTime?: string | null;
+  /** @nullable */
+  categoryId?: string | null;
+  visibility: CreateEventInputVisibility;
+  /**
+     * @maxLength 300
+     * @nullable
+     */
+  location?: string | null;
+}
+
+export type UpdateEventInputVisibility = typeof UpdateEventInputVisibility[keyof typeof UpdateEventInputVisibility];
+
+
+export const UpdateEventInputVisibility = {
+  members: 'members',
+  ea_plus: 'ea_plus',
+  fc_plus: 'fc_plus',
+  mm_only: 'mm_only',
+  officers: 'officers',
+  past_masters: 'past_masters',
+} as const;
+
+export interface UpdateEventInput {
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  title?: string;
+  /**
+     * @maxLength 5000
+     * @nullable
+     */
+  description?: string | null;
+  date?: string;
+  /** @nullable */
+  startTime?: string | null;
+  /** @nullable */
+  endTime?: string | null;
+  /** @nullable */
+  categoryId?: string | null;
+  visibility?: UpdateEventInputVisibility;
+  /**
+     * @maxLength 300
+     * @nullable
+     */
+  location?: string | null;
+}
+
 export type ListUsersParams = {
 /**
  * @minimum 1
@@ -685,5 +1044,21 @@ actorEmail?: string;
 from?: string;
 to?: string;
 targetType?: string;
+};
+
+export type GetUpcomingTracingBoardEntriesParams = {
+limit?: number;
+};
+
+export type ListTracingBoardEntriesParams = {
+lodgeYearId?: string;
+};
+
+export type GetUpcomingEventsParams = {
+limit?: number;
+};
+
+export type ListEventsParams = {
+from?: string;
 };
 

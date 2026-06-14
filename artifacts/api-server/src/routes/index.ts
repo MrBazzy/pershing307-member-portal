@@ -12,6 +12,9 @@ import configAdminRouter from "./config-admin";
 import birthdaysRouter from "./birthdays";
 import roadmapRouter from "./roadmap";
 import profileRouter from "./profile";
+import lodgeYearsRouter from "./lodge-years";
+import tracingBoardRouter from "./tracing-board";
+import eventsRouter from "./events";
 
 const router: IRouter = Router();
 
@@ -28,5 +31,8 @@ router.use("/config", configAdminRouter);
 router.use("/birthdays", birthdaysRouter);
 router.use("/roadmap", roadmapRouter);
 router.use("/profile", profileRouter);
+router.use("/lodge-years", lodgeYearsRouter);
+router.use("/tracing-board", tracingBoardRouter);
+router.use("/events", eventsRouter);
 
 export default router;

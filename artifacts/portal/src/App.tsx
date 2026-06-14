@@ -20,6 +20,10 @@ import AdminDomainsPage from "@/pages/admin/domains";
 import AdminDegreesPage from "@/pages/admin/degrees";
 import AdminConfigPage from "@/pages/admin/config";
 import AdminRoadmapPage from "@/pages/admin/roadmap";
+import AdminTracingBoardPage from "@/pages/admin/tracing-board";
+import AdminEventsPage from "@/pages/admin/events";
+import TracingBoardPage from "@/pages/tracing-board";
+import EventsPage from "@/pages/events";
 import TwoFactorPage from "@/pages/settings/two-factor";
 import ProfileSettingsPage from "@/pages/settings/profile";
 import BirthdaysPage from "@/pages/birthdays";
@@ -181,6 +185,10 @@ function AppRoutes() {
         <Route path="/admin/config" component={() => <ProtectedRoute component={AdminConfigPage} />} />
         <Route path="/admin/audit-log" component={() => <ProtectedRoute component={AdminAuditLogPage} />} />
         <Route path="/admin/roadmap" component={() => <ProtectedRoute component={AdminRoadmapPage} />} />
+        <Route path="/admin/tracing-board" component={() => <ProtectedRoute component={AdminTracingBoardPage} />} />
+        <Route path="/admin/events" component={() => <ProtectedRoute component={AdminEventsPage} />} />
+        <Route path="/tracing-board" component={() => <ProtectedRoute component={TracingBoardPage} />} />
+        <Route path="/events" component={() => <ProtectedRoute component={EventsPage} />} />
         <Route path="/birthdays" component={() => <ProtectedRoute component={BirthdaysPage} />} />
         <Route component={NotFound} />
       </Switch>
