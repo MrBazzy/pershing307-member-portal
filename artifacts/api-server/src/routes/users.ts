@@ -204,7 +204,10 @@ router.patch("/:id/activate", requireAuth(), requireRole(ADMINISTRATOR_LEVEL), a
     return;
   }
 
-  await db.update(usersTable).set({ isActive: true, updatedAt: new Date() }).where(eq(usersTable.id, targetId));
+  await db
+    .update(usersTable)
+    .set({ isActive: true, failedLoginAttempts: 0, lockedUntil: null, updatedAt: new Date() })
+    .where(eq(usersTable.id, targetId));
 
   const actSessionsInvalidated = await markSessionsAsForceLogout(targetId);
 
@@ -672,9 +675,18 @@ router.patch("/:id/membership-status", requireAuth(), requireRole(ADMINISTRATOR_
     return;
   }
 
+  const statusUpdates: Partial<typeof usersTable.$inferInsert> = { membershipStatus: newStatus, updatedAt: new Date() };
+  if (newStatus === "suspended") {
+    statusUpdates.isActive = false;
+  } else if (newStatus === "active") {
+    statusUpdates.isActive = true;
+    statusUpdates.failedLoginAttempts = 0;
+    statusUpdates.lockedUntil = null;
+  }
+
   await db
     .update(usersTable)
-    .set({ membershipStatus: newStatus, updatedAt: new Date() })
+    .set(statusUpdates)
     .where(eq(usersTable.id, targetId));
 
   const membershipSessionsInvalidated = await markSessionsAsForceLogout(targetId);

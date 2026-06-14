@@ -115,6 +115,12 @@ router.post("/login", loginRateLimit, async (req, res) => {
 
   const user = users[0];
 
+  if (user.membershipStatus === "suspended") {
+    await writeAuditLog({ lodgeId, actorId: user.id, actorEmail: user.email, action: "LOGIN_FAILED", ipAddress: ip, userAgent: ua, detail: { reason: "suspended" } });
+    res.status(403).json({ error: "Your account is suspended.", reason: "suspended" });
+    return;
+  }
+
   if (!user.isActive) {
     await writeAuditLog({ lodgeId, actorId: user.id, actorEmail: user.email, action: "LOGIN_FAILED", ipAddress: ip, userAgent: ua, detail: { reason: "account_inactive" } });
     res.status(403).json({ error: "Your account is inactive. Please contact a lodge administrator." });

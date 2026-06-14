@@ -69,11 +69,14 @@ export default function LoginPage() {
         },
         onError: (err: any) => {
           const status = err?.status;
+          const reason: string = err?.data?.reason ?? "";
           const message: string = err?.data?.error ?? "";
-          if (status === 403) {
+          if (status === 403 && reason === "suspended") {
+            toast({ title: "Account suspended", description: "Your account is suspended. Please contact a lodge administrator.", variant: "destructive" });
+          } else if (status === 403) {
             toast({ title: "Account inactive", description: "Your account is inactive. Please contact a lodge administrator.", variant: "destructive" });
           } else if (status === 423) {
-            toast({ title: "Account locked", description: "Your account is temporarily locked.", variant: "destructive" });
+            toast({ title: "Account locked", description: "Your account is temporarily locked. Please try again later or contact a lodge administrator.", variant: "destructive" });
           } else {
             toast({ title: "Sign-in failed", description: message || "Invalid username or password.", variant: "destructive" });
           }
