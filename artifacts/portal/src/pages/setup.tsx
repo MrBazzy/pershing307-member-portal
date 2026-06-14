@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, User, Lock, Shield, ChevronRight, Loader2, Eye, EyeOff } from "lucide-react";
+import { CheckCircle, User, Lock, Shield, ChevronRight, Loader2, Eye, EyeOff, KeyRound } from "lucide-react";
 import { PasswordStrength } from "@/components/password-strength";
 
 const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
@@ -56,6 +56,8 @@ export default function SetupPage() {
   const [saving, setSaving] = useState(false);
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
+
+  const isForcedReset = user?.hasTemporaryPassword === true;
 
   const profileForm = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
@@ -104,16 +106,16 @@ export default function SetupPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to change password");
       await refetch();
-      setStep(2);
+      if (isForcedReset) {
+        setLocation("/dashboard");
+      } else {
+        setStep(2);
+      }
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleSkipPassword = () => {
-    setStep(2);
   };
 
   const handleFinish = async () => {
@@ -131,6 +133,82 @@ export default function SetupPage() {
     }
     setLocation("/dashboard");
   };
+
+  if (isForcedReset) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-6">
+          <div className="text-center space-y-2">
+            <div className="flex items-center justify-center w-12 h-12 rounded-sm bg-amber-100 dark:bg-amber-900/30 mx-auto mb-3">
+              <KeyRound className="h-6 w-6 text-amber-700 dark:text-amber-400" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground">Password Reset Required</h1>
+            <p className="text-sm text-muted-foreground">
+              An administrator has reset your password. You must set a new password before accessing the portal.
+            </p>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Lock className="h-5 w-5" /> Set a New Password
+              </CardTitle>
+              <CardDescription>
+                Enter the temporary password you received, then choose a new permanent password.
+                Temporary passwords expire after 24 hours.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...passwordForm}>
+                <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-4">
+                  <FormField control={passwordForm.control} name="currentPassword" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Temporary Password</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input type={showCurrent ? "text" : "password"} {...field} autoComplete="current-password" />
+                          <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" onClick={() => setShowCurrent(!showCurrent)}>
+                            {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={passwordForm.control} name="newPassword" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>New Password</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input type={showNew ? "text" : "password"} {...field} autoComplete="new-password" />
+                          <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" onClick={() => setShowNew(!showNew)}>
+                            {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </FormControl>
+                      <PasswordStrength password={newPassword} />
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={passwordForm.control} name="confirmPassword" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm New Password</FormLabel>
+                      <FormControl><Input type="password" {...field} autoComplete="new-password" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <Button type="submit" className="w-full" disabled={saving}>
+                    {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                    Set New Password
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
@@ -258,10 +336,12 @@ export default function SetupPage() {
                     </FormItem>
                   )} />
                   <div className="flex gap-3">
-                    <Button type="button" variant="outline" className="flex-1" onClick={handleSkipPassword}>
-                      Skip for now
-                    </Button>
-                    <Button type="submit" className="flex-1" disabled={saving}>
+                    {!user?.mustChangePassword && (
+                      <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(2)}>
+                        Skip for now
+                      </Button>
+                    )}
+                    <Button type="submit" className={user?.mustChangePassword ? "w-full" : "flex-1"} disabled={saving}>
                       {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                       Change Password
                     </Button>

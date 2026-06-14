@@ -347,6 +347,7 @@ router.get("/me", requireAuth(), async (req, res) => {
       displayName: user.displayName,
       membershipStatus: user.membershipStatus,
       mustChangePassword: user.mustChangePassword,
+      hasTemporaryPassword: user.tempPasswordExpiresAt != null && user.tempPasswordExpiresAt > new Date(),
       roles,
     },
   });
@@ -390,16 +391,19 @@ router.post("/change-password", requireAuth(), async (req, res) => {
     return;
   }
 
+  const wasAdminForced = user.mustChangePassword && user.tempPasswordExpiresAt != null;
+
   const newHash = await hashPassword(newPassword);
   await db
     .update(usersTable)
-    .set({ passwordHash: newHash, passwordChangedAt: new Date(), mustChangePassword: false, updatedAt: new Date() })
+    .set({ passwordHash: newHash, passwordChangedAt: new Date(), mustChangePassword: false, tempPasswordExpiresAt: null, updatedAt: new Date() })
     .where(eq(usersTable.id, userId));
 
   await recordPasswordHistory(userId, newHash);
 
   const lodgeId = await getLodgeId();
-  await writeAuditLog({ lodgeId, actorId: userId, actorEmail: user.email, action: "PASSWORD_CHANGED", targetType: "user", targetId: userId, ipAddress: getClientIp(req) });
+  const auditAction = wasAdminForced ? "PASSWORD_CHANGED_AFTER_RESET" : "PASSWORD_CHANGED";
+  await writeAuditLog({ lodgeId, actorId: userId, actorEmail: user.email, action: auditAction, targetType: "user", targetId: userId, ipAddress: getClientIp(req) });
 
   await invalidateUserSessions(userId, currentSid);
 
@@ -421,7 +425,16 @@ router.patch("/profile", requireAuth(), async (req, res) => {
   if (result.data.displayName !== undefined) updates.displayName = result.data.displayName;
 
   if (result.data.firstName !== undefined || result.data.lastName !== undefined) {
-    updates.mustChangePassword = false;
+    const currentRows = await db
+      .select({ tempPasswordExpiresAt: usersTable.tempPasswordExpiresAt })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId))
+      .limit(1);
+    const isAdminForced = currentRows[0]?.tempPasswordExpiresAt != null &&
+      currentRows[0].tempPasswordExpiresAt > new Date();
+    if (!isAdminForced) {
+      updates.mustChangePassword = false;
+    }
   }
 
   await db.update(usersTable).set(updates as any).where(eq(usersTable.id, userId));

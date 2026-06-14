@@ -15,5 +15,6 @@ export interface AuthUser {
   /** @nullable */
   displayName?: string | null;
   mustChangePassword?: boolean;
+  hasTemporaryPassword?: boolean;
   roles: UserRole[];
 }
