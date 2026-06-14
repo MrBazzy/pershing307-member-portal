@@ -1364,6 +1364,26 @@ components:
           type: string
           format: email
 
+    SmtpDiagnostics:
+      type: object
+      required: [smtpPassConfigured, port, secure]
+      properties:
+        smtpPassConfigured:
+          type: boolean
+        host:
+          type: string
+          nullable: true
+        port:
+          type: integer
+        username:
+          type: string
+          nullable: true
+        fromAddress:
+          type: string
+          nullable: true
+        secure:
+          type: boolean
+
     SmtpTestResult:
       type: object
       required: [success, message]
@@ -1372,6 +1392,26 @@ components:
           type: boolean
         message:
           type: string
+        diagnostics:
+          $ref: "#/components/schemas/SmtpDiagnostics"
+        errorCode:
+          type: string
+          description: Nodemailer / OS error code (e.g. EAUTH, ECONNREFUSED)
+        errorMessage:
+          type: string
+          description: Raw error message from the SMTP layer
+        errorCategory:
+          type: string
+          description: >
+            Categorised failure reason — one of: authentication,
+            connection_refused, connection_timeout, tls,
+            sender_rejected, smtp_error, unknown
+        smtpResponse:
+          type: string
+          description: Full SMTP server response line, if available
+        smtpCommand:
+          type: string
+          description: SMTP command that triggered the error, if available
 
     UpdateMembershipStatusInput:
       type: object

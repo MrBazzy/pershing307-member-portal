@@ -759,7 +759,20 @@ export const TestSmtpBody = zod.object({
 
 export const TestSmtpResponse = zod.object({
   "success": zod.boolean(),
-  "message": zod.string()
+  "message": zod.string(),
+  "diagnostics": zod.object({
+  "smtpPassConfigured": zod.boolean(),
+  "host": zod.string().nullish(),
+  "port": zod.number(),
+  "username": zod.string().nullish(),
+  "fromAddress": zod.string().nullish(),
+  "secure": zod.boolean()
+}).optional(),
+  "errorCode": zod.string().optional().describe('Nodemailer \/ OS error code (e.g. EAUTH, ECONNREFUSED)'),
+  "errorMessage": zod.string().optional().describe('Raw error message from the SMTP layer'),
+  "errorCategory": zod.string().optional().describe('Categorised failure reason — one of: authentication, connection_refused, connection_timeout, tls, sender_rejected, smtp_error, unknown\n'),
+  "smtpResponse": zod.string().optional().describe('Full SMTP server response line, if available'),
+  "smtpCommand": zod.string().optional().describe('SMTP command that triggered the error, if available')
 })
 
 

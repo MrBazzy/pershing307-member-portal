@@ -245,9 +245,30 @@ export interface TestSmtpInput {
   to: string;
 }
 
+export interface SmtpDiagnostics {
+  smtpPassConfigured: boolean;
+  host?: string | null;
+  port: number;
+  username?: string | null;
+  fromAddress?: string | null;
+  secure: boolean;
+}
+
 export interface SmtpTestResult {
   success: boolean;
   message: string;
+  diagnostics?: SmtpDiagnostics;
+  /** Nodemailer / OS error code (e.g. EAUTH, ECONNREFUSED) */
+  errorCode?: string;
+  /** Raw error message from the SMTP layer */
+  errorMessage?: string;
+  /** Categorised failure reason — one of: authentication, connection_refused, connection_timeout, tls, sender_rejected, smtp_error, unknown
+   */
+  errorCategory?: string;
+  /** Full SMTP server response line, if available */
+  smtpResponse?: string;
+  /** SMTP command that triggered the error, if available */
+  smtpCommand?: string;
 }
 
 export type UpdateMembershipStatusInputStatus = typeof UpdateMembershipStatusInputStatus[keyof typeof UpdateMembershipStatusInputStatus];

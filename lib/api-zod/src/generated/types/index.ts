@@ -53,6 +53,7 @@ export * from './role';
 export * from './roleAssignment';
 export * from './roleDetail';
 export * from './roleListResult';
+export * from './smtpDiagnostics';
 export * from './smtpTestResult';
 export * from './successResult';
 export * from './testSmtpInput';

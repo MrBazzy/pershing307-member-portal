@@ -47,6 +47,24 @@ type UpdateValues = z.infer<typeof updateSchema>;
 const testSchema = z.object({ to: z.string().email("Enter a valid email address") });
 type TestValues = z.infer<typeof testSchema>;
 
+interface SmtpTestState {
+  success: boolean;
+  message: string;
+  diagnostics?: {
+    smtpPassConfigured: boolean;
+    host?: string | null;
+    port?: number;
+    username?: string | null;
+    fromAddress?: string | null;
+    secure?: boolean;
+  };
+  errorCode?: string;
+  errorMessage?: string;
+  errorCategory?: string;
+  smtpResponse?: string;
+  smtpCommand?: string;
+}
+
 const KEY_INPUT_TYPES: Record<string, string> = {
   smtp_port: "number",
   smtp_from_email: "email",
@@ -276,13 +294,75 @@ function SmtpPasswordRow({ configured }: { configured: boolean }) {
   );
 }
 
+function DiagnosticsRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex gap-3 py-1">
+      <span className="text-xs text-muted-foreground w-36 shrink-0">{label}</span>
+      <span className="text-xs font-mono break-all">{value}</span>
+    </div>
+  );
+}
+
+function SmtpDiagnosticsPanel({ result }: { result: SmtpTestState }) {
+  const d = result.diagnostics;
+
+  const passEl = d?.smtpPassConfigured ? (
+    <span className="text-green-700">Yes</span>
+  ) : (
+    <span className="text-red-700">No — add SMTP_PASS in Replit Secrets</span>
+  );
+
+  const secureEl = d?.secure != null ? (
+    d.secure
+      ? <span>Yes <span className="text-muted-foreground">(port 465, SSL/TLS)</span></span>
+      : <span>No <span className="text-muted-foreground">(port 587/25, STARTTLS)</span></span>
+  ) : "—";
+
+  return (
+    <div className="rounded-md border bg-muted/30 px-3 py-2.5 mt-2 space-y-0.5">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+        SMTP Diagnostics
+      </p>
+      <DiagnosticsRow label="SMTP_PASS set" value={passEl} />
+      <DiagnosticsRow label="Host" value={d?.host ?? "—"} />
+      <DiagnosticsRow label="Port" value={d?.port ?? "—"} />
+      <DiagnosticsRow label="Username" value={d?.username ?? "—"} />
+      <DiagnosticsRow label="From address" value={d?.fromAddress ?? "—"} />
+      <DiagnosticsRow label="Secure (SSL/TLS)" value={secureEl} />
+      {!result.success && (
+        <>
+          <Separator className="my-1.5" />
+          <DiagnosticsRow
+            label="Error category"
+            value={
+              result.errorCategory ? (
+                <span className="text-red-700">{result.errorCategory.replace(/_/g, " ")}</span>
+              ) : "—"
+            }
+          />
+          <DiagnosticsRow
+            label="Error code"
+            value={result.errorCode ? <span className="text-red-700">{result.errorCode}</span> : "—"}
+          />
+          {result.smtpCommand && (
+            <DiagnosticsRow label="SMTP command" value={result.smtpCommand} />
+          )}
+          {result.smtpResponse && (
+            <DiagnosticsRow label="Server response" value={result.smtpResponse} />
+          )}
+          {result.errorMessage && !result.smtpResponse && (
+            <DiagnosticsRow label="Error detail" value={result.errorMessage} />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function SendTestEmailSection() {
   const { toast } = useToast();
   const testSmtp = useTestSmtp();
-  const [result, setResult] = useState<{
-    success: boolean;
-    message: string;
-  } | null>(null);
+  const [testResult, setTestResult] = useState<SmtpTestState | null>(null);
 
   const form = useForm<TestValues>({
     resolver: zodResolver(testSchema),
@@ -290,28 +370,37 @@ function SendTestEmailSection() {
   });
 
   const handleSend = (values: TestValues) => {
-    setResult(null);
+    setTestResult(null);
     testSmtp.mutate(
       { data: { to: values.to } },
       {
         onSuccess: (data) => {
-          setResult({
+          setTestResult({
             success: true,
-            message: data.message ?? "Test email sent successfully.",
+            message: data.message,
+            diagnostics: data.diagnostics,
           });
         },
         onError: (e: any) => {
-          const msg =
-            e?.data?.details ?? e?.data?.error ?? "Failed to send test email.";
-          setResult({ success: false, message: msg });
+          const d = e?.data;
           if (e?.status === 503) {
             toast({
               title: "SMTP not configured",
-              description:
-                "Set smtp_host and the SMTP_PASS secret before sending a test email.",
+              description: d?.error ?? "Set smtp_host and SMTP_PASS before testing.",
               variant: "destructive",
             });
+            return;
           }
+          setTestResult({
+            success: false,
+            message: d?.message ?? d?.details ?? d?.error ?? "SMTP test failed.",
+            diagnostics: d?.diagnostics,
+            errorCode: d?.errorCode,
+            errorMessage: d?.errorMessage,
+            errorCategory: d?.errorCategory,
+            smtpResponse: d?.smtpResponse,
+            smtpCommand: d?.smtpCommand,
+          });
         },
       }
     );
@@ -332,10 +421,7 @@ function SendTestEmailSection() {
           is recorded in the Audit Log.
         </p>
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleSend)}
-            className="flex gap-2"
-          >
+          <form onSubmit={form.handleSubmit(handleSend)} className="flex gap-2">
             <FormField
               control={form.control}
               name="to"
@@ -349,7 +435,7 @@ function SendTestEmailSection() {
                       autoComplete="email"
                       onChange={(e) => {
                         field.onChange(e);
-                        setResult(null);
+                        setTestResult(null);
                       }}
                     />
                   </FormControl>
@@ -357,10 +443,7 @@ function SendTestEmailSection() {
                 </FormItem>
               )}
             />
-            <Button
-              type="submit"
-              disabled={testSmtp.isPending}
-            >
+            <Button type="submit" disabled={testSmtp.isPending}>
               {testSmtp.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
@@ -371,20 +454,25 @@ function SendTestEmailSection() {
           </form>
         </Form>
 
-        {result && (
-          <div
-            className={`rounded-md border px-3 py-2.5 text-sm flex items-start gap-2.5 ${
-              result.success
-                ? "border-green-200 bg-green-50 text-green-800"
-                : "border-red-200 bg-red-50 text-red-800"
-            }`}
-          >
-            {result.success ? (
-              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
-            ) : (
-              <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
+        {testResult && (
+          <div>
+            <div
+              className={`rounded-md border px-3 py-2.5 text-sm flex items-start gap-2.5 ${
+                testResult.success
+                  ? "border-green-200 bg-green-50 text-green-800"
+                  : "border-red-200 bg-red-50 text-red-800"
+              }`}
+            >
+              {testResult.success ? (
+                <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+              ) : (
+                <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
+              )}
+              <span>{testResult.message}</span>
+            </div>
+            {testResult.diagnostics && (
+              <SmtpDiagnosticsPanel result={testResult} />
             )}
-            <span>{result.message}</span>
           </div>
         )}
       </div>

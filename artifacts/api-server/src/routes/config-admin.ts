@@ -7,7 +7,7 @@ import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 import { getLodgeId, setConfig, getConfig } from "../lib/config";
 import { writeAuditLog, getClientIp } from "../lib/audit";
-import { sendEmail } from "../lib/email";
+import { sendEmailDetailed } from "../lib/email";
 
 const router = Router();
 
@@ -106,6 +106,32 @@ router.get("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) =
   res.json({ config, smtpPasswordConfigured: !!process.env.SMTP_PASS });
 });
 
+function buildSmtpErrorMessage(
+  diag: { host: string | null; port: number; username: string | null; fromAddress: string | null },
+  errorCategory?: string,
+  errorMessage?: string,
+  smtpResponse?: string
+): string {
+  switch (errorCategory) {
+    case "authentication":
+      return `Authentication failed — verify that SMTP_PASS is correct for username "${diag.username ?? "unset"}".`;
+    case "connection_refused":
+      return `Connection refused to ${diag.host}:${diag.port} — check the host/port or whether this server is reachable from Replit.`;
+    case "connection_timeout":
+      return `Connection timed out to ${diag.host}:${diag.port} — the server may be unreachable or the port may be firewalled.`;
+    case "tls":
+      return `TLS/SSL handshake failed on ${diag.host}:${diag.port} — check secure mode (port 465 = SSL, 587 = STARTTLS).`;
+    case "sender_rejected":
+      return `Server rejected sender "${diag.fromAddress}" — verify this address is authorised to send on ${diag.host}.`;
+    case "smtp_error":
+      return smtpResponse
+        ? `SMTP server error: ${smtpResponse}`
+        : "SMTP server returned an error — see diagnostics for details.";
+    default:
+      return errorMessage ?? "SMTP send failed — see diagnostics for details.";
+  }
+}
+
 router.post("/test-smtp", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const result = testSmtpSchema.safeParse(req.body);
   if (!result.success) {
@@ -118,13 +144,13 @@ router.post("/test-smtp", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (r
   const ip = getClientIp(req);
   const lodgeId = await getLodgeId();
 
-  const host = await getConfig("smtp_host");
+  const host = process.env.SMTP_HOST ?? await getConfig("smtp_host");
   if (!host) {
-    res.status(503).json({ error: "SMTP is not configured. Set smtp_host in configuration and the SMTP_PASS environment secret." });
+    res.status(503).json({ error: "SMTP not configured — set smtp_host in configuration and add SMTP_PASS as a Replit Secret." });
     return;
   }
 
-  const sent = await sendEmail({
+  const sendResult = await sendEmailDetailed({
     to,
     subject: "Pershing307 Portal — SMTP Test",
     html: `
@@ -138,24 +164,44 @@ router.post("/test-smtp", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (r
       `,
   });
 
-  const success = sent;
-  const message = sent
+  const message = sendResult.success
     ? `Test email sent successfully to ${to}.`
-    : "Failed to send test email. Verify SMTP credentials (SMTP_PASS) and server settings.";
+    : buildSmtpErrorMessage(
+        sendResult.diagnostics,
+        sendResult.errorCategory,
+        sendResult.errorMessage,
+        sendResult.smtpResponse
+      );
 
   await writeAuditLog({
     lodgeId,
     actorId,
     action: "SMTP_TEST",
-    detail: { to, success, message },
+    detail: {
+      to,
+      success: sendResult.success,
+      errorCode: sendResult.errorCode,
+      errorCategory: sendResult.errorCategory,
+    },
     ipAddress: ip,
   });
 
-  if (success) {
-    res.json({ success: true, message });
-  } else {
-    res.status(502).json({ error: "SMTP test failed", details: message });
-  }
+  const body = {
+    success: sendResult.success,
+    message,
+    diagnostics: sendResult.diagnostics,
+    ...(sendResult.success
+      ? {}
+      : {
+          errorCode: sendResult.errorCode,
+          errorMessage: sendResult.errorMessage,
+          errorCategory: sendResult.errorCategory,
+          smtpResponse: sendResult.smtpResponse,
+          smtpCommand: sendResult.smtpCommand,
+        }),
+  };
+
+  res.status(sendResult.success ? 200 : 502).json(body);
 });
 
 router.put("/:key", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
