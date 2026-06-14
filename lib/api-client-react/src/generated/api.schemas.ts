@@ -136,6 +136,7 @@ export interface AuthUser {
   displayName?: string | null;
   mustChangePassword?: boolean;
   hasTemporaryPassword?: boolean;
+  profileSetupRequired?: boolean;
   roles: UserRole[];
 }
 

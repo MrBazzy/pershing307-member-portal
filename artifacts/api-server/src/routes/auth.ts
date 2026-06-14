@@ -348,6 +348,7 @@ router.get("/me", requireAuth(), async (req, res) => {
       membershipStatus: user.membershipStatus,
       mustChangePassword: user.mustChangePassword,
       hasTemporaryPassword: user.tempPasswordExpiresAt != null && user.tempPasswordExpiresAt > new Date(),
+      profileSetupRequired: user.profileSetupRequired,
       roles,
     },
   });
@@ -424,18 +425,8 @@ router.patch("/profile", requireAuth(), async (req, res) => {
   if (result.data.lastName !== undefined) updates.lastName = result.data.lastName;
   if (result.data.displayName !== undefined) updates.displayName = result.data.displayName;
 
-  if (result.data.firstName !== undefined || result.data.lastName !== undefined) {
-    const currentRows = await db
-      .select({ tempPasswordExpiresAt: usersTable.tempPasswordExpiresAt })
-      .from(usersTable)
-      .where(eq(usersTable.id, userId))
-      .limit(1);
-    const isAdminForced = currentRows[0]?.tempPasswordExpiresAt != null &&
-      currentRows[0].tempPasswordExpiresAt > new Date();
-    if (!isAdminForced) {
-      updates.mustChangePassword = false;
-    }
-  }
+  // Profile save always completes the invitation setup wizard step.
+  updates.profileSetupRequired = false;
 
   await db.update(usersTable).set(updates as any).where(eq(usersTable.id, userId));
 

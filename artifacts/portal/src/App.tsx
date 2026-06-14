@@ -80,7 +80,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
       setLocation("/login");
       return;
     }
-    if (user?.mustChangePassword && location !== "/setup") {
+    if ((user?.mustChangePassword || user?.profileSetupRequired) && location !== "/setup") {
       setLocation("/setup");
     }
   }, [isLoading, isAuthenticated, user, setLocation, location]);
@@ -94,7 +94,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   }
 
   if (!isAuthenticated) return null;
-  if (user?.mustChangePassword && location !== "/setup") return null;
+  if ((user?.mustChangePassword || user?.profileSetupRequired) && location !== "/setup") return null;
   return <Component />;
 }
 

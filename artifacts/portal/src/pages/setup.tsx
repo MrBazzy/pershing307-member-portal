@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, User, Lock, Shield, ChevronRight, Loader2, Eye, EyeOff, KeyRound } from "lucide-react";
+import { CheckCircle, User, Shield, ChevronRight, Loader2, Eye, EyeOff, KeyRound, Lock } from "lucide-react";
 import { PasswordStrength } from "@/components/password-strength";
 
 const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
@@ -42,9 +42,8 @@ const passwordSchema = z
 type ProfileValues = z.infer<typeof profileSchema>;
 type PasswordValues = z.infer<typeof passwordSchema>;
 
-const STEPS = [
+const SETUP_STEPS = [
   { id: "profile", label: "Profile", icon: User },
-  { id: "password", label: "Password", icon: Lock },
   { id: "privacy", label: "Privacy", icon: Shield },
 ];
 
@@ -58,10 +57,10 @@ export default function SetupPage() {
   const [showNew, setShowNew] = useState(false);
 
   /**
-   * One-way latch: once set to true it never goes back to false, even after
-   * the password is changed and hasTemporaryPassword flips to false on the
-   * server. This prevents the component from briefly rendering the regular
-   * wizard while setLocation("/dashboard") is in flight.
+   * One-way latch: once hasTemporaryPassword is seen as true it stays true
+   * for this component's lifetime, even after the password is changed and the
+   * server clears the flag.  Prevents a mid-flight re-render from switching
+   * away from the forced-reset UI before navigation completes.
    */
   const forcedResetLatched = useRef(false);
   const [forcedReset, setForcedReset] = useState(false);
@@ -87,15 +86,30 @@ export default function SetupPage() {
     defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
   });
 
-  const setupPasswordForm = useForm<PasswordValues>({
-    resolver: zodResolver(passwordSchema),
-    defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
-  });
-
   const forcedNewPassword = forcedPasswordForm.watch("newPassword");
-  const setupNewPassword = setupPasswordForm.watch("newPassword");
 
-  // --- Profile step (regular wizard only) ---
+  // --- Forced-reset: always navigates to /dashboard on success ---
+  const handleForcedResetPassword = async (values: PasswordValues) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${BASE_URL}/api/auth/change-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ currentPassword: values.currentPassword, newPassword: values.newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to change password");
+      await refetch();
+      setLocation("/dashboard");
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // --- Profile step (invitation setup wizard) ---
   const handleProfileSubmit = async (values: ProfileValues) => {
     setSaving(true);
     try {
@@ -115,59 +129,10 @@ export default function SetupPage() {
     }
   };
 
-  // --- Forced-reset password change: always navigates to /dashboard on success ---
-  const handleForcedResetPassword = async (values: PasswordValues) => {
-    setSaving(true);
-    try {
-      const res = await fetch(`${BASE_URL}/api/auth/change-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ currentPassword: values.currentPassword, newPassword: values.newPassword }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to change password");
-      // Refresh session state then navigate — no conditional branching on
-      // user state here so the render cycle cannot interfere with navigation.
-      await refetch();
-      setLocation("/dashboard");
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // --- Regular wizard password change (step 1): always advances to step 2 ---
-  const handleSetupPassword = async (values: PasswordValues) => {
-    setSaving(true);
-    try {
-      const res = await fetch(`${BASE_URL}/api/auth/change-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ currentPassword: values.currentPassword, newPassword: values.newPassword }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to change password");
-      await refetch();
-      setStep(2);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
-  };
-
+  // --- Privacy/finish step: navigate to dashboard ---
   const handleFinish = async () => {
     setSaving(true);
     try {
-      await fetch(`${BASE_URL}/api/auth/profile`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({}),
-      });
       await refetch();
     } finally {
       setSaving(false);
@@ -175,7 +140,7 @@ export default function SetupPage() {
     setLocation("/dashboard");
   };
 
-  // --- Forced-reset UI ---
+  // ── Forced-reset UI ──────────────────────────────────────────────────────
   if (forcedReset) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
@@ -252,7 +217,7 @@ export default function SetupPage() {
     );
   }
 
-  // --- Regular first-login setup wizard ---
+  // ── Invitation setup wizard (Profile → Privacy, no password step) ────────
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-lg space-y-6">
@@ -265,7 +230,7 @@ export default function SetupPage() {
         </div>
 
         <div className="flex items-center justify-center gap-2">
-          {STEPS.map((s, i) => (
+          {SETUP_STEPS.map((s, i) => (
             <div key={s.id} className="flex items-center gap-2">
               <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 i < step ? "bg-green-100 text-green-700" :
@@ -275,7 +240,7 @@ export default function SetupPage() {
                 {i < step ? <CheckCircle className="h-3 w-3" /> : <s.icon className="h-3 w-3" />}
                 {s.label}
               </div>
-              {i < STEPS.length - 1 && (
+              {i < SETUP_STEPS.length - 1 && (
                 <ChevronRight className="h-3 w-3 text-muted-foreground" />
               )}
             </div>
@@ -289,7 +254,7 @@ export default function SetupPage() {
                 <User className="h-5 w-5" /> Your Profile
               </CardTitle>
               <CardDescription>
-                Confirm your name as it will appear in the portal. You can add a display name (e.g., nickname or office title).
+                Confirm your name as it will appear in the portal. You can add a display name such as an office title or nickname.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -330,79 +295,6 @@ export default function SetupPage() {
         )}
 
         {step === 1 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Lock className="h-5 w-5" /> Set Your Password
-              </CardTitle>
-              <CardDescription>
-                Your account was created with a temporary password. Set a new permanent password now.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...setupPasswordForm}>
-                <form onSubmit={setupPasswordForm.handleSubmit(handleSetupPassword)} className="space-y-4">
-                  <FormField control={setupPasswordForm.control} name="currentPassword" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Current Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input type={showCurrent ? "text" : "password"} {...field} />
-                          <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" onClick={() => setShowCurrent(!showCurrent)}>
-                            {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={setupPasswordForm.control} name="newPassword" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>New Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input type={showNew ? "text" : "password"} {...field} />
-                          <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" onClick={() => setShowNew(!showNew)}>
-                            {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </button>
-                        </div>
-                      </FormControl>
-                      <PasswordStrength password={setupNewPassword} />
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={setupPasswordForm.control} name="confirmPassword" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm New Password</FormLabel>
-                      <FormControl><Input type="password" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <div className="flex gap-3">
-                    {/* Skip is only available when mustChangePassword is false —
-                        i.e. the user already changed their invitation password
-                        in the profile step, making the wizard-step optional. */}
-                    {!user?.mustChangePassword && (
-                      <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(2)}>
-                        Skip for now
-                      </Button>
-                    )}
-                    <Button
-                      type="submit"
-                      className={user?.mustChangePassword ? "w-full" : "flex-1"}
-                      disabled={saving}
-                    >
-                      {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                      Change Password
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        )}
-
-        {step === 2 && (
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">

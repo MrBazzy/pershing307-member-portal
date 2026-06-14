@@ -1174,6 +1174,8 @@ components:
           type: boolean
         hasTemporaryPassword:
           type: boolean
+        profileSetupRequired:
+          type: boolean
         roles:
           type: array
           items:

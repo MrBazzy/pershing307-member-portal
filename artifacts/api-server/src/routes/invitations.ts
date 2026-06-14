@@ -268,7 +268,8 @@ router.post("/accept", async (req, res) => {
         lastName: invitation.lastName,
         isActive: true,
         membershipStatus: "active",
-        mustChangePassword: true,
+        mustChangePassword: false,
+        profileSetupRequired: true,
         passwordChangedAt: new Date(),
       })
       .returning();

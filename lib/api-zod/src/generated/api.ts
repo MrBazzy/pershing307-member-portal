@@ -77,6 +77,7 @@ export const LoginResponse = zod.object({
   "displayName": zod.string().nullish(),
   "mustChangePassword": zod.boolean().optional(),
   "hasTemporaryPassword": zod.boolean().optional(),
+  "profileSetupRequired": zod.boolean().optional(),
   "roles": zod.array(zod.object({
   "name": zod.string(),
   "slug": zod.string(),
@@ -108,6 +109,7 @@ export const VerifyTwoFactorResponse = zod.object({
   "displayName": zod.string().nullish(),
   "mustChangePassword": zod.boolean().optional(),
   "hasTemporaryPassword": zod.boolean().optional(),
+  "profileSetupRequired": zod.boolean().optional(),
   "roles": zod.array(zod.object({
   "name": zod.string(),
   "slug": zod.string(),
@@ -138,6 +140,7 @@ export const GetCurrentUserResponse = zod.object({
   "displayName": zod.string().nullish(),
   "mustChangePassword": zod.boolean().optional(),
   "hasTemporaryPassword": zod.boolean().optional(),
+  "profileSetupRequired": zod.boolean().optional(),
   "roles": zod.array(zod.object({
   "name": zod.string(),
   "slug": zod.string(),
