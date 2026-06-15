@@ -55,12 +55,26 @@ export function getAllowedVisibilities(ctx: UserContext): VisibilityValue[] {
     return [...VISIBILITY_VALUES];
   }
 
-  const allowed: VisibilityValue[] = ["members"];
-  if (maxDegree >= 1) allowed.push("ea_plus");
-  if (maxDegree >= 2) allowed.push("fc_plus");
-  if (maxDegree >= 3) allowed.push("mm_only");
-  if (maxPermLevel >= 30) allowed.push("officers");
-  if (roleSlugs.includes("past-master")) allowed.push("past_masters");
+  const allowed = new Set<VisibilityValue>(["members"]);
 
-  return allowed;
+  if (maxDegree >= 1) allowed.add("ea_plus");
+  if (maxDegree >= 2) allowed.add("fc_plus");
+  if (maxDegree >= 3) allowed.add("mm_only");
+
+  if (maxPermLevel >= 30) allowed.add("officers");
+
+  if (roleSlugs.includes("worshipful-master")) {
+    allowed.add("ea_plus");
+    allowed.add("fc_plus");
+    allowed.add("mm_only");
+  }
+
+  if (roleSlugs.includes("past-master")) {
+    allowed.add("ea_plus");
+    allowed.add("fc_plus");
+    allowed.add("mm_only");
+    allowed.add("past_masters");
+  }
+
+  return [...allowed];
 }

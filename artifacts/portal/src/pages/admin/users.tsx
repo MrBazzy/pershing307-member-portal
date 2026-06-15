@@ -282,7 +282,6 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
     { degree: 1, name: "Entered Apprentice", abbreviation: "EA" },
     { degree: 2, name: "Fellow Craft", abbreviation: "FC" },
     { degree: 3, name: "Master Mason", abbreviation: "MM" },
-    { degree: 4, name: "Past Master", abbreviation: "PM" },
   ];
 
   const invalidate = () => {

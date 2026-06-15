@@ -16,7 +16,6 @@ const DEFAULT_DEGREE_DEFINITIONS = [
   { degree: 1, name: "Entered Apprentice", abbreviation: "EA" },
   { degree: 2, name: "Fellow Craft", abbreviation: "FC" },
   { degree: 3, name: "Master Mason", abbreviation: "MM" },
-  { degree: 4, name: "Past Master", abbreviation: "PM" },
 ];
 
 async function getDegreeDefinitions() {
@@ -102,6 +101,11 @@ router.post("/:userId", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req
 
   const definitions = await getDegreeDefinitions();
   const def = definitions.find((d) => d.degree === degree);
+
+  if (!def) {
+    res.status(400).json({ error: "Invalid degree: not found in current degree definitions" });
+    return;
+  }
 
   await db.insert(userDegreesTable).values({
     userId: targetUserId,

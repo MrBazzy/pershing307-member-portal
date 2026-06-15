@@ -617,7 +617,6 @@ router.get("/:id/degrees", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (
         { degree: 1, name: "Entered Apprentice", abbreviation: "EA" },
         { degree: 2, name: "Fellow Craft", abbreviation: "FC" },
         { degree: 3, name: "Master Mason", abbreviation: "MM" },
-        { degree: 4, name: "Past Master", abbreviation: "PM" },
       ];
 
   const degrees = degreeRows.map((d) => {
@@ -655,9 +654,13 @@ router.post("/:id/degrees", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async 
         { degree: 1, name: "Entered Apprentice" },
         { degree: 2, name: "Fellow Craft" },
         { degree: 3, name: "Master Mason" },
-        { degree: 4, name: "Past Master" },
       ];
   const def = definitions.find((d) => d.degree === degree);
+
+  if (!def) {
+    res.status(400).json({ error: "Invalid degree: not found in current degree definitions" });
+    return;
+  }
 
   await db.insert(userDegreesTable).values({
     userId: targetUserId,
