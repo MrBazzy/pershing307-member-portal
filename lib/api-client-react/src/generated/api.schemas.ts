@@ -1195,7 +1195,37 @@ export interface UpdateHistoryDocumentInput {
      * @nullable
      */
   category?: string | null;
+  /**
+     * Object path of an uploaded attachment (e.g. /objects/uploads/uuid)
+     * @nullable
+     */
+  fileUrl?: string | null;
   sortOrder?: number;
+}
+
+export interface DocumentAttachmentUploadRequest {
+  /**
+     * Original file name
+     * @minLength 1
+     */
+  name: string;
+  /**
+     * File size in bytes
+     * @minimum 1
+     */
+  size: number;
+  /**
+     * MIME type of the file
+     * @minLength 1
+     */
+  contentType: string;
+}
+
+export interface DocumentAttachmentUploadResponse {
+  /** Presigned GCS URL for PUT upload */
+  uploadURL: string;
+  /** Normalized object path to store in the database */
+  objectPath: string;
 }
 
 export type ListUsersParams = {

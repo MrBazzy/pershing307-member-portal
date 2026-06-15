@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   useListHistoryDocuments,
   useCreateHistoryDocument,
   useUpdateHistoryDocument,
   useDeleteHistoryDocument,
+  useRemoveHistoryDocumentAttachment,
   getListHistoryDocumentsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -20,7 +21,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, FileText } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText, Upload, Download, X, Loader2 } from "lucide-react";
 import { ADMIN_LEVEL } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +59,16 @@ const CATEGORY_COLORS: Record<string, string> = {
   Certificate: "bg-rose-100 text-rose-800 border-rose-200",
 };
 
+const ALLOWED_MIME_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
+const ALLOWED_EXTENSIONS = ".pdf,.jpg,.jpeg,.png,.docx";
+
 function CategoryBadge({ category }: { category: string | null }) {
   if (!category) return null;
   const cls = CATEGORY_COLORS[category] ?? "bg-muted text-muted-foreground border-border";
@@ -66,6 +77,10 @@ function CategoryBadge({ category }: { category: string | null }) {
       {category}
     </span>
   );
+}
+
+function openAttachment(fileUrl: string) {
+  window.open(`/api/storage${fileUrl}`, "_blank", "noopener,noreferrer");
 }
 
 const SUGGESTED_CATEGORIES = ["Charter", "Petition", "Minutes", "Correspondence", "Photograph", "Certificate", "Other"];
@@ -80,11 +95,18 @@ export default function HistoricalDocumentsPage() {
   const create = useCreateHistoryDocument();
   const update = useUpdateHistoryDocument();
   const remove = useDeleteHistoryDocument();
+  const removeAttachment = useRemoveHistoryDocumentAttachment();
 
   const [addOpen, setAddOpen] = useState(false);
   const [editDoc, setEditDoc] = useState<HistoryDoc | null>(null);
   const [deleteDoc, setDeleteDoc] = useState<HistoryDoc | null>(null);
+  const [removeAttachDoc, setRemoveAttachDoc] = useState<HistoryDoc | null>(null);
   const [form, setForm] = useState<DocForm>(emptyForm);
+
+  const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingDocRef = useRef<string | null>(null);
 
   const documents = (data?.documents ?? []) as HistoryDoc[];
 
@@ -107,6 +129,7 @@ export default function HistoricalDocumentsPage() {
     setAddOpen(false);
     setEditDoc(null);
     setDeleteDoc(null);
+    setRemoveAttachDoc(null);
     setForm(emptyForm);
   }
 
@@ -164,8 +187,97 @@ export default function HistoricalDocumentsPage() {
     );
   }
 
+  function handleRemoveAttachment() {
+    if (!removeAttachDoc) return;
+    removeAttachment.mutate(
+      { id: removeAttachDoc.id },
+      {
+        onSuccess: () => { invalidate(); closeAll(); toast({ title: "Attachment removed" }); },
+        onError: () => toast({ title: "Failed to remove attachment", variant: "destructive" }),
+      }
+    );
+  }
+
+  function triggerUpload(docId: string) {
+    pendingDocRef.current = docId;
+    fileInputRef.current?.click();
+  }
+
+  async function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!fileInputRef.current) return;
+    fileInputRef.current.value = "";
+
+    const docId = pendingDocRef.current;
+    pendingDocRef.current = null;
+
+    if (!file || !docId) return;
+
+    if (!ALLOWED_MIME_TYPES.has(file.type)) {
+      toast({ title: "Unsupported file type", description: "Allowed: PDF, JPG, PNG, DOCX.", variant: "destructive" });
+      return;
+    }
+
+    setUploadingDocId(docId);
+    setUploadProgress("Requesting upload URL…");
+
+    try {
+      const urlRes = await fetch(`/api/history/documents/${docId}/request-upload`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+      });
+
+      if (!urlRes.ok) {
+        const err = await urlRes.json().catch(() => ({}));
+        throw new Error((err as { error?: string }).error ?? "Failed to get upload URL");
+      }
+
+      const { uploadURL, objectPath } = await urlRes.json() as { uploadURL: string; objectPath: string };
+
+      setUploadProgress("Uploading file…");
+
+      const putRes = await fetch(uploadURL, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!putRes.ok) throw new Error("Upload to storage failed");
+
+      setUploadProgress("Saving…");
+
+      const saveRes = await fetch(`/api/history/documents/${docId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileUrl: objectPath }),
+      });
+
+      if (!saveRes.ok) throw new Error("Failed to save attachment link");
+
+      invalidate();
+      toast({ title: "Attachment uploaded" });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      toast({ title: "Upload failed", description: msg, variant: "destructive" });
+    } finally {
+      setUploadingDocId(null);
+      setUploadProgress("");
+    }
+  }
+
   return (
     <HistoryLayout>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={ALLOWED_EXTENSIONS}
+        className="hidden"
+        onChange={handleFileSelected}
+      />
+
       <div className="flex items-center justify-between mb-2">
         <p className="text-sm text-muted-foreground">
           A registry of significant historical documents associated with the Lodge.
@@ -200,53 +312,101 @@ export default function HistoricalDocumentsPage() {
         </Card>
       ) : (
         <div className="space-y-2">
-          {documents.map((doc) => (
-            <Card key={doc.id} className="border-card-border">
-              <CardContent className="py-4 px-5">
-                <div className="flex items-start gap-3">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-sm bg-muted shrink-0 mt-0.5">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start gap-2 flex-wrap">
-                      <h3 className="text-sm font-semibold text-foreground leading-snug">
-                        {doc.title}
-                      </h3>
-                      <CategoryBadge category={doc.category} />
+          {documents.map((doc) => {
+            const isUploading = uploadingDocId === doc.id;
+            return (
+              <Card key={doc.id} className="border-card-border">
+                <CardContent className="py-4 px-5">
+                  <div className="flex items-start gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-sm bg-muted shrink-0 mt-0.5">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    {doc.documentDate && (
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{doc.documentDate}</p>
-                    )}
-                    {doc.description && (
-                      <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed whitespace-pre-wrap">
-                        {doc.description}
-                      </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-2 flex-wrap">
+                        <h3 className="text-sm font-semibold text-foreground leading-snug">
+                          {doc.title}
+                        </h3>
+                        <CategoryBadge category={doc.category} />
+                      </div>
+                      {doc.documentDate && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{doc.documentDate}</p>
+                      )}
+                      {doc.description && (
+                        <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed whitespace-pre-wrap">
+                          {doc.description}
+                        </p>
+                      )}
+
+                      {/* Attachment row */}
+                      <div className="mt-2 flex items-center gap-2 flex-wrap">
+                        {doc.fileUrl ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-3 text-xs gap-1.5"
+                            onClick={() => openAttachment(doc.fileUrl!)}
+                          >
+                            <Download className="h-3 w-3" />
+                            Open / Download
+                          </Button>
+                        ) : null}
+
+                        {isAdmin && (
+                          isUploading ? (
+                            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              {uploadProgress}
+                            </span>
+                          ) : doc.fileUrl ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs text-destructive hover:text-destructive gap-1"
+                              onClick={() => setRemoveAttachDoc(doc)}
+                            >
+                              <X className="h-3 w-3" />
+                              Remove attachment
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+                              onClick={() => triggerUpload(doc.id)}
+                            >
+                              <Upload className="h-3 w-3" />
+                              Attach file
+                            </Button>
+                          )
+                        )}
+                      </div>
+                    </div>
+
+                    {isAdmin && (
+                      <div className="flex gap-1 shrink-0">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={() => openEdit(doc)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => setDeleteDoc(doc)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     )}
                   </div>
-                  {isAdmin && (
-                    <div className="flex gap-1 shrink-0">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
-                        onClick={() => openEdit(doc)}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => setDeleteDoc(doc)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -349,6 +509,26 @@ export default function HistoricalDocumentsPage() {
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={remove.isPending}>
               {remove.isPending ? "Removing…" : "Remove"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Remove Attachment Confirm */}
+      <Dialog open={!!removeAttachDoc} onOpenChange={(open) => { if (!open) setRemoveAttachDoc(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Remove Attachment</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            Remove the attached file from <span className="font-medium text-foreground">"{removeAttachDoc?.title}"</span>? The document record will remain.
+          </p>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRemoveAttachDoc(null)} disabled={removeAttachment.isPending}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleRemoveAttachment} disabled={removeAttachment.isPending}>
+              {removeAttachment.isPending ? "Removing…" : "Remove Attachment"}
             </Button>
           </DialogFooter>
         </DialogContent>

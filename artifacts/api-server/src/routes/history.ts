@@ -7,6 +7,17 @@ import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 import { writeAuditLog, getClientIp } from "../lib/audit";
 import { getLodgeId } from "../lib/config";
+import { ObjectStorageService } from "../lib/objectStorage";
+
+const objectStorageService = new ObjectStorageService();
+
+const ALLOWED_ATTACHMENT_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
 
 const router = Router();
 const VISITOR_LEVEL = 10;
@@ -217,6 +228,7 @@ router.put("/documents/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async
     description: z.string().max(5000).nullable().optional(),
     documentDate: z.string().max(100).nullable().optional(),
     category: z.string().max(100).nullable().optional(),
+    fileUrl: z.string().nullable().optional(),
     sortOrder: z.number().int().optional(),
   }).safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid request" }); return; }
@@ -231,6 +243,52 @@ router.put("/documents/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async
     .returning();
 
   await writeAuditLog({ lodgeId, actorId, action: "HISTORY_DOCUMENT_UPDATED", targetType: "history_document", targetId: docId, ipAddress: getClientIp(req) });
+  res.json(formatDocument(doc));
+});
+
+router.post("/documents/:id/request-upload", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const docId = String(req.params.id);
+  const lodgeId = await getLodgeId();
+  if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
+
+  const parsed = z.object({
+    name: z.string().min(1),
+    size: z.number().int().positive(),
+    contentType: z.string().min(1),
+  }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid request" }); return; }
+
+  if (!ALLOWED_ATTACHMENT_TYPES.has(parsed.data.contentType)) {
+    res.status(400).json({ error: "Unsupported file type. Allowed: PDF, JPG, PNG, DOCX." });
+    return;
+  }
+
+  const existing = await db.select().from(historyDocumentsTable)
+    .where(and(eq(historyDocumentsTable.id, docId), eq(historyDocumentsTable.lodgeId, lodgeId))).limit(1);
+  if (existing.length === 0) { res.status(404).json({ error: "Document not found" }); return; }
+
+  const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+  const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+
+  res.json({ uploadURL, objectPath });
+});
+
+router.delete("/documents/:id/attachment", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const docId = String(req.params.id);
+  const lodgeId = await getLodgeId();
+  const actorId = req.session!.userId!;
+  if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
+
+  const existing = await db.select().from(historyDocumentsTable)
+    .where(and(eq(historyDocumentsTable.id, docId), eq(historyDocumentsTable.lodgeId, lodgeId))).limit(1);
+  if (existing.length === 0) { res.status(404).json({ error: "Document not found" }); return; }
+
+  const [doc] = await db.update(historyDocumentsTable)
+    .set({ fileUrl: null, updatedAt: new Date() })
+    .where(eq(historyDocumentsTable.id, docId))
+    .returning();
+
+  await writeAuditLog({ lodgeId, actorId, action: "HISTORY_DOCUMENT_UPDATED", targetType: "history_document", targetId: docId, detail: { change: "attachment_removed" }, ipAddress: getClientIp(req) });
   res.json(formatDocument(doc));
 });
 

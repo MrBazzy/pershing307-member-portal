@@ -41,6 +41,8 @@ tags:
     description: Lodge events
   - name: history
     description: Lodge history, timeline, and historical documents
+  - name: storage
+    description: Object storage upload and serving endpoints
 paths:
   /healthz:
     get:
@@ -2088,6 +2090,90 @@ paths:
         "404":
           description: Document not found
 
+  /history/documents/{id}/request-upload:
+    post:
+      operationId: requestHistoryDocumentUpload
+      tags: [history]
+      summary: Request a presigned URL to upload an attachment (Site Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentAttachmentUploadRequest"
+      responses:
+        "200":
+          description: Presigned upload URL generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentAttachmentUploadResponse"
+        "400":
+          description: Invalid or unsupported file type
+        "403":
+          description: Forbidden
+        "404":
+          description: Document not found
+
+  /history/documents/{id}/attachment:
+    delete:
+      operationId: removeHistoryDocumentAttachment
+      tags: [history]
+      summary: Remove an attachment from a historical document (Site Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Attachment removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryDocument"
+        "403":
+          description: Forbidden
+        "404":
+          description: Document not found
+
+  /storage/objects/{objectPath}:
+    get:
+      operationId: getStorageObject
+      tags: [storage]
+      summary: Serve an uploaded object (authenticated users only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: objectPath
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Object content
+          content:
+            "*/*":
+              schema:
+                type: string
+                format: binary
+        "401":
+          description: Unauthorized
+        "404":
+          description: Object not found
+
 components:
   schemas:
     HealthStatus:
@@ -3623,5 +3709,37 @@ components:
         category:
           type: ["string", "null"]
           maxLength: 100
+        fileUrl:
+          type: ["string", "null"]
+          description: Object path of an uploaded attachment (e.g. /objects/uploads/uuid)
         sortOrder:
           type: integer
+
+    DocumentAttachmentUploadRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Original file name
+        size:
+          type: integer
+          minimum: 1
+          description: File size in bytes
+        contentType:
+          type: string
+          minLength: 1
+          description: MIME type of the file
+
+    DocumentAttachmentUploadResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL:
+          type: string
+          format: uri
+          description: Presigned GCS URL for PUT upload
+        objectPath:
+          type: string
+          description: Normalized object path to store in the database

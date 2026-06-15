@@ -27,5 +27,10 @@ export interface UpdateHistoryDocumentInput {
      * @nullable
      */
   category?: string | null;
+  /**
+     * Object path of an uploaded attachment (e.g. /objects/uploads/uuid)
+     * @nullable
+     */
+  fileUrl?: string | null;
   sortOrder?: number;
 }

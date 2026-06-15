@@ -45,6 +45,8 @@ export * from './degreeDefinition';
 export * from './degreeDefinitionListResult';
 export * from './degreeDefinitionUpdateInput';
 export * from './degreeInput';
+export * from './documentAttachmentUploadRequest';
+export * from './documentAttachmentUploadResponse';
 export * from './domainGrantInput';
 export * from './domainListResult';
 export * from './domainMember';

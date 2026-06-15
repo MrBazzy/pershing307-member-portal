@@ -1846,6 +1846,7 @@ export const UpdateHistoryDocumentBody = zod.object({
   "description": zod.string().max(updateHistoryDocumentBodyDescriptionMax).nullish(),
   "documentDate": zod.string().max(updateHistoryDocumentBodyDocumentDateMax).nullish(),
   "category": zod.string().max(updateHistoryDocumentBodyCategoryMax).nullish(),
+  "fileUrl": zod.string().nullish().describe('Object path of an uploaded attachment (e.g. \/objects\/uploads\/uuid)'),
   "sortOrder": zod.number().optional()
 })
 
@@ -1872,6 +1873,58 @@ export const DeleteHistoryDocumentParams = zod.object({
 export const DeleteHistoryDocumentResponse = zod.object({
   "success": zod.boolean(),
   "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary Request a presigned URL to upload an attachment (Site Admin only)
+ */
+export const RequestHistoryDocumentUploadParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+
+
+
+
+export const RequestHistoryDocumentUploadBody = zod.object({
+  "name": zod.string().min(1).describe('Original file name'),
+  "size": zod.number().min(1).describe('File size in bytes'),
+  "contentType": zod.string().min(1).describe('MIME type of the file')
+})
+
+export const RequestHistoryDocumentUploadResponse = zod.object({
+  "uploadURL": zod.string().url().describe('Presigned GCS URL for PUT upload'),
+  "objectPath": zod.string().describe('Normalized object path to store in the database')
+})
+
+
+/**
+ * @summary Remove an attachment from a historical document (Site Admin only)
+ */
+export const RemoveHistoryDocumentAttachmentParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const RemoveHistoryDocumentAttachmentResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "documentDate": zod.string().nullish(),
+  "category": zod.string().nullish(),
+  "fileUrl": zod.string().nullish(),
+  "sortOrder": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Serve an uploaded object (authenticated users only)
+ */
+export const GetStorageObjectParams = zod.object({
+  "objectPath": zod.coerce.string()
 })
 
 

@@ -64,6 +64,15 @@ Orval-generated mutation hooks wrap the request body in `{ data: ... }` — do N
 - PUT with path param: `mutate({ id: "...", data: { title } })`
 After adding new routes, restart the API server workflow to pick up new route files.
 
+## Object Storage
+- Provisioned: bucket `replit-objstore-e1bd3a42-1b17-4052-9601-6d2a90453932`
+- Env vars set: DEFAULT_OBJECT_STORAGE_BUCKET_ID, PUBLIC_OBJECT_SEARCH_PATHS, PRIVATE_OBJECT_DIR
+- Server libs: `artifacts/api-server/src/lib/objectStorage.ts` + `objectAcl.ts`
+- Storage router: `artifacts/api-server/src/routes/storage.ts` — GET /storage/objects/* (requireAuth), GET /storage/public-objects/* (public)
+- objectPath format: `/objects/uploads/<uuid>` — serve via `/api/storage/objects/uploads/<uuid>`
+- File type validation on server in history route (PDF, JPG, PNG, DOCX only)
+- history_documents.fileUrl stores the objectPath string
+
 ## Admin credentials (dev)
 admin@pershing307.org / SecurePass123!
 Admin ID: 763db701-f08b-4124-87a9-2ac4db964e24

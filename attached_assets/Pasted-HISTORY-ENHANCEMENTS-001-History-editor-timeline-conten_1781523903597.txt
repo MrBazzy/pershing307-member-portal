@@ -1,0 +1,147 @@
+HISTORY-ENHANCEMENTS-001 — History editor, timeline content, and management navigation
+
+Please update the History module with the following changes.
+
+====================================================
+1. RICH TEXT EDITING FOR HISTORY CONTENT
+====================================================
+
+Current issue:
+The History text appears to be plain text only.
+
+Required behavior:
+Site Administrator and PM Super Administrator must be able to format History text.
+
+Add a rich text editor or safe formatting toolbar supporting:
+
+- Bold
+- Italic
+- Underline
+- Headings / larger text
+- Smaller text
+- Font selection if feasible
+- Paragraphs
+- Bullet lists
+- Numbered lists
+- Links if safe
+- Clear formatting
+
+Security requirements:
+- Sanitize stored HTML.
+- Do not allow scripts.
+- Do not allow unsafe embedded content.
+- Prevent XSS.
+- Render formatted content safely in the public History view.
+
+Acceptance criteria:
+An administrator can make text bold, italic, underlined, larger/smaller, and structure the History page nicely.
+
+====================================================
+2. TIMELINE ENTRY CONTENT
+====================================================
+
+Current timeline fields:
+- Year
+- Title
+- Description
+
+Please keep this structure, but make it easy to copy/paste formatted historical content into each entry.
+
+Requirements:
+- Year field remains separate.
+- Title field remains separate.
+- Description field supports rich text or at least multi-line formatted text.
+- Description must support line breaks and paragraphs.
+- Timeline entries should display cleanly in the public History view.
+
+Suggested timeline entries:
+
+1959
+Title: Foundation in Fontainebleau
+Description:
+The Lodge was originally founded by members of the NATO military personnel stationed at NATO Headquarters Fontainebleau, Seine-et-Marne, France.
+
+It was consecrated on 3 October 1959 under the designation "General John J. Pershing Lodge No. 62" under the jurisdiction of the GLNF.
+
+1967
+Title: NATO Relocation and Sister Lodge in Maastricht
+Description:
+When France left NATO's integrated military command structure in 1967, NATO Headquarters Allied Forces Central Europe (AFCENT) relocated to Brunssum, The Netherlands.
+
+A sister Lodge was consecrated on 30 September 1967 in Maastricht under the designation "General John J. Pershing Lodge No. 62 Holland".
+
+1974
+Title: Independence of the Dutch Lodge
+Description:
+On 1 March 1974, the Dutch Lodge became independent of its sister Lodge.
+
+It remained true to its origins and became known as "General John J. Pershing Lodge No. 166 Holland". Only the numerical designation changed from 62 to 166.
+
+2009
+Title: Search for a New Jurisdiction
+Description:
+General John J. Pershing Lodge No. 166 was part of the Continental District of the GLNF until 2009.
+
+Due to loss of international regularity, the members elected to seek membership of the Grootoosten der Nederlanden, the Grand East of the Netherlands.
+
+2012
+Title: New Warrant and Consecration as Lodge No. 307
+Description:
+The Lodge returned its GLNF warrant in 2012.
+
+After three years of negotiation with the Grand East of the Netherlands, the Lodge was consecrated on 3 November 2012 and received a new warrant under the jurisdiction of the GENL.
+
+It became known as "General John J. Pershing Lodge No. 307".
+
+Present
+Title: A Unique Multinational Lodge
+Description:
+General John J. Pershing Lodge No. 307 continues to preserve its unique multinational and military traditions.
+
+The Lodge works the Nova Scotia Ritual by kind permission of the Grand Lodge of Nova Scotia and remains the only Lodge in Europe known to do so.
+
+====================================================
+3. MOVE HISTORY EDITING TO MANAGEMENT SECTION
+====================================================
+
+Current issue:
+History editing is not clearly separated from the public History view.
+
+Required behavior:
+There must be two separate areas:
+
+A. Public / member-facing navigation:
+- History
+
+This is the normal read-only History view.
+It remains visible to all allowed users.
+
+B. Management section:
+- History Management
+
+This appears only inside the Management square/block for:
+- Site Administrator
+- PM Super Administrator
+
+Administrators should be able to:
+- Open History Management
+- Edit History content
+- Edit Timeline entries
+- Save changes
+- Then open the normal History page to immediately see the result
+
+Requirements:
+- Do not expose edit controls in the public History view.
+- Normal users must never see edit buttons.
+- Keep History view and History Management clearly separated.
+- Add audit logging for:
+  - History content updated
+  - Timeline entry created
+  - Timeline entry updated
+  - Timeline entry deleted/reordered
+
+Acceptance criteria:
+- History remains visible as a normal read-only page.
+- History Management appears inside the Management section only.
+- Site Administrator and PM Super Administrator can edit content.
+- Normal members and visitors cannot edit content.

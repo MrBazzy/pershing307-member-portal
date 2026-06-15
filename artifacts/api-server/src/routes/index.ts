@@ -16,6 +16,7 @@ import lodgeYearsRouter from "./lodge-years";
 import tracingBoardRouter from "./tracing-board";
 import eventsRouter from "./events";
 import historyRouter from "./history";
+import storageRouter from "./storage";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use("/lodge-years", lodgeYearsRouter);
 router.use("/tracing-board", tracingBoardRouter);
 router.use("/events", eventsRouter);
 router.use("/history", historyRouter);
+router.use(storageRouter);
 
 export default router;

@@ -47,6 +47,8 @@ import type {
   DegreeDefinitionListResult,
   DegreeDefinitionUpdateInput,
   DegreeInput,
+  DocumentAttachmentUploadRequest,
+  DocumentAttachmentUploadResponse,
   DomainGrantInput,
   DomainListResult,
   DomainMembersResult,
@@ -7250,4 +7252,223 @@ export const useDeleteHistoryDocument = <TError = ErrorType<void>,
       > => {
       return useMutation(getDeleteHistoryDocumentMutationOptions(options));
     }
+
+export const getRequestHistoryDocumentUploadUrl = (id: string,) => {
+
+
+
+
+  return `/api/history/documents/${id}/request-upload`
+}
+
+/**
+ * @summary Request a presigned URL to upload an attachment (Site Admin only)
+ */
+export const requestHistoryDocumentUpload = async (id: string,
+    documentAttachmentUploadRequest: DocumentAttachmentUploadRequest, options?: RequestInit): Promise<DocumentAttachmentUploadResponse> => {
+
+  return customFetch<DocumentAttachmentUploadResponse>(getRequestHistoryDocumentUploadUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      documentAttachmentUploadRequest,)
+  }
+);}
+
+
+
+
+export const getRequestHistoryDocumentUploadMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestHistoryDocumentUpload>>, TError,{id: string;data: BodyType<DocumentAttachmentUploadRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestHistoryDocumentUpload>>, TError,{id: string;data: BodyType<DocumentAttachmentUploadRequest>}, TContext> => {
+
+const mutationKey = ['requestHistoryDocumentUpload'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestHistoryDocumentUpload>>, {id: string;data: BodyType<DocumentAttachmentUploadRequest>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  requestHistoryDocumentUpload(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestHistoryDocumentUploadMutationResult = NonNullable<Awaited<ReturnType<typeof requestHistoryDocumentUpload>>>
+    export type RequestHistoryDocumentUploadMutationBody = BodyType<DocumentAttachmentUploadRequest>
+    export type RequestHistoryDocumentUploadMutationError = ErrorType<void>
+
+    /**
+ * @summary Request a presigned URL to upload an attachment (Site Admin only)
+ */
+export const useRequestHistoryDocumentUpload = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestHistoryDocumentUpload>>, TError,{id: string;data: BodyType<DocumentAttachmentUploadRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestHistoryDocumentUpload>>,
+        TError,
+        {id: string;data: BodyType<DocumentAttachmentUploadRequest>},
+        TContext
+      > => {
+      return useMutation(getRequestHistoryDocumentUploadMutationOptions(options));
+    }
+
+export const getRemoveHistoryDocumentAttachmentUrl = (id: string,) => {
+
+
+
+
+  return `/api/history/documents/${id}/attachment`
+}
+
+/**
+ * @summary Remove an attachment from a historical document (Site Admin only)
+ */
+export const removeHistoryDocumentAttachment = async (id: string, options?: RequestInit): Promise<HistoryDocument> => {
+
+  return customFetch<HistoryDocument>(getRemoveHistoryDocumentAttachmentUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getRemoveHistoryDocumentAttachmentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeHistoryDocumentAttachment>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeHistoryDocumentAttachment>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['removeHistoryDocumentAttachment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeHistoryDocumentAttachment>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  removeHistoryDocumentAttachment(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveHistoryDocumentAttachmentMutationResult = NonNullable<Awaited<ReturnType<typeof removeHistoryDocumentAttachment>>>
+
+    export type RemoveHistoryDocumentAttachmentMutationError = ErrorType<void>
+
+    /**
+ * @summary Remove an attachment from a historical document (Site Admin only)
+ */
+export const useRemoveHistoryDocumentAttachment = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeHistoryDocumentAttachment>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removeHistoryDocumentAttachment>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getRemoveHistoryDocumentAttachmentMutationOptions(options));
+    }
+
+export const getGetStorageObjectUrl = (objectPath: string,) => {
+
+
+
+
+  return `/api/storage/objects/${objectPath}`
+}
+
+/**
+ * @summary Serve an uploaded object (authenticated users only)
+ */
+export const getStorageObject = async (objectPath: string, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetStorageObjectUrl(objectPath),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStorageObjectQueryKey = (objectPath: string,) => {
+    return [
+    `/api/storage/objects/${objectPath}`
+    ] as const;
+    }
+
+
+export const getGetStorageObjectQueryOptions = <TData = Awaited<ReturnType<typeof getStorageObject>>, TError = ErrorType<void>>(objectPath: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStorageObject>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStorageObjectQueryKey(objectPath);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStorageObject>>> = ({ signal }) => getStorageObject(objectPath, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(objectPath), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStorageObject>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStorageObjectQueryResult = NonNullable<Awaited<ReturnType<typeof getStorageObject>>>
+export type GetStorageObjectQueryError = ErrorType<void>
+
+
+/**
+ * @summary Serve an uploaded object (authenticated users only)
+ */
+
+export function useGetStorageObject<TData = Awaited<ReturnType<typeof getStorageObject>>, TError = ErrorType<void>>(
+ objectPath: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStorageObject>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStorageObjectQueryOptions(objectPath,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
