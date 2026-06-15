@@ -62,6 +62,12 @@ SMPT_PASS = "i654IaYKTaBUvciz"
 SMTP_FROM = "portal@fmdmail.be"
 SMTP_FROM_NAME = "Pershing 307 Portal"
 
+[userenv.development]
+VITE_ENV_NAME = "TDA"
+
+[userenv.production]
+VITE_ENV_NAME = "PRD"
+
 [nix]
 channel = "stable-25_05"
   

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { EnvBannerSidebar, EnvBannerMobilePill } from "@/components/ui/env-banner";
 
 interface NavItem {
   href: string;
@@ -73,7 +74,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const SidebarContent = ({ onNav }: { onNav?: () => void }) => (
     <>
-      <div className="px-5 py-5 border-b border-border">
+      <div className="px-5 pt-5 pb-3 border-b border-border">
         <div className="flex items-center gap-2.5">
           <div className="flex items-center justify-center w-8 h-8 rounded-sm bg-primary shrink-0">
             <span className="text-primary-foreground font-serif font-bold text-sm">G</span>
@@ -83,6 +84,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <p className="text-[10px] text-muted-foreground truncate leading-tight">Member Portal</p>
           </div>
         </div>
+        <EnvBannerSidebar />
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
@@ -194,6 +196,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
             <span className="text-sm font-semibold text-foreground">Pershing No. 307</span>
           </div>
+          <EnvBannerMobilePill />
         </header>
 
         <main className="flex-1">

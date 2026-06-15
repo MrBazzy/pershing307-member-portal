@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { EnvBannerAuth } from "@/components/ui/env-banner";
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -25,9 +26,12 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
         )}>
           {children}
         </div>
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          General John J. Pershing Lodge No. 307
-        </p>
+        <div className="mt-6 text-center">
+          <p className="text-xs text-muted-foreground">
+            General John J. Pershing Lodge No. 307
+          </p>
+          <EnvBannerAuth />
+        </div>
       </div>
     </div>
   );
