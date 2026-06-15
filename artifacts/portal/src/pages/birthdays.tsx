@@ -143,7 +143,9 @@ export default function BirthdaysPage() {
                               {b.firstName} {b.lastName}
                             </span>
                             {b.age !== undefined && (
-                              <p className="text-xs text-muted-foreground">Age {b.age} · {b.year}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {b.daysUntil === 0 ? `Turns ${b.age}` : `Turning ${b.age + 1}`} · {b.year}
+                              </p>
                             )}
                           </div>
                           <span className="text-xs text-muted-foreground tabular-nums shrink-0 ml-2">
