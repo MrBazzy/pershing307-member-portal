@@ -9,6 +9,7 @@ import {
   useGetUpcomingEvents,
 } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/app-layout";
+import { DateBadge } from "@/components/ui/date-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -285,14 +286,7 @@ function UpcomingActivitiesWidget({ isAdmin }: { isAdmin: boolean }) {
           <div className="space-y-2">
             {entries.map((e) => (
               <div key={e.id} className="flex items-start gap-2 py-1.5 border-b border-border last:border-0">
-                <div className="flex flex-col items-center justify-center w-9 shrink-0 bg-muted rounded-sm py-1">
-                  <span className="text-[9px] font-semibold text-muted-foreground uppercase leading-none">
-                    {format(parseISO(e.date), "MMM")}
-                  </span>
-                  <span className="text-sm font-bold text-foreground leading-tight">
-                    {format(parseISO(e.date), "d")}
-                  </span>
-                </div>
+                <DateBadge date={e.date} size="sm" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-foreground leading-snug truncate">{e.title}</p>
                   <p className="text-[11px] text-muted-foreground">
@@ -349,14 +343,7 @@ function UpcomingEventsWidget({ isAdmin }: { isAdmin: boolean }) {
           <div className="space-y-2">
             {events.map((e) => (
               <div key={e.id} className="flex items-start gap-2 py-1.5 border-b border-border last:border-0">
-                <div className="flex flex-col items-center justify-center w-9 shrink-0 bg-muted rounded-sm py-1">
-                  <span className="text-[9px] font-semibold text-muted-foreground uppercase leading-none">
-                    {format(parseISO(e.date), "MMM")}
-                  </span>
-                  <span className="text-sm font-bold text-foreground leading-tight">
-                    {format(parseISO(e.date), "d")}
-                  </span>
-                </div>
+                <DateBadge date={e.date} size="sm" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-foreground leading-snug truncate">{e.title}</p>
                   <p className="text-[11px] text-muted-foreground">

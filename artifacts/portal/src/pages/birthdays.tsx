@@ -1,5 +1,6 @@
 import { useGetUpcomingBirthdays, useListBirthdays } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/app-layout";
+import { DateBadge } from "@/components/ui/date-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Cake, Star } from "lucide-react";
@@ -62,12 +63,13 @@ export default function BirthdaysPage() {
                 {upcoming.map((b) => (
                   <div key={b.id} className="flex items-center justify-between px-2 py-2.5" data-testid={`upcoming-birthday-${b.id}`}>
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-9 h-9 rounded-sm bg-amber-50 border border-amber-200 shrink-0">
-                        <span className="text-xs font-bold text-amber-700 tabular-nums leading-tight text-center">
-                          <span className="block">{MONTH_ABBR[b.month - 1]}</span>
-                          <span className="block">{b.day}</span>
-                        </span>
-                      </div>
+                      <DateBadge
+                        month={b.month}
+                        day={b.day}
+                        year={new Date(Date.now() + b.daysUntil * 86400000).getFullYear()}
+                        variant="amber"
+                        size="sm"
+                      />
                       <div>
                         <span className="text-sm font-medium text-foreground">
                           {b.firstName} {b.lastName}

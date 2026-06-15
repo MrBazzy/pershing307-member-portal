@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useListEvents, useListEventCategories } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/app-layout";
+import { DateBadge } from "@/components/ui/date-badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -104,14 +105,7 @@ function EventCard({ event }: { event: EventItem }) {
     <Card className="border-card-border hover:border-primary/30 transition-colors">
       <CardContent className="py-3 px-4">
         <div className="flex items-start gap-3">
-          <div className="flex flex-col items-center justify-center w-12 shrink-0 bg-muted rounded-sm py-1.5">
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase">
-              {format(parseISO(event.date), "MMM")}
-            </span>
-            <span className="text-lg font-bold text-foreground leading-tight">
-              {format(parseISO(event.date), "d")}
-            </span>
-          </div>
+          <DateBadge date={event.date} size="md" />
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <p className="text-sm font-medium text-foreground leading-snug">{event.title}</p>
