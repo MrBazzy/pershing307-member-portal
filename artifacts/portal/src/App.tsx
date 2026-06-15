@@ -24,6 +24,9 @@ import AdminTracingBoardPage from "@/pages/admin/tracing-board";
 import AdminEventsPage from "@/pages/admin/events";
 import TracingBoardPage from "@/pages/tracing-board";
 import EventsPage from "@/pages/events";
+import OurHistoryPage from "@/pages/history/our-history";
+import HistoricalTimelinePage from "@/pages/history/timeline";
+import HistoricalDocumentsPage from "@/pages/history/documents";
 import TwoFactorPage from "@/pages/settings/two-factor";
 import ProfileSettingsPage from "@/pages/settings/profile";
 import BirthdaysPage from "@/pages/birthdays";
@@ -177,6 +180,9 @@ function AppRoutes() {
         <Route path="/dashboard" component={() => <ProtectedRoute component={DashboardPage} />} />
 
         <Route path="/tracing-board" component={() => <ProtectedRoute component={TracingBoardPage} minLevel={VISITOR_LEVEL} />} />
+        <Route path="/history" component={() => <ProtectedRoute component={OurHistoryPage} minLevel={VISITOR_LEVEL} />} />
+        <Route path="/history/timeline" component={() => <ProtectedRoute component={HistoricalTimelinePage} minLevel={VISITOR_LEVEL} />} />
+        <Route path="/history/documents" component={() => <ProtectedRoute component={HistoricalDocumentsPage} minLevel={VISITOR_LEVEL} />} />
         <Route path="/events" component={() => <ProtectedRoute component={EventsPage} minLevel={MEMBER_LEVEL} />} />
         <Route path="/birthdays" component={() => <ProtectedRoute component={BirthdaysPage} minLevel={MEMBER_LEVEL} />} />
 

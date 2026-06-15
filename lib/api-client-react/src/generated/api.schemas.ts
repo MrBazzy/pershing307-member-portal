@@ -1055,6 +1055,149 @@ export interface UpdateEventInput {
   location?: string | null;
 }
 
+export interface HistoryPage {
+  id: string;
+  title: string;
+  content: string;
+  updatedAt: string;
+  createdAt: string;
+}
+
+export interface HistoryPageResult {
+  page: HistoryPage;
+}
+
+export interface UpdateHistoryPageInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  title?: string;
+  /** @maxLength 50000 */
+  content: string;
+}
+
+export interface HistoryTimelineEntry {
+  id: string;
+  year: number;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HistoryTimelineListResult {
+  entries: HistoryTimelineEntry[];
+}
+
+export interface CreateHistoryTimelineEntryInput {
+  /**
+     * @minimum 1700
+     * @maximum 2200
+     */
+  year: number;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  title: string;
+  /**
+     * @maxLength 5000
+     * @nullable
+     */
+  description?: string | null;
+  sortOrder?: number;
+}
+
+export interface UpdateHistoryTimelineEntryInput {
+  /**
+     * @minimum 1700
+     * @maximum 2200
+     */
+  year?: number;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  title?: string;
+  /**
+     * @maxLength 5000
+     * @nullable
+     */
+  description?: string | null;
+  sortOrder?: number;
+}
+
+export interface HistoryDocument {
+  id: string;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  documentDate?: string | null;
+  /** @nullable */
+  category?: string | null;
+  /** @nullable */
+  fileUrl?: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HistoryDocumentListResult {
+  documents: HistoryDocument[];
+}
+
+export interface CreateHistoryDocumentInput {
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  title: string;
+  /**
+     * @maxLength 5000
+     * @nullable
+     */
+  description?: string | null;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  documentDate?: string | null;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  category?: string | null;
+  sortOrder?: number;
+}
+
+export interface UpdateHistoryDocumentInput {
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  title?: string;
+  /**
+     * @maxLength 5000
+     * @nullable
+     */
+  description?: string | null;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  documentDate?: string | null;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  category?: string | null;
+  sortOrder?: number;
+}
+
 export type ListUsersParams = {
 /**
  * @minimum 1

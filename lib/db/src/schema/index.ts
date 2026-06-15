@@ -18,3 +18,6 @@ export * from "./tracing-board-categories";
 export * from "./tracing-board-entries";
 export * from "./event-categories";
 export * from "./events";
+export * from "./history-page";
+export * from "./history-timeline";
+export * from "./history-documents";

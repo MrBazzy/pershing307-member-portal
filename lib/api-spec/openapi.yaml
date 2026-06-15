@@ -39,6 +39,8 @@ tags:
     description: Tracing Board entries and categories
   - name: events
     description: Lodge events
+  - name: history
+    description: Lodge history, timeline, and historical documents
 paths:
   /healthz:
     get:
@@ -1854,6 +1856,238 @@ paths:
         "404":
           description: Not found
 
+  /history/page:
+    get:
+      operationId: getHistoryPage
+      tags: [history]
+      summary: Get the Our History page content (Visitor+)
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: History page content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryPageResult"
+        "401":
+          description: Unauthorized
+    put:
+      operationId: updateHistoryPage
+      tags: [history]
+      summary: Update the Our History page content (Site Admin only)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateHistoryPageInput"
+      responses:
+        "200":
+          description: Updated page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryPageResult"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+
+  /history/timeline:
+    get:
+      operationId: listHistoryTimeline
+      tags: [history]
+      summary: List historical timeline entries (Visitor+)
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Timeline entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryTimelineListResult"
+        "401":
+          description: Unauthorized
+    post:
+      operationId: createHistoryTimelineEntry
+      tags: [history]
+      summary: Create a timeline entry (Site Admin only)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateHistoryTimelineEntryInput"
+      responses:
+        "201":
+          description: Entry created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryTimelineEntry"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+
+  /history/timeline/{id}:
+    put:
+      operationId: updateHistoryTimelineEntry
+      tags: [history]
+      summary: Update a timeline entry (Site Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateHistoryTimelineEntryInput"
+      responses:
+        "200":
+          description: Entry updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryTimelineEntry"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+        "404":
+          description: Entry not found
+    delete:
+      operationId: deleteHistoryTimelineEntry
+      tags: [history]
+      summary: Delete a timeline entry (Site Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Entry deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "403":
+          description: Forbidden
+        "404":
+          description: Entry not found
+
+  /history/documents:
+    get:
+      operationId: listHistoryDocuments
+      tags: [history]
+      summary: List historical documents (Visitor+)
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Historical documents
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryDocumentListResult"
+        "401":
+          description: Unauthorized
+    post:
+      operationId: createHistoryDocument
+      tags: [history]
+      summary: Create a historical document record (Site Admin only)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateHistoryDocumentInput"
+      responses:
+        "201":
+          description: Document created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryDocument"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+
+  /history/documents/{id}:
+    put:
+      operationId: updateHistoryDocument
+      tags: [history]
+      summary: Update a historical document record (Site Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateHistoryDocumentInput"
+      responses:
+        "200":
+          description: Document updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryDocument"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+        "404":
+          description: Document not found
+    delete:
+      operationId: deleteHistoryDocument
+      tags: [history]
+      summary: Delete a historical document record (Site Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Document deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "403":
+          description: Forbidden
+        "404":
+          description: Document not found
+
 components:
   schemas:
     HealthStatus:
@@ -3223,3 +3457,171 @@ components:
         location:
           type: ["string", "null"]
           maxLength: 300
+
+    HistoryPage:
+      type: object
+      required: [id, title, content, updatedAt, createdAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        updatedAt:
+          type: string
+        createdAt:
+          type: string
+
+    HistoryPageResult:
+      type: object
+      required: [page]
+      properties:
+        page:
+          $ref: "#/components/schemas/HistoryPage"
+
+    UpdateHistoryPageInput:
+      type: object
+      required: [content]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        content:
+          type: string
+          maxLength: 50000
+
+    HistoryTimelineEntry:
+      type: object
+      required: [id, year, title, sortOrder, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        year:
+          type: integer
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    HistoryTimelineListResult:
+      type: object
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/HistoryTimelineEntry"
+
+    CreateHistoryTimelineEntryInput:
+      type: object
+      required: [year, title]
+      properties:
+        year:
+          type: integer
+          minimum: 1700
+          maximum: 2200
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+        description:
+          type: ["string", "null"]
+          maxLength: 5000
+        sortOrder:
+          type: integer
+
+    UpdateHistoryTimelineEntryInput:
+      type: object
+      properties:
+        year:
+          type: integer
+          minimum: 1700
+          maximum: 2200
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+        description:
+          type: ["string", "null"]
+          maxLength: 5000
+        sortOrder:
+          type: integer
+
+    HistoryDocument:
+      type: object
+      required: [id, title, sortOrder, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        documentDate:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        fileUrl:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    HistoryDocumentListResult:
+      type: object
+      required: [documents]
+      properties:
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/HistoryDocument"
+
+    CreateHistoryDocumentInput:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+        description:
+          type: ["string", "null"]
+          maxLength: 5000
+        documentDate:
+          type: ["string", "null"]
+          maxLength: 100
+        category:
+          type: ["string", "null"]
+          maxLength: 100
+        sortOrder:
+          type: integer
+
+    UpdateHistoryDocumentInput:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+        description:
+          type: ["string", "null"]
+          maxLength: 5000
+        documentDate:
+          type: ["string", "null"]
+          maxLength: 100
+        category:
+          type: ["string", "null"]
+          maxLength: 100
+        sortOrder:
+          type: integer

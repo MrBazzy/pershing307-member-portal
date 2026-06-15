@@ -1662,3 +1662,216 @@ export const DeleteEventResponse = zod.object({
 })
 
 
+/**
+ * @summary Get the Our History page content (Visitor+)
+ */
+export const GetHistoryPageResponse = zod.object({
+  "page": zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "content": zod.string(),
+  "updatedAt": zod.string(),
+  "createdAt": zod.string()
+})
+})
+
+
+/**
+ * @summary Update the Our History page content (Site Admin only)
+ */
+export const updateHistoryPageBodyTitleMax = 200;
+
+export const updateHistoryPageBodyContentMax = 50000;
+
+
+
+export const UpdateHistoryPageBody = zod.object({
+  "title": zod.string().min(1).max(updateHistoryPageBodyTitleMax).optional(),
+  "content": zod.string().max(updateHistoryPageBodyContentMax)
+})
+
+export const UpdateHistoryPageResponse = zod.object({
+  "page": zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "content": zod.string(),
+  "updatedAt": zod.string(),
+  "createdAt": zod.string()
+})
+})
+
+
+/**
+ * @summary List historical timeline entries (Visitor+)
+ */
+export const ListHistoryTimelineResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "id": zod.string(),
+  "year": zod.number(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "sortOrder": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Create a timeline entry (Site Admin only)
+ */
+export const createHistoryTimelineEntryBodyYearMin = 1700;
+export const createHistoryTimelineEntryBodyYearMax = 2200;
+
+export const createHistoryTimelineEntryBodyTitleMax = 300;
+
+export const createHistoryTimelineEntryBodyDescriptionMax = 5000;
+
+
+
+export const CreateHistoryTimelineEntryBody = zod.object({
+  "year": zod.number().min(createHistoryTimelineEntryBodyYearMin).max(createHistoryTimelineEntryBodyYearMax),
+  "title": zod.string().min(1).max(createHistoryTimelineEntryBodyTitleMax),
+  "description": zod.string().max(createHistoryTimelineEntryBodyDescriptionMax).nullish(),
+  "sortOrder": zod.number().optional()
+})
+
+
+/**
+ * @summary Update a timeline entry (Site Admin only)
+ */
+export const UpdateHistoryTimelineEntryParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateHistoryTimelineEntryBodyYearMin = 1700;
+export const updateHistoryTimelineEntryBodyYearMax = 2200;
+
+export const updateHistoryTimelineEntryBodyTitleMax = 300;
+
+export const updateHistoryTimelineEntryBodyDescriptionMax = 5000;
+
+
+
+export const UpdateHistoryTimelineEntryBody = zod.object({
+  "year": zod.number().min(updateHistoryTimelineEntryBodyYearMin).max(updateHistoryTimelineEntryBodyYearMax).optional(),
+  "title": zod.string().min(1).max(updateHistoryTimelineEntryBodyTitleMax).optional(),
+  "description": zod.string().max(updateHistoryTimelineEntryBodyDescriptionMax).nullish(),
+  "sortOrder": zod.number().optional()
+})
+
+export const UpdateHistoryTimelineEntryResponse = zod.object({
+  "id": zod.string(),
+  "year": zod.number(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "sortOrder": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Delete a timeline entry (Site Admin only)
+ */
+export const DeleteHistoryTimelineEntryParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteHistoryTimelineEntryResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary List historical documents (Visitor+)
+ */
+export const ListHistoryDocumentsResponse = zod.object({
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "documentDate": zod.string().nullish(),
+  "category": zod.string().nullish(),
+  "fileUrl": zod.string().nullish(),
+  "sortOrder": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Create a historical document record (Site Admin only)
+ */
+export const createHistoryDocumentBodyTitleMax = 300;
+
+export const createHistoryDocumentBodyDescriptionMax = 5000;
+
+export const createHistoryDocumentBodyDocumentDateMax = 100;
+
+export const createHistoryDocumentBodyCategoryMax = 100;
+
+
+
+export const CreateHistoryDocumentBody = zod.object({
+  "title": zod.string().min(1).max(createHistoryDocumentBodyTitleMax),
+  "description": zod.string().max(createHistoryDocumentBodyDescriptionMax).nullish(),
+  "documentDate": zod.string().max(createHistoryDocumentBodyDocumentDateMax).nullish(),
+  "category": zod.string().max(createHistoryDocumentBodyCategoryMax).nullish(),
+  "sortOrder": zod.number().optional()
+})
+
+
+/**
+ * @summary Update a historical document record (Site Admin only)
+ */
+export const UpdateHistoryDocumentParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateHistoryDocumentBodyTitleMax = 300;
+
+export const updateHistoryDocumentBodyDescriptionMax = 5000;
+
+export const updateHistoryDocumentBodyDocumentDateMax = 100;
+
+export const updateHistoryDocumentBodyCategoryMax = 100;
+
+
+
+export const UpdateHistoryDocumentBody = zod.object({
+  "title": zod.string().min(1).max(updateHistoryDocumentBodyTitleMax).optional(),
+  "description": zod.string().max(updateHistoryDocumentBodyDescriptionMax).nullish(),
+  "documentDate": zod.string().max(updateHistoryDocumentBodyDocumentDateMax).nullish(),
+  "category": zod.string().max(updateHistoryDocumentBodyCategoryMax).nullish(),
+  "sortOrder": zod.number().optional()
+})
+
+export const UpdateHistoryDocumentResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "documentDate": zod.string().nullish(),
+  "category": zod.string().nullish(),
+  "fileUrl": zod.string().nullish(),
+  "sortOrder": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Delete a historical document record (Site Admin only)
+ */
+export const DeleteHistoryDocumentParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteHistoryDocumentResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+

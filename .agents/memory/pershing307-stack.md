@@ -58,6 +58,12 @@ Administrator (level 70) was removed. Final model:
 ## DB migration
 `cd lib/db && pnpm run push` (no migration files, direct schema push)
 
+## Orval mutation hook call convention
+Orval-generated mutation hooks wrap the request body in `{ data: ... }` — do NOT pass body fields directly.
+- POST: `mutate({ data: { title, description } })`
+- PUT with path param: `mutate({ id: "...", data: { title } })`
+After adding new routes, restart the API server workflow to pick up new route files.
+
 ## Admin credentials (dev)
 admin@pershing307.org / SecurePass123!
 Admin ID: 763db701-f08b-4124-87a9-2ac4db964e24

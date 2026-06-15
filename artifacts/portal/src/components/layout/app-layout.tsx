@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Users, Mail, FileText, LogOut, ChevronRight,
   Shield, Globe, GraduationCap, Settings, Menu, X, Cake, Map, UserCircle,
-  BookOpen, CalendarDays,
+  BookOpen, CalendarDays, Landmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -24,6 +24,7 @@ interface NavItem {
 const MEMBER_NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tracing-board", label: "Tracing Board", icon: BookOpen },
+  { href: "/history", label: "History", icon: Landmark },
   { href: "/events", label: "Events", icon: CalendarDays },
   { href: "/birthdays", label: "Birthdays", icon: Cake },
 ];
@@ -107,13 +108,16 @@ export function AppLayout({ children }: AppLayoutProps) {
         {/* Dashboard — always shown to any authenticated user */}
         <NavLink item={MEMBER_NAV_ITEMS[0]} onNav={onNav} />
 
-        {/* Tracing Board — visible to Visitors and above */}
+        {/* Tracing Board and History — visible to Visitors and above */}
         {isVisitorOrAbove && (
-          <NavLink item={MEMBER_NAV_ITEMS[1]} onNav={onNav} />
+          <>
+            <NavLink item={MEMBER_NAV_ITEMS[1]} onNav={onNav} />
+            <NavLink item={MEMBER_NAV_ITEMS[2]} onNav={onNav} />
+          </>
         )}
 
         {/* Events and Birthdays — Member+ only */}
-        {isMemberOrAbove && MEMBER_NAV_ITEMS.slice(2).map((item) => (
+        {isMemberOrAbove && MEMBER_NAV_ITEMS.slice(3).map((item) => (
           <NavLink key={item.href} item={item} onNav={onNav} />
         ))}
 
