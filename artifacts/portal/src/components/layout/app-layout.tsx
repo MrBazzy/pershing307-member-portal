@@ -36,6 +36,7 @@ const MANAGEMENT_ITEMS: NavItem[] = [
   { href: "/admin/degrees", label: "Degrees", icon: GraduationCap },
   { href: "/admin/tracing-board", label: "Tracing Board", icon: BookOpen },
   { href: "/admin/events", label: "Events", icon: CalendarDays },
+  { href: "/admin/history", label: "History", icon: Landmark },
   { href: "/admin/roadmap", label: "Roadmap", icon: Map },
   { href: "/admin/config", label: "Configuration", icon: Settings },
   { href: "/admin/audit-log", label: "Audit Log", icon: FileText },

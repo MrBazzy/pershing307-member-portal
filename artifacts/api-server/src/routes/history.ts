@@ -8,8 +8,29 @@ import { requireRole } from "../middlewares/requireRole";
 import { writeAuditLog, getClientIp } from "../lib/audit";
 import { getLodgeId } from "../lib/config";
 import { ObjectStorageService } from "../lib/objectStorage";
+import sanitizeHtml from "sanitize-html";
 
 const objectStorageService = new ObjectStorageService();
+
+const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
+  allowedTags: [
+    "b", "i", "em", "strong", "u", "s", "strike", "del",
+    "h1", "h2", "h3", "h4", "h5", "h6",
+    "p", "br", "blockquote", "ul", "ol", "li",
+    "a", "hr",
+  ],
+  allowedAttributes: {
+    a: ["href", "target", "rel"],
+  },
+  allowedSchemes: ["http", "https", "mailto"],
+  transformTags: {
+    a: sanitizeHtml.simpleTransform("a", { rel: "noopener noreferrer", target: "_blank" }),
+  },
+};
+
+function sanitizeContent(html: string): string {
+  return sanitizeHtml(html, SANITIZE_OPTIONS);
+}
 
 const ALLOWED_ATTACHMENT_TYPES = new Set([
   "application/pdf",
@@ -74,14 +95,14 @@ router.put("/page", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, re
       .values({
         lodgeId,
         title: parsed.data.title ?? "Our History",
-        content: parsed.data.content,
+        content: sanitizeContent(parsed.data.content),
         updatedBy: actorId,
       }).returning();
   } else {
     [page] = await db.update(historyPageTable)
       .set({
         ...(parsed.data.title ? { title: parsed.data.title } : {}),
-        content: parsed.data.content,
+        content: sanitizeContent(parsed.data.content),
         updatedBy: actorId,
         updatedAt: new Date(),
       })

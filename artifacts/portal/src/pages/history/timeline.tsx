@@ -1,31 +1,8 @@
-import { useState } from "react";
-import {
-  useListHistoryTimeline,
-  useCreateHistoryTimelineEntry,
-  useUpdateHistoryTimelineEntry,
-  useDeleteHistoryTimelineEntry,
-  getListHistoryTimelineQueryKey,
-} from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/use-auth";
+import { useListHistoryTimeline } from "@workspace/api-client-react";
 import { HistoryLayout } from "@/components/history/history-layout";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Clock } from "lucide-react";
-import { ADMIN_LEVEL } from "@/lib/roles";
-
-function maxLevel(user: ReturnType<typeof useAuth>["user"]): number {
-  return user?.roles?.reduce((max, r) => Math.max(max, r.permissionLevel), 0) ?? 0;
-}
+import { Clock } from "lucide-react";
 
 interface TimelineEntry {
   id: string;
@@ -33,107 +10,21 @@ interface TimelineEntry {
   title: string;
   description: string | null;
   sortOrder: number;
-  createdAt: string;
-  updatedAt: string;
 }
 
-interface EntryForm {
-  year: string;
-  title: string;
-  description: string;
+function displayYear(year: number): string {
+  return year === 9999 ? "Present" : String(year);
 }
-
-const emptyForm: EntryForm = { year: "", title: "", description: "" };
 
 export default function HistoricalTimelinePage() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const isAdmin = maxLevel(user) >= ADMIN_LEVEL;
-
   const { data, isLoading } = useListHistoryTimeline();
-  const create = useCreateHistoryTimelineEntry();
-  const update = useUpdateHistoryTimelineEntry();
-  const remove = useDeleteHistoryTimelineEntry();
-
-  const [addOpen, setAddOpen] = useState(false);
-  const [editEntry, setEditEntry] = useState<TimelineEntry | null>(null);
-  const [deleteEntry, setDeleteEntry] = useState<TimelineEntry | null>(null);
-  const [form, setForm] = useState<EntryForm>(emptyForm);
-
   const entries = (data?.entries ?? []) as TimelineEntry[];
-
-  function openAdd() {
-    setForm({ year: String(new Date().getFullYear()), title: "", description: "" });
-    setAddOpen(true);
-  }
-
-  function openEdit(entry: TimelineEntry) {
-    setForm({ year: String(entry.year), title: entry.title, description: entry.description ?? "" });
-    setEditEntry(entry);
-  }
-
-  function closeAll() {
-    setAddOpen(false);
-    setEditEntry(null);
-    setDeleteEntry(null);
-    setForm(emptyForm);
-  }
-
-  function invalidate() {
-    queryClient.invalidateQueries({ queryKey: getListHistoryTimelineQueryKey() });
-  }
-
-  const yearNum = parseInt(form.year, 10);
-  const formValid = !isNaN(yearNum) && yearNum >= 1700 && yearNum <= 2200 && form.title.trim().length > 0;
-
-  function handleSaveAdd() {
-    create.mutate(
-      { data: { year: yearNum, title: form.title.trim(), description: form.description.trim() || null } },
-      {
-        onSuccess: () => { invalidate(); closeAll(); toast({ title: "Entry added" }); },
-        onError: () => toast({ title: "Failed to add entry", variant: "destructive" }),
-      }
-    );
-  }
-
-  function handleSaveEdit() {
-    if (!editEntry) return;
-    update.mutate(
-      { id: editEntry.id, data: { year: yearNum, title: form.title.trim(), description: form.description.trim() || null } },
-      {
-        onSuccess: () => { invalidate(); closeAll(); toast({ title: "Entry updated" }); },
-        onError: () => toast({ title: "Failed to update entry", variant: "destructive" }),
-      }
-    );
-  }
-
-  function handleDelete() {
-    if (!deleteEntry) return;
-    remove.mutate(
-      { id: deleteEntry.id },
-      {
-        onSuccess: () => { invalidate(); closeAll(); toast({ title: "Entry removed" }); },
-        onError: () => toast({ title: "Failed to delete entry", variant: "destructive" }),
-      }
-    );
-  }
-
-  const isSaving = create.isPending || update.isPending;
 
   return (
     <HistoryLayout>
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-sm text-muted-foreground">
-          Key moments in the Lodge's history, listed chronologically.
-        </p>
-        {isAdmin && (
-          <Button size="sm" onClick={openAdd}>
-            <Plus className="h-3.5 w-3.5 mr-1.5" />
-            Add Entry
-          </Button>
-        )}
-      </div>
+      <p className="text-sm text-muted-foreground mb-2">
+        Key moments in the Lodge's history, listed chronologically.
+      </p>
 
       {isLoading ? (
         <div className="space-y-3">
@@ -153,9 +44,7 @@ export default function HistoricalTimelinePage() {
         <Card className="border-card-border">
           <CardContent className="py-14 text-center">
             <Clock className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">
-              No timeline entries yet.{isAdmin ? " Click \"Add Entry\" to begin." : " Check back later."}
-            </p>
+            <p className="text-sm text-muted-foreground">No timeline entries yet. Check back later.</p>
           </CardContent>
         </Card>
       ) : (
@@ -164,38 +53,16 @@ export default function HistoricalTimelinePage() {
           <div className="space-y-3">
             {entries.map((entry) => (
               <div key={entry.id} className="flex gap-4 items-start">
-                <div className="w-16 shrink-0 text-right sm:text-right">
+                <div className="w-16 shrink-0 text-right">
                   <span className="inline-block font-bold text-primary text-sm leading-tight pt-3.5">
-                    {entry.year}
+                    {displayYear(entry.year)}
                   </span>
                 </div>
                 <Card className="border-card-border flex-1 sm:ml-4">
                   <CardContent className="py-3.5 px-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="text-sm font-semibold text-foreground leading-snug">
-                        {entry.title}
-                      </h3>
-                      {isAdmin && (
-                        <div className="flex gap-1 shrink-0">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            onClick={() => openEdit(entry)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => setDeleteEntry(entry)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+                    <h3 className="text-sm font-semibold text-foreground leading-snug">
+                      {entry.title}
+                    </h3>
                     {entry.description && (
                       <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed whitespace-pre-wrap">
                         {entry.description}
@@ -208,85 +75,6 @@ export default function HistoricalTimelinePage() {
           </div>
         </div>
       )}
-
-      {/* Add / Edit Dialog */}
-      <Dialog open={addOpen || !!editEntry} onOpenChange={(open) => { if (!open) closeAll(); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editEntry ? "Edit Timeline Entry" : "Add Timeline Entry"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
-                Year <span className="text-destructive">*</span>
-              </label>
-              <input
-                type="number"
-                min={1700}
-                max={2200}
-                className="w-full border border-input rounded-sm px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-                value={form.year}
-                onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
-                Title <span className="text-destructive">*</span>
-              </label>
-              <input
-                className="w-full border border-input rounded-sm px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-                value={form.title}
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                maxLength={300}
-                placeholder="e.g., Lodge Chartered"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
-                Description
-              </label>
-              <textarea
-                className="w-full border border-input rounded-sm px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-y min-h-[100px]"
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                maxLength={5000}
-                placeholder="Optional details about this event…"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={closeAll} disabled={isSaving}>
-              Cancel
-            </Button>
-            <Button
-              onClick={editEntry ? handleSaveEdit : handleSaveAdd}
-              disabled={!formValid || isSaving}
-            >
-              {isSaving ? "Saving…" : editEntry ? "Save Changes" : "Add Entry"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirm */}
-      <Dialog open={!!deleteEntry} onOpenChange={(open) => { if (!open) setDeleteEntry(null); }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Remove Entry</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground py-2">
-            Remove <span className="font-medium text-foreground">"{deleteEntry?.title}" ({deleteEntry?.year})</span> from the timeline? This cannot be undone.
-          </p>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteEntry(null)} disabled={remove.isPending}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={remove.isPending}>
-              {remove.isPending ? "Removing…" : "Remove"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </HistoryLayout>
   );
 }

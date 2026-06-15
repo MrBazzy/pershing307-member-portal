@@ -64,6 +64,17 @@ Orval-generated mutation hooks wrap the request body in `{ data: ... }` — do N
 - PUT with path param: `mutate({ id: "...", data: { title } })`
 After adding new routes, restart the API server workflow to pick up new route files.
 
+## Rich Text / History Management
+- Rich text editor: TipTap (@tiptap/react @tiptap/pm @tiptap/starter-kit @tiptap/extension-underline @tiptap/extension-link @tiptap/extension-placeholder)
+- Editor component: `artifacts/portal/src/components/history/rich-text-editor.tsx` (uncontrolled, key-remount pattern)
+- Admin editing: `/admin/history`, `/admin/history/timeline`, `/admin/history/documents` (all ADMIN_LEVEL)
+- Admin layout: `artifacts/portal/src/components/history/admin-history-layout.tsx`
+- Public history pages: fully read-only — no isAdmin checks remain
+- HTML sanitized on server with sanitize-html before DB save (PUT /page in history.ts)
+- Content rendering: `dangerouslySetInnerHTML` with legacy plain-text → `<p>` fallback via `prepareContent()`
+- Timeline "Present" era: year=9999 in DB, displayed as "Present" in UI
+- Timeline seed (6 entries 1959–Present) inserted via SQL into `history_timeline_entries`
+
 ## Object Storage
 - Provisioned: bucket `replit-objstore-e1bd3a42-1b17-4052-9601-6d2a90453932`
 - Env vars set: DEFAULT_OBJECT_STORAGE_BUCKET_ID, PUBLIC_OBJECT_SEARCH_PATHS, PRIVATE_OBJECT_DIR
