@@ -248,6 +248,17 @@ router.get("/upcoming", requireAuth(), async (req, res) => {
   const lodgeId = await getLodgeId();
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
 
+  const [activeYear] = await db
+    .select()
+    .from(lodgeYearsTable)
+    .where(and(eq(lodgeYearsTable.lodgeId, lodgeId), eq(lodgeYearsTable.status, "active")))
+    .limit(1);
+
+  if (!activeYear) {
+    res.json({ entries: [] });
+    return;
+  }
+
   const ctx = await getUserVisibilityContext(userId);
   const allowed = getAllowedVisibilities(ctx);
   const today = new Date().toISOString().slice(0, 10);
@@ -259,6 +270,7 @@ router.get("/upcoming", requireAuth(), async (req, res) => {
     .from(tracingBoardEntriesTable)
     .where(and(
       eq(tracingBoardEntriesTable.lodgeId, lodgeId),
+      eq(tracingBoardEntriesTable.lodgeYearId, activeYear.id),
       gte(tracingBoardEntriesTable.date, today),
       inArray(tracingBoardEntriesTable.visibility, allowed),
     ))
