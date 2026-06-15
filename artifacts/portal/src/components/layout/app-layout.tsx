@@ -107,8 +107,13 @@ export function AppLayout({ children }: AppLayoutProps) {
         {/* Dashboard — always shown to any authenticated user */}
         <NavLink item={MEMBER_NAV_ITEMS[0]} onNav={onNav} />
 
-        {/* Member+ nav items */}
-        {isMemberOrAbove && MEMBER_NAV_ITEMS.slice(1).map((item) => (
+        {/* Tracing Board — visible to Visitors and above */}
+        {isVisitorOrAbove && (
+          <NavLink item={MEMBER_NAV_ITEMS[1]} onNav={onNav} />
+        )}
+
+        {/* Events and Birthdays — Member+ only */}
+        {isMemberOrAbove && MEMBER_NAV_ITEMS.slice(2).map((item) => (
           <NavLink key={item.href} item={item} onNav={onNav} />
         ))}
 

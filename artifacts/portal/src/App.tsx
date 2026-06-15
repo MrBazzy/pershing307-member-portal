@@ -176,7 +176,7 @@ function AppRoutes() {
 
         <Route path="/dashboard" component={() => <ProtectedRoute component={DashboardPage} />} />
 
-        <Route path="/tracing-board" component={() => <ProtectedRoute component={TracingBoardPage} minLevel={MEMBER_LEVEL} />} />
+        <Route path="/tracing-board" component={() => <ProtectedRoute component={TracingBoardPage} minLevel={VISITOR_LEVEL} />} />
         <Route path="/events" component={() => <ProtectedRoute component={EventsPage} minLevel={MEMBER_LEVEL} />} />
         <Route path="/birthdays" component={() => <ProtectedRoute component={BirthdaysPage} minLevel={MEMBER_LEVEL} />} />
 

@@ -129,7 +129,7 @@ async function ensureDefaultCategories(lodgeId: string): Promise<void> {
   );
 }
 
-router.get("/categories", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) => {
+router.get("/categories", requireAuth(), requireRole(VISITOR_LEVEL), async (req, res) => {
   const lodgeId = await getLodgeId();
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
 
@@ -288,7 +288,7 @@ router.get("/upcoming", requireAuth(), requireRole(VISITOR_LEVEL), async (req, r
   res.json({ entries: entries.map((e) => formatEntry(e, e.categoryId ? catMap[e.categoryId] : null)) });
 });
 
-router.get("/", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) => {
+router.get("/", requireAuth(), requireRole(VISITOR_LEVEL), async (req, res) => {
   const userId = req.session!.userId!;
   const lodgeId = await getLodgeId();
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
