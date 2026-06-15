@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import { eventsTable, eventCategoriesTable } from "@workspace/db/schema";
-import { eq, and, gte, inArray, asc, count } from "drizzle-orm";
+import { eq, and, gte, lte, inArray, asc, count } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 import { writeAuditLog, getClientIp } from "../lib/audit";
@@ -239,7 +239,9 @@ router.get("/upcoming", requireAuth(), async (req, res) => {
 
   const ctx = await getUserVisibilityContext(userId);
   const allowed = getAllowedVisibilities(ctx);
-  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const cutoff = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const limit = Math.min(parseInt(String(req.query.limit ?? "5"), 10), 20);
 
   const events = await db
@@ -248,6 +250,7 @@ router.get("/upcoming", requireAuth(), async (req, res) => {
     .where(and(
       eq(eventsTable.lodgeId, lodgeId),
       gte(eventsTable.date, today),
+      lte(eventsTable.date, cutoff),
       inArray(eventsTable.visibility, allowed),
     ))
     .orderBy(asc(eventsTable.date), asc(eventsTable.startTime))

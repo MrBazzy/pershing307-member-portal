@@ -6,7 +6,7 @@ import {
   tracingBoardCategoriesTable,
   lodgeYearsTable,
 } from "@workspace/db/schema";
-import { eq, and, gte, inArray, asc, count } from "drizzle-orm";
+import { eq, and, gte, lte, inArray, asc, count } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 import { writeAuditLog, getClientIp } from "../lib/audit";
@@ -261,7 +261,9 @@ router.get("/upcoming", requireAuth(), async (req, res) => {
 
   const ctx = await getUserVisibilityContext(userId);
   const allowed = getAllowedVisibilities(ctx);
-  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const cutoff = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
   const limit = Math.min(parseInt(String(req.query.limit ?? "5"), 10), 20);
 
@@ -272,6 +274,7 @@ router.get("/upcoming", requireAuth(), async (req, res) => {
       eq(tracingBoardEntriesTable.lodgeId, lodgeId),
       eq(tracingBoardEntriesTable.lodgeYearId, activeYear.id),
       gte(tracingBoardEntriesTable.date, today),
+      lte(tracingBoardEntriesTable.date, cutoff),
       inArray(tracingBoardEntriesTable.visibility, allowed),
     ))
     .orderBy(asc(tracingBoardEntriesTable.date), asc(tracingBoardEntriesTable.startTime))

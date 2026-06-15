@@ -281,7 +281,7 @@ function UpcomingActivitiesWidget({ isAdmin }: { isAdmin: boolean }) {
             {[1, 2, 3].map((i) => <Skeleton key={i} className="h-9 w-full" />)}
           </div>
         ) : entries.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No upcoming entries</p>
+          <p className="text-sm text-muted-foreground text-center py-4">No entries in the next 30 days</p>
         ) : (
           <div className="space-y-2">
             {entries.map((e) => (
@@ -338,7 +338,7 @@ function UpcomingEventsWidget({ isAdmin }: { isAdmin: boolean }) {
             {[1, 2, 3].map((i) => <Skeleton key={i} className="h-9 w-full" />)}
           </div>
         ) : events.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No upcoming events</p>
+          <p className="text-sm text-muted-foreground text-center py-4">No events in the next 30 days</p>
         ) : (
           <div className="space-y-2">
             {events.map((e) => (
