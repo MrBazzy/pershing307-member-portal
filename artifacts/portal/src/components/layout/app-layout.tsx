@@ -30,7 +30,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/invitations", label: "Invitations", icon: Mail, adminOnly: true },
   { href: "/admin/domains", label: "Domains", icon: Globe, adminOnly: true },
   { href: "/admin/degrees", label: "Degrees", icon: GraduationCap, adminOnly: true },
-  { href: "/admin/tracing-board", label: "Tracing Board Mgmt", icon: BookOpen, adminOnly: true },
+  { href: "/admin/tracing-board", label: "Tracing Board", icon: BookOpen, adminOnly: true },
   { href: "/admin/events", label: "Events Mgmt", icon: CalendarDays, adminOnly: true },
   { href: "/admin/roadmap", label: "Roadmap", icon: Map, adminOnly: true },
   { href: "/admin/config", label: "Configuration", icon: Settings, adminOnly: true },

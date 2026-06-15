@@ -270,7 +270,7 @@ function UpcomingActivitiesWidget({ isAdmin }: { isAdmin: boolean }) {
       <CardHeader className="pb-2 flex flex-row items-center justify-between">
         <CardTitle className="text-sm font-semibold flex items-center gap-2">
           <BookOpen className="h-4 w-4 text-muted-foreground" />
-          Upcoming Activities
+          Tracing Board
         </CardTitle>
         <Link href="/tracing-board" className="text-xs text-primary hover:underline">View all</Link>
       </CardHeader>
@@ -280,7 +280,7 @@ function UpcomingActivitiesWidget({ isAdmin }: { isAdmin: boolean }) {
             {[1, 2, 3].map((i) => <Skeleton key={i} className="h-9 w-full" />)}
           </div>
         ) : entries.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No upcoming activities</p>
+          <p className="text-sm text-muted-foreground text-center py-4">No upcoming entries</p>
         ) : (
           <div className="space-y-2">
             {entries.map((e) => (
