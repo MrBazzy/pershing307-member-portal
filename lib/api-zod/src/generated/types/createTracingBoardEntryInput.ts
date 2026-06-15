@@ -31,5 +31,5 @@ export interface CreateTracingBoardEntryInput {
   description?: string | null;
   /** @nullable */
   categoryId?: string | null;
-  visibility: CreateTracingBoardEntryInputVisibility;
+  visibility?: CreateTracingBoardEntryInputVisibility;
 }

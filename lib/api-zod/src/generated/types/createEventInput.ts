@@ -25,7 +25,7 @@ export interface CreateEventInput {
   endTime?: string | null;
   /** @nullable */
   categoryId?: string | null;
-  visibility: CreateEventInputVisibility;
+  visibility?: CreateEventInputVisibility;
   /**
      * @maxLength 300
      * @nullable

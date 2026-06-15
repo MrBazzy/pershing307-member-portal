@@ -29,16 +29,6 @@ import {
 } from "@/components/ui/dialog";
 import { CalendarDays, Plus, Pencil, Trash2, Tag, ChevronUp, ChevronDown, EyeOff } from "lucide-react";
 
-const VISIBILITY_OPTIONS = [
-  { value: "members", label: "All Members" },
-  { value: "ea_plus", label: "EA+ (Entered Apprentice and above)" },
-  { value: "fc_plus", label: "FC+ (Fellowcraft and above)" },
-  { value: "mm_only", label: "MM Only (Master Mason)" },
-  { value: "officers", label: "Officers" },
-  { value: "past_masters", label: "Past Masters" },
-] as const;
-
-type VisibilityValue = (typeof VISIBILITY_OPTIONS)[number]["value"];
 type TabKey = "events" | "categories";
 
 interface EventItem { id: string; title: string; description: string | null; date: string; startTime: string | null; endTime: string | null; categoryId: string | null; categoryName: string | null; visibility: string; organizerId: string | null; location: string | null; createdBy: string | null; lastModifiedBy: string | null; createdAt: string; updatedAt: string; }
@@ -72,7 +62,7 @@ export default function AdminEventsPage() {
 
   const [eventDialog, setEventDialog] = useState<"create" | "edit" | null>(null);
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
-  const [eventForm, setEventForm] = useState({ title: "", description: "", date: "", startTime: "", endTime: "", location: "", categoryId: "", visibility: "members" as VisibilityValue });
+  const [eventForm, setEventForm] = useState({ title: "", description: "", date: "", startTime: "", endTime: "", location: "", categoryId: "" });
 
   const [catDialog, setCatDialog] = useState<"create" | "edit" | null>(null);
   const [editingCat, setEditingCat] = useState<EventCat | null>(null);
@@ -80,13 +70,13 @@ export default function AdminEventsPage() {
 
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: "event" | "category"; id: string; title: string } | null>(null);
 
-  function openCreateEvent() { setEventForm({ title: "", description: "", date: "", startTime: "", endTime: "", location: "", categoryId: "", visibility: "members" }); setEditingEvent(null); setEventDialog("create"); }
-  function openEditEvent(e: EventItem) { setEventForm({ title: e.title, description: e.description ?? "", date: e.date, startTime: e.startTime ?? "", endTime: e.endTime ?? "", location: e.location ?? "", categoryId: e.categoryId ?? "", visibility: (e.visibility as VisibilityValue) ?? "members" }); setEditingEvent(e); setEventDialog("edit"); }
+  function openCreateEvent() { setEventForm({ title: "", description: "", date: "", startTime: "", endTime: "", location: "", categoryId: "" }); setEditingEvent(null); setEventDialog("create"); }
+  function openEditEvent(e: EventItem) { setEventForm({ title: e.title, description: e.description ?? "", date: e.date, startTime: e.startTime ?? "", endTime: e.endTime ?? "", location: e.location ?? "", categoryId: e.categoryId ?? "" }); setEditingEvent(e); setEventDialog("edit"); }
   function openCreateCat() { setCatForm({ name: "", description: "" }); setEditingCat(null); setCatDialog("create"); }
   function openEditCat(c: EventCat) { setCatForm({ name: c.name, description: c.description ?? "" }); setEditingCat(c); setCatDialog("edit"); }
 
   async function saveEvent() {
-    const data = { title: eventForm.title, description: eventForm.description || null, date: eventForm.date, startTime: eventForm.startTime || null, endTime: eventForm.endTime || null, location: eventForm.location || null, categoryId: eventForm.categoryId || null, visibility: eventForm.visibility };
+    const data = { title: eventForm.title, description: eventForm.description || null, date: eventForm.date, startTime: eventForm.startTime || null, endTime: eventForm.endTime || null, location: eventForm.location || null, categoryId: eventForm.categoryId || null };
     if (eventDialog === "create") {
       createEvent.mutate({ data }, { onSuccess: () => { toast({ title: "Event created" }); qc.invalidateQueries({ queryKey: getListEventsQueryKey() }); setEventDialog(null); }, onError: () => toast({ title: "Failed to create event", variant: "destructive" }) });
     } else if (editingEvent) {
@@ -182,7 +172,6 @@ export default function AdminEventsPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-medium text-foreground">{event.title}</span>
                           {event.categoryName && <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded">{event.categoryName}</span>}
-                          <span className="text-[10px] bg-muted text-muted-foreground border border-border px-1.5 py-0.5 rounded">{VISIBILITY_OPTIONS.find((v) => v.value === event.visibility)?.label ?? event.visibility}</span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">{event.date}{event.startTime ? ` · ${event.startTime}` : ""}{event.location ? ` · ${event.location}` : ""}</p>
                       </div>
@@ -258,12 +247,6 @@ export default function AdminEventsPage() {
               <select className="w-full border border-border rounded-sm px-3 py-1.5 text-sm bg-background" value={eventForm.categoryId} onChange={(e) => setEventForm((f) => ({ ...f, categoryId: e.target.value }))}>
                 <option value="">— None —</option>
                 {activeCats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Visibility</label>
-              <select className="w-full border border-border rounded-sm px-3 py-1.5 text-sm bg-background" value={eventForm.visibility} onChange={(e) => setEventForm((f) => ({ ...f, visibility: e.target.value as VisibilityValue }))}>
-                {VISIBILITY_OPTIONS.map((v) => <option key={v.value} value={v.value}>{v.label}</option>)}
               </select>
             </div>
             <div><label className="text-sm font-medium mb-1 block">Description</label><textarea rows={3} className="w-full border border-border rounded-sm px-3 py-1.5 text-sm bg-background resize-y" value={eventForm.description} onChange={(e) => setEventForm((f) => ({ ...f, description: e.target.value }))} /></div>

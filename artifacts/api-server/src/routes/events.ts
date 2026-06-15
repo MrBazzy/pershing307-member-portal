@@ -7,7 +7,7 @@ import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 import { writeAuditLog, getClientIp } from "../lib/audit";
 import { getLodgeId } from "../lib/config";
-import { getUserVisibilityContext, getAllowedVisibilities, VISIBILITY_VALUES } from "../lib/visibility";
+import { VISIBILITY_VALUES } from "../lib/visibility";
 
 const router = Router();
 const SITE_ADMIN_LEVEL = 80;
@@ -237,8 +237,6 @@ router.get("/upcoming", requireAuth(), async (req, res) => {
   const lodgeId = await getLodgeId();
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
 
-  const ctx = await getUserVisibilityContext(userId);
-  const allowed = getAllowedVisibilities(ctx);
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
   const cutoff = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -251,7 +249,6 @@ router.get("/upcoming", requireAuth(), async (req, res) => {
       eq(eventsTable.lodgeId, lodgeId),
       gte(eventsTable.date, today),
       lte(eventsTable.date, cutoff),
-      inArray(eventsTable.visibility, allowed),
     ))
     .orderBy(asc(eventsTable.date), asc(eventsTable.startTime))
     .limit(limit);
@@ -268,14 +265,9 @@ router.get("/", requireAuth(), async (req, res) => {
   const lodgeId = await getLodgeId();
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
 
-  const ctx = await getUserVisibilityContext(userId);
-  const allowed = getAllowedVisibilities(ctx);
-  const isAdmin = ctx.maxPermLevel >= SITE_ADMIN_LEVEL;
-
   const from = req.query.from ? String(req.query.from) : undefined;
 
   const conditions = [eq(eventsTable.lodgeId, lodgeId)];
-  if (!isAdmin) conditions.push(inArray(eventsTable.visibility, allowed));
   if (from) conditions.push(gte(eventsTable.date, from));
 
   const events = await db

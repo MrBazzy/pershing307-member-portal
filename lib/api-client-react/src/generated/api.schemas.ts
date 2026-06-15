@@ -898,7 +898,7 @@ export interface CreateTracingBoardEntryInput {
   description?: string | null;
   /** @nullable */
   categoryId?: string | null;
-  visibility: CreateTracingBoardEntryInputVisibility;
+  visibility?: CreateTracingBoardEntryInputVisibility;
 }
 
 export type UpdateTracingBoardEntryInputVisibility = typeof UpdateTracingBoardEntryInputVisibility[keyof typeof UpdateTracingBoardEntryInputVisibility];
@@ -1009,7 +1009,7 @@ export interface CreateEventInput {
   endTime?: string | null;
   /** @nullable */
   categoryId?: string | null;
-  visibility: CreateEventInputVisibility;
+  visibility?: CreateEventInputVisibility;
   /**
      * @maxLength 300
      * @nullable

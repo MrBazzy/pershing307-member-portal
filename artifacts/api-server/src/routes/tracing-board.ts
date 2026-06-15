@@ -11,7 +11,7 @@ import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 import { writeAuditLog, getClientIp } from "../lib/audit";
 import { getLodgeId } from "../lib/config";
-import { getUserVisibilityContext, getAllowedVisibilities, VISIBILITY_VALUES } from "../lib/visibility";
+import { VISIBILITY_VALUES } from "../lib/visibility";
 
 const router = Router();
 const SITE_ADMIN_LEVEL = 80;
@@ -259,8 +259,6 @@ router.get("/upcoming", requireAuth(), async (req, res) => {
     return;
   }
 
-  const ctx = await getUserVisibilityContext(userId);
-  const allowed = getAllowedVisibilities(ctx);
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
   const cutoff = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -275,7 +273,6 @@ router.get("/upcoming", requireAuth(), async (req, res) => {
       eq(tracingBoardEntriesTable.lodgeYearId, activeYear.id),
       gte(tracingBoardEntriesTable.date, today),
       lte(tracingBoardEntriesTable.date, cutoff),
-      inArray(tracingBoardEntriesTable.visibility, allowed),
     ))
     .orderBy(asc(tracingBoardEntriesTable.date), asc(tracingBoardEntriesTable.startTime))
     .limit(limit);
@@ -294,10 +291,6 @@ router.get("/", requireAuth(), async (req, res) => {
   const lodgeId = await getLodgeId();
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
 
-  const ctx = await getUserVisibilityContext(userId);
-  const allowed = getAllowedVisibilities(ctx);
-  const isAdmin = ctx.maxPermLevel >= SITE_ADMIN_LEVEL;
-
   const lodgeYearId = req.query.lodgeYearId ? String(req.query.lodgeYearId) : undefined;
 
   let yearId = lodgeYearId;
@@ -315,9 +308,6 @@ router.get("/", requireAuth(), async (req, res) => {
     eq(tracingBoardEntriesTable.lodgeId, lodgeId),
     eq(tracingBoardEntriesTable.lodgeYearId, yearId),
   ];
-  if (!isAdmin) {
-    conditions.push(inArray(tracingBoardEntriesTable.visibility, allowed));
-  }
 
   const entries = await db
     .select()

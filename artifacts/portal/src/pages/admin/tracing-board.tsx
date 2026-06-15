@@ -39,16 +39,6 @@ import {
 } from "@/components/ui/dialog";
 import { BookOpen, Plus, Pencil, Trash2, CheckCircle, Archive, RotateCcw, Tag, ChevronUp, ChevronDown, EyeOff } from "lucide-react";
 
-const VISIBILITY_OPTIONS = [
-  { value: "members", label: "All Members" },
-  { value: "ea_plus", label: "EA+ (Entered Apprentice and above)" },
-  { value: "fc_plus", label: "FC+ (Fellowcraft and above)" },
-  { value: "mm_only", label: "MM Only (Master Mason)" },
-  { value: "officers", label: "Officers" },
-  { value: "past_masters", label: "Past Masters" },
-] as const;
-
-type VisibilityValue = (typeof VISIBILITY_OPTIONS)[number]["value"];
 type TabKey = "entries" | "categories" | "years";
 
 interface LodgeYear { id: string; title: string; startYear: number; endYear: number; status: string; entryCount: number; createdAt: string; updatedAt: string; }
@@ -122,7 +112,7 @@ export default function AdminTracingBoardPage() {
 
   const [entryDialog, setEntryDialog] = useState<"create" | "edit" | null>(null);
   const [editingEntry, setEditingEntry] = useState<TBEntry | null>(null);
-  const [entryForm, setEntryForm] = useState({ title: "", date: "", startTime: "", endTime: "", location: "", description: "", categoryId: "", visibility: "members" as VisibilityValue });
+  const [entryForm, setEntryForm] = useState({ title: "", date: "", startTime: "", endTime: "", location: "", description: "", categoryId: "" });
 
   const [catDialog, setCatDialog] = useState<"create" | "edit" | null>(null);
   const [editingCat, setEditingCat] = useState<TBCategory | null>(null);
@@ -132,8 +122,8 @@ export default function AdminTracingBoardPage() {
 
   function openCreateYear() { setYearForm({ title: "", startYear: new Date().getFullYear(), endYear: new Date().getFullYear() + 1 }); setEditingYear(null); setYearDialog("create"); }
   function openEditYear(y: LodgeYear) { setYearForm({ title: y.title, startYear: y.startYear, endYear: y.endYear }); setEditingYear(y); setYearDialog("edit"); }
-  function openCreateEntry() { setEntryForm({ title: "", date: "", startTime: "", endTime: "", location: "", description: "", categoryId: "", visibility: "members" }); setEditingEntry(null); setEntryDialog("create"); }
-  function openEditEntry(e: TBEntry) { setEntryForm({ title: e.title, date: e.date, startTime: e.startTime ?? "", endTime: e.endTime ?? "", location: e.location ?? "", description: e.description ?? "", categoryId: e.categoryId ?? "", visibility: (e.visibility as VisibilityValue) ?? "members" }); setEditingEntry(e); setEntryDialog("edit"); }
+  function openCreateEntry() { setEntryForm({ title: "", date: "", startTime: "", endTime: "", location: "", description: "", categoryId: "" }); setEditingEntry(null); setEntryDialog("create"); }
+  function openEditEntry(e: TBEntry) { setEntryForm({ title: e.title, date: e.date, startTime: e.startTime ?? "", endTime: e.endTime ?? "", location: e.location ?? "", description: e.description ?? "", categoryId: e.categoryId ?? "" }); setEditingEntry(e); setEntryDialog("edit"); }
   function openCreateCat() { setCatForm({ name: "", description: "" }); setEditingCat(null); setCatDialog("create"); }
   function openEditCat(c: TBCategory) { setCatForm({ name: c.name, description: c.description ?? "" }); setEditingCat(c); setCatDialog("edit"); }
 
@@ -147,7 +137,7 @@ export default function AdminTracingBoardPage() {
   }
 
   async function saveEntry() {
-    const data = { lodgeYearId: effectiveYearId!, title: entryForm.title, date: entryForm.date, startTime: entryForm.startTime || null, endTime: entryForm.endTime || null, location: entryForm.location || null, description: entryForm.description || null, categoryId: entryForm.categoryId || null, visibility: entryForm.visibility };
+    const data = { lodgeYearId: effectiveYearId!, title: entryForm.title, date: entryForm.date, startTime: entryForm.startTime || null, endTime: entryForm.endTime || null, location: entryForm.location || null, description: entryForm.description || null, categoryId: entryForm.categoryId || null };
     if (entryDialog === "create") {
       createEntry.mutate({ data }, { onSuccess: () => { toast({ title: "Entry created" }); qc.invalidateQueries({ queryKey: getListTracingBoardEntriesQueryKey() }); setEntryDialog(null); }, onError: () => toast({ title: "Failed to create entry", variant: "destructive" }) });
     } else if (editingEntry) {
@@ -255,7 +245,6 @@ export default function AdminTracingBoardPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-medium text-foreground">{entry.title}</span>
                           {entry.categoryName && <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded">{entry.categoryName}</span>}
-                          <span className="text-[10px] bg-muted text-muted-foreground border border-border px-1.5 py-0.5 rounded">{VISIBILITY_OPTIONS.find((v) => v.value === entry.visibility)?.label ?? entry.visibility}</span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">{entry.date}{entry.startTime ? ` · ${entry.startTime}` : ""}{entry.location ? ` · ${entry.location}` : ""}</p>
                       </div>
@@ -405,12 +394,6 @@ export default function AdminTracingBoardPage() {
               <select className="w-full border border-border rounded-sm px-3 py-1.5 text-sm bg-background" value={entryForm.categoryId} onChange={(e) => setEntryForm((f) => ({ ...f, categoryId: e.target.value }))}>
                 <option value="">— None —</option>
                 {activeCats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Visibility</label>
-              <select className="w-full border border-border rounded-sm px-3 py-1.5 text-sm bg-background" value={entryForm.visibility} onChange={(e) => setEntryForm((f) => ({ ...f, visibility: e.target.value as VisibilityValue }))}>
-                {VISIBILITY_OPTIONS.map((v) => <option key={v.value} value={v.value}>{v.label}</option>)}
               </select>
             </div>
             <div><label className="text-sm font-medium mb-1 block">Description</label><textarea rows={3} className="w-full border border-border rounded-sm px-3 py-1.5 text-sm bg-background resize-y" value={entryForm.description} onChange={(e) => setEntryForm((f) => ({ ...f, description: e.target.value }))} /></div>

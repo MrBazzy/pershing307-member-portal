@@ -1362,7 +1362,7 @@ export const CreateTracingBoardEntryBody = zod.object({
   "location": zod.string().max(createTracingBoardEntryBodyLocationMax).nullish(),
   "description": zod.string().max(createTracingBoardEntryBodyDescriptionMax).nullish(),
   "categoryId": zod.string().nullish(),
-  "visibility": zod.enum(['members', 'ea_plus', 'fc_plus', 'mm_only', 'officers', 'past_masters'])
+  "visibility": zod.enum(['members', 'ea_plus', 'fc_plus', 'mm_only', 'officers', 'past_masters']).optional()
 })
 
 
@@ -1601,7 +1601,7 @@ export const CreateEventBody = zod.object({
   "startTime": zod.string().nullish(),
   "endTime": zod.string().nullish(),
   "categoryId": zod.string().nullish(),
-  "visibility": zod.enum(['members', 'ea_plus', 'fc_plus', 'mm_only', 'officers', 'past_masters']),
+  "visibility": zod.enum(['members', 'ea_plus', 'fc_plus', 'mm_only', 'officers', 'past_masters']).optional(),
   "location": zod.string().max(createEventBodyLocationMax).nullish()
 })
 
