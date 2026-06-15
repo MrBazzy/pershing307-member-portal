@@ -196,7 +196,7 @@ function RoadmapWidget({ isAdmin }: { isAdmin: boolean }) {
           <CardTitle className="text-sm font-semibold flex items-center justify-between">
             <span className="flex items-center gap-2">
               <Map className="h-4 w-4 text-muted-foreground" />
-              Coming Next
+              Planned Portal Features
             </span>
             {isAdmin && (
               <Link
