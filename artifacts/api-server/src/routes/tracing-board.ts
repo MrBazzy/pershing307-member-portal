@@ -14,6 +14,8 @@ import { getLodgeId } from "../lib/config";
 import { VISIBILITY_VALUES } from "../lib/visibility";
 
 const router = Router();
+const VISITOR_LEVEL = 10;
+const MEMBER_LEVEL = 20;
 const SITE_ADMIN_LEVEL = 80;
 
 const DEFAULT_TB_CATEGORIES = [
@@ -127,7 +129,7 @@ async function ensureDefaultCategories(lodgeId: string): Promise<void> {
   );
 }
 
-router.get("/categories", requireAuth(), async (req, res) => {
+router.get("/categories", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) => {
   const lodgeId = await getLodgeId();
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
 
@@ -243,7 +245,7 @@ router.delete("/categories/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), a
   res.json({ success: true });
 });
 
-router.get("/upcoming", requireAuth(), async (req, res) => {
+router.get("/upcoming", requireAuth(), requireRole(VISITOR_LEVEL), async (req, res) => {
   const userId = req.session!.userId!;
   const lodgeId = await getLodgeId();
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
@@ -286,7 +288,7 @@ router.get("/upcoming", requireAuth(), async (req, res) => {
   res.json({ entries: entries.map((e) => formatEntry(e, e.categoryId ? catMap[e.categoryId] : null)) });
 });
 
-router.get("/", requireAuth(), async (req, res) => {
+router.get("/", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) => {
   const userId = req.session!.userId!;
   const lodgeId = await getLodgeId();
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }

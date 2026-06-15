@@ -23,8 +23,8 @@ const visibilitySchema = z.object({
   visibility: z.enum(["hidden", "day_month", "full"]),
 });
 
-// GET /profile/date-of-birth — any authenticated user reads their own DOB
-router.get("/date-of-birth", requireAuth(), async (req, res) => {
+// GET /profile/date-of-birth — Member+ reads their own DOB
+router.get("/date-of-birth", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) => {
   const actorId = req.session!.userId!;
 
   const rows = await db
@@ -85,7 +85,7 @@ router.patch("/date-of-birth", requireAuth(), requireRole(MEMBER_LEVEL), async (
 });
 
 // GET /profile/birthday-visibility — any authenticated user reads own visibility
-router.get("/birthday-visibility", requireAuth(), async (req, res) => {
+router.get("/birthday-visibility", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) => {
   const actorId = req.session!.userId!;
 
   const rows = await db

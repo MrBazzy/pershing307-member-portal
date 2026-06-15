@@ -3,9 +3,11 @@ import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db/schema";
 import { eq, and, isNotNull, ne } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
+import { requireRole } from "../middlewares/requireRole";
 import { getLodgeId } from "../lib/config";
 
 const router = Router();
+const MEMBER_LEVEL = 20;
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -51,7 +53,7 @@ const VISIBLE_FILTER = and(
   eq(usersTable.membershipStatus, "active"),
 );
 
-router.get("/upcoming", requireAuth(), async (req, res) => {
+router.get("/upcoming", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) => {
   const lodgeId = await getLodgeId();
   if (!lodgeId) {
     res.status(500).json({ error: "Lodge not configured" });
@@ -87,7 +89,7 @@ router.get("/upcoming", requireAuth(), async (req, res) => {
   res.json({ birthdays });
 });
 
-router.get("/", requireAuth(), async (req, res) => {
+router.get("/", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) => {
   const lodgeId = await getLodgeId();
   if (!lodgeId) {
     res.status(500).json({ error: "Lodge not configured" });

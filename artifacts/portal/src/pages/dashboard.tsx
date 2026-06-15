@@ -14,9 +14,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Users, Activity, Shield, Clock, Cake, Map, ChevronRight, BookOpen, CalendarDays } from "lucide-react";
-import { formatDistanceToNow, format, parseISO } from "date-fns";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Users, Activity, Shield, Clock, Cake, Map, ChevronRight, BookOpen, CalendarDays, AlertTriangle } from "lucide-react";
+import { formatDistanceToNow, format } from "date-fns";
 import { Link } from "wouter";
+import { VISITOR_LEVEL, MEMBER_LEVEL, ADMIN_LEVEL } from "@/lib/roles";
 
 const MONTH_ABBR = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -373,15 +375,86 @@ function UpcomingEventsWidget({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
-export default function DashboardPage() {
-  const { user } = useAuth();
-  const isAdmin = user?.roles?.some((r) => r.permissionLevel >= 80) ?? false;
-
+function AdminStatsSection() {
   const { data: usersData, isLoading: usersLoading } = useListUsers();
   const { data: auditData, isLoading: auditLoading } = useListAuditLogs({ limit: 5, offset: 0 });
 
   const totalMembers = usersData?.users?.length ?? 0;
   const activeMembers = usersData?.users?.filter((u) => u.membershipStatus === "active").length ?? 0;
+
+  return (
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard
+          icon={<Users className="h-4 w-4" />}
+          label="Total Members"
+          value={usersLoading ? null : String(totalMembers)}
+          href="/admin/users"
+        />
+        <StatCard
+          icon={<Shield className="h-4 w-4" />}
+          label="Active Members"
+          value={usersLoading ? null : String(activeMembers)}
+          href="/admin/users"
+        />
+        <StatCard
+          icon={<Activity className="h-4 w-4" />}
+          label="Recent Events"
+          value={auditLoading ? null : String(auditData?.logs?.length ?? 0)}
+          href="/admin/audit-log"
+        />
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Clock className="h-4 w-4 text-muted-foreground" /> Recent Activity
+          </h2>
+          <Link href="/admin/audit-log" className="text-xs text-primary hover:underline" data-testid="link-view-all-audit">View all</Link>
+        </div>
+        <div className="bg-card border border-card-border rounded-sm divide-y divide-border">
+          {auditLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="px-4 py-3 flex items-center gap-3">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-20 ml-auto" />
+              </div>
+            ))
+          ) : auditData?.logs && auditData.logs.length > 0 ? (
+            auditData.logs.map((log) => (
+              <div key={log.id} className="px-4 py-3 flex items-center justify-between gap-3" data-testid={`audit-row-${log.id}`}>
+                <div className="flex items-center gap-2 min-w-0">
+                  <ActionBadge action={log.action} />
+                  {log.actorEmail && (
+                    <span className="text-xs text-muted-foreground truncate">{log.actorEmail}</span>
+                  )}
+                </div>
+                <span className="text-[11px] text-muted-foreground shrink-0 tabular-nums">
+                  {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
+                </span>
+              </div>
+            ))
+          ) : (
+            <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+              No activity recorded yet
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+export default function DashboardPage() {
+  const { user } = useAuth();
+  const level = user?.roles?.reduce((max, r) => Math.max(max, r.permissionLevel), 0) ?? 0;
+
+  const hasNoRole = level === 0;
+  const isVisitor = level >= VISITOR_LEVEL && level < MEMBER_LEVEL;
+  const isMember = level >= MEMBER_LEVEL;
+  const isAdmin = level >= ADMIN_LEVEL;
+
+  const roleLabel = user?.roles?.map((r) => r.name).join(", ") || (hasNoRole ? "No role assigned" : "");
 
   return (
     <AppLayout>
@@ -390,81 +463,40 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-serif font-semibold text-foreground">
             Welcome, {user?.firstName}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {user?.roles?.map((r) => r.name).join(", ")}
-          </p>
+          <p className="text-sm text-muted-foreground mt-0.5">{roleLabel}</p>
         </div>
 
-        {isAdmin && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <StatCard
-              icon={<Users className="h-4 w-4" />}
-              label="Total Members"
-              value={usersLoading ? null : String(totalMembers)}
-              href="/admin/users"
-            />
-            <StatCard
-              icon={<Shield className="h-4 w-4" />}
-              label="Active Members"
-              value={usersLoading ? null : String(activeMembers)}
-              href="/admin/users"
-            />
-            <StatCard
-              icon={<Activity className="h-4 w-4" />}
-              label="Recent Events"
-              value={auditLoading ? null : String(auditData?.logs?.length ?? 0)}
-              href="/admin/audit-log"
-            />
-          </div>
+        {/* No-role: warning only */}
+        {hasNoRole && (
+          <Alert className="border-amber-200 bg-amber-50 text-amber-900">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="text-amber-800 font-semibold">No membership role assigned</AlertTitle>
+            <AlertDescription className="text-amber-700">
+              Please contact your Site Administrator to receive a Membership role.
+            </AlertDescription>
+          </Alert>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <UpcomingBirthdaysWidget />
-          <RoadmapWidget isAdmin={isAdmin} />
-        </div>
+        {/* Visitor: Tracing Board widget only */}
+        {isVisitor && (
+          <UpcomingActivitiesWidget isAdmin={false} />
+        )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <UpcomingActivitiesWidget isAdmin={isAdmin} />
-          <UpcomingEventsWidget isAdmin={isAdmin} />
-        </div>
+        {/* Member+: full dashboard */}
+        {isMember && (
+          <>
+            {isAdmin && <AdminStatsSection />}
 
-        {isAdmin && (
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" /> Recent Activity
-              </h2>
-              <Link href="/admin/audit-log" className="text-xs text-primary hover:underline" data-testid="link-view-all-audit">View all</Link>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <UpcomingBirthdaysWidget />
+              <RoadmapWidget isAdmin={isAdmin} />
             </div>
-            <div className="bg-card border border-card-border rounded-sm divide-y divide-border">
-              {auditLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="px-4 py-3 flex items-center gap-3">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-4 w-20 ml-auto" />
-                  </div>
-                ))
-              ) : auditData?.logs && auditData.logs.length > 0 ? (
-                auditData.logs.map((log) => (
-                  <div key={log.id} className="px-4 py-3 flex items-center justify-between gap-3" data-testid={`audit-row-${log.id}`}>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <ActionBadge action={log.action} />
-                      {log.actorEmail && (
-                        <span className="text-xs text-muted-foreground truncate">{log.actorEmail}</span>
-                      )}
-                    </div>
-                    <span className="text-[11px] text-muted-foreground shrink-0 tabular-nums">
-                      {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                  No activity recorded yet
-                </div>
-              )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <UpcomingActivitiesWidget isAdmin={isAdmin} />
+              <UpcomingEventsWidget isAdmin={isAdmin} />
             </div>
-          </div>
+          </>
         )}
       </div>
     </AppLayout>

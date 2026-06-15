@@ -28,6 +28,9 @@ import TwoFactorPage from "@/pages/settings/two-factor";
 import ProfileSettingsPage from "@/pages/settings/profile";
 import BirthdaysPage from "@/pages/birthdays";
 import { useEffect } from "react";
+import { VISITOR_LEVEL, MEMBER_LEVEL, ADMIN_LEVEL } from "@/lib/roles";
+
+export { VISITOR_LEVEL, MEMBER_LEVEL, ADMIN_LEVEL };
 
 function onGlobalApiError(error: unknown) {
   const err = error as any;
@@ -50,6 +53,14 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <p className="text-sm text-muted-foreground">Loading...</p>
+    </div>
+  );
+}
 
 function BootstrapCheck({ children }: { children: React.ReactNode }) {
   const { data: status, isLoading } = useGetBootstrapStatus();
@@ -77,31 +88,36 @@ function BootstrapCheck({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+function maxPermLevel(user: ReturnType<typeof useAuth>["user"]): number {
+  return user?.roles?.reduce((max, r) => Math.max(max, r.permissionLevel), 0) ?? 0;
+}
+
+function ProtectedRoute({
+  component: Component,
+  minLevel = 0,
+}: {
+  component: React.ComponentType;
+  minLevel?: number;
+}) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [location, setLocation] = useLocation();
 
+  const level = maxPermLevel(user);
+
   useEffect(() => {
     if (isLoading) return;
-    if (!isAuthenticated) {
-      setLocation("/login");
-      return;
-    }
+    if (!isAuthenticated) { setLocation("/login"); return; }
     if ((user?.mustChangePassword || user?.profileSetupRequired) && location !== "/setup") {
       setLocation("/setup");
+      return;
     }
-  }, [isLoading, isAuthenticated, user, setLocation, location]);
+    if (level < minLevel) { setLocation("/dashboard"); }
+  }, [isLoading, isAuthenticated, user, level, minLevel, setLocation, location]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-sm text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
-
+  if (isLoading) return <LoadingScreen />;
   if (!isAuthenticated) return null;
   if ((user?.mustChangePassword || user?.profileSetupRequired) && location !== "/setup") return null;
+  if (level < minLevel) return null;
   return <Component />;
 }
 
@@ -115,14 +131,7 @@ function SetupRoute({ component: Component }: { component: React.ComponentType }
     }
   }, [isLoading, isAuthenticated, setLocation]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-sm text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
-
+  if (isLoading) return <LoadingScreen />;
   return isAuthenticated ? <Component /> : null;
 }
 
@@ -136,14 +145,7 @@ function PublicRoute({ component: Component }: { component: React.ComponentType 
     }
   }, [isLoading, isAuthenticated, setLocation]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-sm text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
-
+  if (isLoading) return <LoadingScreen />;
   return !isAuthenticated ? <Component /> : null;
 }
 
@@ -157,11 +159,7 @@ function RootRedirect() {
     }
   }, [isLoading, isAuthenticated, setLocation]);
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <p className="text-sm text-muted-foreground">Loading...</p>
-    </div>
-  );
+  return <LoadingScreen />;
 }
 
 function AppRoutes() {
@@ -175,21 +173,26 @@ function AppRoutes() {
         <Route path="/accept-invitation" component={AcceptInvitationPage} />
         <Route path="/bootstrap" component={BootstrapPage} />
         <Route path="/setup" component={() => <SetupRoute component={SetupPage} />} />
+
         <Route path="/dashboard" component={() => <ProtectedRoute component={DashboardPage} />} />
-        <Route path="/settings/profile" component={() => <ProtectedRoute component={ProfileSettingsPage} />} />
-        <Route path="/settings/2fa" component={() => <ProtectedRoute component={TwoFactorPage} />} />
-        <Route path="/admin/users" component={() => <ProtectedRoute component={AdminUsersPage} />} />
-        <Route path="/admin/invitations" component={() => <ProtectedRoute component={AdminInvitationsPage} />} />
-        <Route path="/admin/domains" component={() => <ProtectedRoute component={AdminDomainsPage} />} />
-        <Route path="/admin/degrees" component={() => <ProtectedRoute component={AdminDegreesPage} />} />
-        <Route path="/admin/config" component={() => <ProtectedRoute component={AdminConfigPage} />} />
-        <Route path="/admin/audit-log" component={() => <ProtectedRoute component={AdminAuditLogPage} />} />
-        <Route path="/admin/roadmap" component={() => <ProtectedRoute component={AdminRoadmapPage} />} />
-        <Route path="/admin/tracing-board" component={() => <ProtectedRoute component={AdminTracingBoardPage} />} />
-        <Route path="/admin/events" component={() => <ProtectedRoute component={AdminEventsPage} />} />
-        <Route path="/tracing-board" component={() => <ProtectedRoute component={TracingBoardPage} />} />
-        <Route path="/events" component={() => <ProtectedRoute component={EventsPage} />} />
-        <Route path="/birthdays" component={() => <ProtectedRoute component={BirthdaysPage} />} />
+
+        <Route path="/tracing-board" component={() => <ProtectedRoute component={TracingBoardPage} minLevel={MEMBER_LEVEL} />} />
+        <Route path="/events" component={() => <ProtectedRoute component={EventsPage} minLevel={MEMBER_LEVEL} />} />
+        <Route path="/birthdays" component={() => <ProtectedRoute component={BirthdaysPage} minLevel={MEMBER_LEVEL} />} />
+
+        <Route path="/settings/profile" component={() => <ProtectedRoute component={ProfileSettingsPage} minLevel={MEMBER_LEVEL} />} />
+        <Route path="/settings/2fa" component={() => <ProtectedRoute component={TwoFactorPage} minLevel={VISITOR_LEVEL} />} />
+
+        <Route path="/admin/users" component={() => <ProtectedRoute component={AdminUsersPage} minLevel={ADMIN_LEVEL} />} />
+        <Route path="/admin/invitations" component={() => <ProtectedRoute component={AdminInvitationsPage} minLevel={ADMIN_LEVEL} />} />
+        <Route path="/admin/domains" component={() => <ProtectedRoute component={AdminDomainsPage} minLevel={ADMIN_LEVEL} />} />
+        <Route path="/admin/degrees" component={() => <ProtectedRoute component={AdminDegreesPage} minLevel={ADMIN_LEVEL} />} />
+        <Route path="/admin/config" component={() => <ProtectedRoute component={AdminConfigPage} minLevel={ADMIN_LEVEL} />} />
+        <Route path="/admin/audit-log" component={() => <ProtectedRoute component={AdminAuditLogPage} minLevel={ADMIN_LEVEL} />} />
+        <Route path="/admin/roadmap" component={() => <ProtectedRoute component={AdminRoadmapPage} minLevel={ADMIN_LEVEL} />} />
+        <Route path="/admin/tracing-board" component={() => <ProtectedRoute component={AdminTracingBoardPage} minLevel={ADMIN_LEVEL} />} />
+        <Route path="/admin/events" component={() => <ProtectedRoute component={AdminEventsPage} minLevel={ADMIN_LEVEL} />} />
+
         <Route component={NotFound} />
       </Switch>
     </BootstrapCheck>

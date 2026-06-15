@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { EnvBannerSidebar, EnvBannerMobilePill } from "@/components/ui/env-banner";
+import { VISITOR_LEVEL, MEMBER_LEVEL, ADMIN_LEVEL } from "@/lib/roles";
 
 interface NavItem {
   href: string;
@@ -39,11 +40,6 @@ const MANAGEMENT_ITEMS: NavItem[] = [
   { href: "/admin/audit-log", label: "Audit Log", icon: FileText },
 ];
 
-const SETTINGS_ITEMS: NavItem[] = [
-  { href: "/settings/profile", label: "Profile", icon: UserCircle },
-  { href: "/settings/2fa", label: "Two-Factor Auth", icon: Shield },
-];
-
 interface AppLayoutProps {
   children: ReactNode;
 }
@@ -56,7 +52,10 @@ export function AppLayout({ children }: AppLayoutProps) {
   const queryClient = useQueryClient();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const isAdmin = user?.roles?.some((r) => r.permissionLevel >= 80) ?? false;
+  const level = user?.roles?.reduce((max, r) => Math.max(max, r.permissionLevel), 0) ?? 0;
+  const isVisitorOrAbove = level >= VISITOR_LEVEL;
+  const isMemberOrAbove = level >= MEMBER_LEVEL;
+  const isAdmin = level >= ADMIN_LEVEL;
 
   const handleLogout = () => {
     logout.mutate(undefined, {
@@ -105,10 +104,15 @@ export function AppLayout({ children }: AppLayoutProps) {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {MEMBER_NAV_ITEMS.map((item) => (
+        {/* Dashboard — always shown to any authenticated user */}
+        <NavLink item={MEMBER_NAV_ITEMS[0]} onNav={onNav} />
+
+        {/* Member+ nav items */}
+        {isMemberOrAbove && MEMBER_NAV_ITEMS.slice(1).map((item) => (
           <NavLink key={item.href} item={item} onNav={onNav} />
         ))}
 
+        {/* Management block — admins only */}
         {isAdmin && (
           <div className="pt-3">
             <div className="rounded-md border border-border bg-muted/40 px-1.5 py-1.5 space-y-0.5">
@@ -122,12 +126,18 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
         )}
 
-        <div className="pt-3 pb-1 px-3">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Settings</p>
-        </div>
-        {SETTINGS_ITEMS.map((item) => (
-          <NavLink key={item.href} item={item} onNav={onNav} />
-        ))}
+        {/* Settings — Visitor+ sees 2FA; Member+ also sees Profile */}
+        {isVisitorOrAbove && (
+          <>
+            <div className="pt-3 pb-1 px-3">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Settings</p>
+            </div>
+            {isMemberOrAbove && (
+              <NavLink item={{ href: "/settings/profile", label: "Profile", icon: UserCircle }} onNav={onNav} />
+            )}
+            <NavLink item={{ href: "/settings/2fa", label: "Two-Factor Auth", icon: Shield }} onNav={onNav} />
+          </>
+        )}
       </nav>
 
       <Separator />
