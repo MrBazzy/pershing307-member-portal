@@ -18,24 +18,25 @@ interface NavItem {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  adminOnly?: boolean;
-  pmSuperAdminOnly?: boolean;
 }
 
-const NAV_ITEMS: NavItem[] = [
+const MEMBER_NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tracing-board", label: "Tracing Board", icon: BookOpen },
   { href: "/events", label: "Events", icon: CalendarDays },
   { href: "/birthdays", label: "Birthdays", icon: Cake },
-  { href: "/admin/users", label: "Members", icon: Users, adminOnly: true },
-  { href: "/admin/invitations", label: "Invitations", icon: Mail, adminOnly: true },
-  { href: "/admin/domains", label: "Domains", icon: Globe, adminOnly: true },
-  { href: "/admin/degrees", label: "Degrees", icon: GraduationCap, adminOnly: true },
-  { href: "/admin/tracing-board", label: "Tracing Board", icon: BookOpen, adminOnly: true },
-  { href: "/admin/events", label: "Events Mgmt", icon: CalendarDays, adminOnly: true },
-  { href: "/admin/roadmap", label: "Roadmap", icon: Map, adminOnly: true },
-  { href: "/admin/config", label: "Configuration", icon: Settings, adminOnly: true },
-  { href: "/admin/audit-log", label: "Audit Log", icon: FileText, adminOnly: true },
+];
+
+const MANAGEMENT_ITEMS: NavItem[] = [
+  { href: "/admin/users", label: "Members", icon: Users },
+  { href: "/admin/invitations", label: "Invitations", icon: Mail },
+  { href: "/admin/domains", label: "Domains", icon: Globe },
+  { href: "/admin/degrees", label: "Degrees", icon: GraduationCap },
+  { href: "/admin/tracing-board", label: "Tracing Board", icon: BookOpen },
+  { href: "/admin/events", label: "Events", icon: CalendarDays },
+  { href: "/admin/roadmap", label: "Roadmap", icon: Map },
+  { href: "/admin/config", label: "Configuration", icon: Settings },
+  { href: "/admin/audit-log", label: "Audit Log", icon: FileText },
 ];
 
 const SETTINGS_ITEMS: NavItem[] = [
@@ -56,7 +57,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isAdmin = user?.roles?.some((r) => r.permissionLevel >= 80) ?? false;
-  const isPmSuperAdmin = user?.roles?.some((r) => r.permissionLevel >= 90) ?? false;
 
   const handleLogout = () => {
     logout.mutate(undefined, {
@@ -68,9 +68,26 @@ export function AppLayout({ children }: AppLayoutProps) {
     });
   };
 
-  const visibleNav = NAV_ITEMS.filter(
-    (item) => (!item.adminOnly || isAdmin) && (!item.pmSuperAdminOnly || isPmSuperAdmin)
-  );
+  const NavLink = ({ item, onNav }: { item: NavItem; onNav?: () => void }) => {
+    const active = location === item.href || location.startsWith(item.href + "/");
+    return (
+      <Link
+        href={item.href}
+        onClick={onNav}
+        data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+        className={cn(
+          "flex items-center gap-2.5 px-3 py-2 rounded-sm text-sm transition-colors",
+          active
+            ? "bg-primary text-primary-foreground font-medium"
+            : "text-muted-foreground hover:bg-accent hover:text-foreground"
+        )}
+      >
+        <item.icon className="h-4 w-4 shrink-0" />
+        <span>{item.label}</span>
+        {active && <ChevronRight className="h-3 w-3 ml-auto" />}
+      </Link>
+    );
+  };
 
   const SidebarContent = ({ onNav }: { onNav?: () => void }) => (
     <>
@@ -88,56 +105,29 @@ export function AppLayout({ children }: AppLayoutProps) {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {visibleNav.map((item) => {
-          const active = location === item.href || location.startsWith(item.href + "/");
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onNav}
-              data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
-              className={cn(
-                "flex items-center gap-2.5 px-3 py-2 rounded-sm text-sm transition-colors",
-                active
-                  ? "bg-primary text-primary-foreground font-medium"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
-              )}
-            >
-              <item.icon className="h-4 w-4 shrink-0" />
-              <span>{item.label}</span>
-              {active && <ChevronRight className="h-3 w-3 ml-auto" />}
-            </Link>
-          );
-        })}
+        {MEMBER_NAV_ITEMS.map((item) => (
+          <NavLink key={item.href} item={item} onNav={onNav} />
+        ))}
 
-        {SETTINGS_ITEMS.length > 0 && (
-          <>
-            <div className="pt-3 pb-1 px-3">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Settings</p>
+        {isAdmin && (
+          <div className="pt-3">
+            <div className="rounded-md border border-border bg-muted/40 px-1.5 py-1.5 space-y-0.5">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest px-2 pb-0.5 pt-0.5">
+                Management
+              </p>
+              {MANAGEMENT_ITEMS.map((item) => (
+                <NavLink key={item.href} item={item} onNav={onNav} />
+              ))}
             </div>
-            {SETTINGS_ITEMS.map((item) => {
-              const active = location === item.href || location.startsWith(item.href + "/");
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onNav}
-                  data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
-                  className={cn(
-                    "flex items-center gap-2.5 px-3 py-2 rounded-sm text-sm transition-colors",
-                    active
-                      ? "bg-primary text-primary-foreground font-medium"
-                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                  )}
-                >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  <span>{item.label}</span>
-                  {active && <ChevronRight className="h-3 w-3 ml-auto" />}
-                </Link>
-              );
-            })}
-          </>
+          </div>
         )}
+
+        <div className="pt-3 pb-1 px-3">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Settings</p>
+        </div>
+        {SETTINGS_ITEMS.map((item) => (
+          <NavLink key={item.href} item={item} onNav={onNav} />
+        ))}
       </nav>
 
       <Separator />
