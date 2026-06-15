@@ -9,6 +9,7 @@ import {
   useDeleteLodgeYear,
   useActivateLodgeYear,
   useArchiveLodgeYear,
+  useRestoreLodgeYear,
   useListTracingBoardEntries,
   useCreateTracingBoardEntry,
   useUpdateTracingBoardEntry,
@@ -36,7 +37,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { BookOpen, Plus, Pencil, Trash2, CheckCircle, Archive, Tag, ChevronUp, ChevronDown, EyeOff } from "lucide-react";
+import { BookOpen, Plus, Pencil, Trash2, CheckCircle, Archive, RotateCcw, Tag, ChevronUp, ChevronDown, EyeOff } from "lucide-react";
 
 const VISIBILITY_OPTIONS = [
   { value: "members", label: "All Members" },
@@ -50,7 +51,7 @@ const VISIBILITY_OPTIONS = [
 type VisibilityValue = (typeof VISIBILITY_OPTIONS)[number]["value"];
 type TabKey = "entries" | "categories" | "years";
 
-interface LodgeYear { id: string; title: string; startYear: number; endYear: number; status: string; createdAt: string; updatedAt: string; }
+interface LodgeYear { id: string; title: string; startYear: number; endYear: number; status: string; entryCount: number; createdAt: string; updatedAt: string; }
 interface TBEntry { id: string; lodgeYearId: string; title: string; date: string; startTime: string | null; endTime: string | null; location: string | null; description: string | null; categoryId: string | null; categoryName: string | null; visibility: string; createdBy: string | null; lastModifiedBy: string | null; createdAt: string; updatedAt: string; }
 interface TBCategory { id: string; name: string; slug: string; description: string | null; sortOrder: number; isSystem: boolean; isActive: boolean; createdBy: string | null; lastModifiedBy: string | null; createdAt: string; updatedAt: string; }
 
@@ -106,6 +107,7 @@ export default function AdminTracingBoardPage() {
   const deleteYear = useDeleteLodgeYear();
   const activateYear = useActivateLodgeYear();
   const archiveYear = useArchiveLodgeYear();
+  const restoreYear = useRestoreLodgeYear();
   const createEntry = useCreateTracingBoardEntry();
   const updateEntry = useUpdateTracingBoardEntry();
   const deleteEntry = useDeleteTracingBoardEntry();
@@ -314,7 +316,8 @@ export default function AdminTracingBoardPage() {
 
         {tab === "years" && (
           <div className="space-y-4">
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-muted-foreground">Activating a year moves the current active year back to Draft. Archived years can be restored at any time.</p>
               <Button size="sm" onClick={openCreateYear} data-testid="button-add-year"><Plus className="h-4 w-4 mr-1.5" />New Lodge Year</Button>
             </div>
             {yearsLoading ? (
@@ -331,17 +334,26 @@ export default function AdminTracingBoardPage() {
                           <span className="text-sm font-medium text-foreground">{year.title}</span>
                           <StatusBadge status={year.status} />
                         </div>
-                        <p className="text-xs text-muted-foreground">{year.startYear} – {year.endYear}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {year.startYear} – {year.endYear}
+                          <span className="mx-1.5 text-border">·</span>
+                          {year.entryCount} {year.entryCount === 1 ? "entry" : "entries"}
+                        </p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        {year.status !== "active" && year.status !== "archived" && (
+                        {year.status === "draft" && (
                           <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => activateYear.mutate({ id: year.id }, { onSuccess: () => { toast({ title: `${year.title} activated` }); invalidateAll(); }, onError: () => toast({ title: "Failed to activate", variant: "destructive" }) })}>
                             <CheckCircle className="h-3.5 w-3.5 mr-1" />Activate
                           </Button>
                         )}
-                        {year.status === "active" && (
-                          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => archiveYear.mutate({ id: year.id }, { onSuccess: () => { toast({ title: `${year.title} archived` }); invalidateAll(); }, onError: () => toast({ title: "Failed to archive", variant: "destructive" }) })}>
+                        {(year.status === "draft" || year.status === "active") && (
+                          <Button variant="outline" size="sm" className="h-7 text-xs text-amber-700 border-amber-200 hover:bg-amber-50 hover:text-amber-800" onClick={() => archiveYear.mutate({ id: year.id }, { onSuccess: () => { toast({ title: `${year.title} archived` }); invalidateAll(); }, onError: () => toast({ title: "Failed to archive", variant: "destructive" }) })}>
                             <Archive className="h-3.5 w-3.5 mr-1" />Archive
+                          </Button>
+                        )}
+                        {year.status === "archived" && (
+                          <Button variant="outline" size="sm" className="h-7 text-xs text-blue-700 border-blue-200 hover:bg-blue-50 hover:text-blue-800" onClick={() => restoreYear.mutate({ id: year.id }, { onSuccess: () => { toast({ title: `${year.title} restored to draft` }); invalidateAll(); }, onError: () => toast({ title: "Failed to restore", variant: "destructive" }) })}>
+                            <RotateCcw className="h-3.5 w-3.5 mr-1" />Restore
                           </Button>
                         )}
                         {year.status !== "archived" && (

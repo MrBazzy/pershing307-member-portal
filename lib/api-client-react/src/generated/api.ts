@@ -4828,7 +4828,7 @@ export const getActivateLodgeYearUrl = (id: string,) => {
 }
 
 /**
- * @summary Activate a lodge year (archives any currently active year)
+ * @summary Activate a lodge year (demotes any currently active year to draft)
  */
 export const activateLodgeYear = async (id: string, options?: RequestInit): Promise<LodgeYear> => {
 
@@ -4876,7 +4876,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type ActivateLodgeYearMutationError = ErrorType<void>
 
     /**
- * @summary Activate a lodge year (archives any currently active year)
+ * @summary Activate a lodge year (demotes any currently active year to draft)
  */
 export const useActivateLodgeYear = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof activateLodgeYear>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -4887,6 +4887,76 @@ export const useActivateLodgeYear = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getActivateLodgeYearMutationOptions(options));
+    }
+
+export const getRestoreLodgeYearUrl = (id: string,) => {
+
+
+
+
+  return `/api/lodge-years/${id}/restore`
+}
+
+/**
+ * @summary Restore an archived lodge year to draft
+ */
+export const restoreLodgeYear = async (id: string, options?: RequestInit): Promise<LodgeYear> => {
+
+  return customFetch<LodgeYear>(getRestoreLodgeYearUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRestoreLodgeYearMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof restoreLodgeYear>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof restoreLodgeYear>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['restoreLodgeYear'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof restoreLodgeYear>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  restoreLodgeYear(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RestoreLodgeYearMutationResult = NonNullable<Awaited<ReturnType<typeof restoreLodgeYear>>>
+
+    export type RestoreLodgeYearMutationError = ErrorType<void>
+
+    /**
+ * @summary Restore an archived lodge year to draft
+ */
+export const useRestoreLodgeYear = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof restoreLodgeYear>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof restoreLodgeYear>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getRestoreLodgeYearMutationOptions(options));
     }
 
 export const getArchiveLodgeYearUrl = (id: string,) => {

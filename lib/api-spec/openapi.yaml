@@ -1370,7 +1370,7 @@ paths:
     post:
       operationId: activateLodgeYear
       tags: [lodge-years]
-      summary: Activate a lodge year (archives any currently active year)
+      summary: Activate a lodge year (demotes any currently active year to draft)
       parameters:
         - name: id
           in: path
@@ -1380,6 +1380,29 @@ paths:
       responses:
         "200":
           description: Activated lodge year
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LodgeYear"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /lodge-years/{id}/restore:
+    post:
+      operationId: restoreLodgeYear
+      tags: [lodge-years]
+      summary: Restore an archived lodge year to draft
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Restored lodge year
           content:
             application/json:
               schema:
@@ -2801,7 +2824,7 @@ components:
 
     LodgeYear:
       type: object
-      required: [id, title, startYear, endYear, status, createdAt, updatedAt]
+      required: [id, title, startYear, endYear, status, entryCount, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -2814,6 +2837,8 @@ components:
         status:
           type: string
           enum: [draft, active, archived]
+        entryCount:
+          type: integer
         createdAt:
           type: string
         updatedAt:

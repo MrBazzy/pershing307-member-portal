@@ -1032,6 +1032,7 @@ export const ListLodgeYearsResponse = zod.object({
   "startYear": zod.number(),
   "endYear": zod.number(),
   "status": zod.enum(['draft', 'active', 'archived']),
+  "entryCount": zod.number(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 }))
@@ -1068,6 +1069,7 @@ export const GetActiveLodgeYearResponse = zod.object({
   "startYear": zod.number(),
   "endYear": zod.number(),
   "status": zod.enum(['draft', 'active', 'archived']),
+  "entryCount": zod.number(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 }),zod.null()])
@@ -1103,6 +1105,7 @@ export const UpdateLodgeYearResponse = zod.object({
   "startYear": zod.number(),
   "endYear": zod.number(),
   "status": zod.enum(['draft', 'active', 'archived']),
+  "entryCount": zod.number(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -1122,7 +1125,7 @@ export const DeleteLodgeYearResponse = zod.object({
 
 
 /**
- * @summary Activate a lodge year (archives any currently active year)
+ * @summary Activate a lodge year (demotes any currently active year to draft)
  */
 export const ActivateLodgeYearParams = zod.object({
   "id": zod.coerce.string()
@@ -1134,6 +1137,26 @@ export const ActivateLodgeYearResponse = zod.object({
   "startYear": zod.number(),
   "endYear": zod.number(),
   "status": zod.enum(['draft', 'active', 'archived']),
+  "entryCount": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Restore an archived lodge year to draft
+ */
+export const RestoreLodgeYearParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const RestoreLodgeYearResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "startYear": zod.number(),
+  "endYear": zod.number(),
+  "status": zod.enum(['draft', 'active', 'archived']),
+  "entryCount": zod.number(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -1152,6 +1175,7 @@ export const ArchiveLodgeYearResponse = zod.object({
   "startYear": zod.number(),
   "endYear": zod.number(),
   "status": zod.enum(['draft', 'active', 'archived']),
+  "entryCount": zod.number(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })

@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
-import { lodgeYearsTable } from "@workspace/db/schema";
-import { eq, and } from "drizzle-orm";
+import { lodgeYearsTable, tracingBoardEntriesTable } from "@workspace/db/schema";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 import { writeAuditLog, getClientIp } from "../lib/audit";
@@ -23,13 +23,14 @@ const updateSchema = z.object({
   endYear: z.number().int().min(2000).max(2100).optional(),
 });
 
-function formatYear(y: typeof lodgeYearsTable.$inferSelect) {
+function formatYear(y: typeof lodgeYearsTable.$inferSelect, entryCount = 0) {
   return {
     id: y.id,
     title: y.title,
     startYear: y.startYear,
     endYear: y.endYear,
     status: y.status,
+    entryCount,
     createdAt: y.createdAt.toISOString(),
     updatedAt: y.updatedAt.toISOString(),
   };
@@ -45,7 +46,22 @@ router.get("/", requireAuth(), async (req, res) => {
     .where(eq(lodgeYearsTable.lodgeId, lodgeId))
     .orderBy(lodgeYearsTable.startYear);
 
-  res.json({ years: years.map(formatYear) });
+  const yearIds = years.map((y) => y.id);
+  const countMap = new Map<string, number>();
+
+  if (yearIds.length > 0) {
+    const counts = await db
+      .select({
+        lodgeYearId: tracingBoardEntriesTable.lodgeYearId,
+        count: sql<number>`cast(count(*) as int)`,
+      })
+      .from(tracingBoardEntriesTable)
+      .where(inArray(tracingBoardEntriesTable.lodgeYearId, yearIds))
+      .groupBy(tracingBoardEntriesTable.lodgeYearId);
+    counts.forEach((c) => countMap.set(c.lodgeYearId, c.count));
+  }
+
+  res.json({ years: years.map((y) => formatYear(y, countMap.get(y.id) ?? 0)) });
 });
 
 router.get("/active", requireAuth(), async (req, res) => {
@@ -134,11 +150,12 @@ router.post("/:id/activate", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async
     .where(and(eq(lodgeYearsTable.id, yearId), eq(lodgeYearsTable.lodgeId, lodgeId!)))
     .limit(1);
   if (existing.length === 0) { res.status(404).json({ error: "Lodge year not found" }); return; }
-  if (existing[0].status === "archived") { res.status(400).json({ error: "Cannot activate an archived year" }); return; }
+  if (existing[0].status === "archived") { res.status(400).json({ error: "Cannot activate an archived year. Restore it to draft first." }); return; }
+  if (existing[0].status === "active") { res.status(400).json({ error: "This lodge year is already active." }); return; }
 
   await db
     .update(lodgeYearsTable)
-    .set({ status: "archived", updatedAt: new Date() })
+    .set({ status: "draft", updatedAt: new Date() })
     .where(and(eq(lodgeYearsTable.lodgeId, lodgeId!), eq(lodgeYearsTable.status, "active")));
 
   const [year] = await db
@@ -178,6 +195,35 @@ router.post("/:id/archive", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async 
 
   await writeAuditLog({
     lodgeId, actorId, action: "LODGE_YEAR_ARCHIVED",
+    targetType: "lodge_year", targetId: year.id,
+    detail: { title: year.title },
+    ipAddress: getClientIp(req),
+  });
+
+  res.json(formatYear(year));
+});
+
+router.post("/:id/restore", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const yearId = String(req.params.id);
+  const lodgeId = await getLodgeId();
+  const actorId = req.session!.userId!;
+
+  const existing = await db
+    .select()
+    .from(lodgeYearsTable)
+    .where(and(eq(lodgeYearsTable.id, yearId), eq(lodgeYearsTable.lodgeId, lodgeId!)))
+    .limit(1);
+  if (existing.length === 0) { res.status(404).json({ error: "Lodge year not found" }); return; }
+  if (existing[0].status !== "archived") { res.status(400).json({ error: "Only archived lodge years can be restored." }); return; }
+
+  const [year] = await db
+    .update(lodgeYearsTable)
+    .set({ status: "draft", updatedAt: new Date() })
+    .where(eq(lodgeYearsTable.id, yearId))
+    .returning();
+
+  await writeAuditLog({
+    lodgeId, actorId, action: "LODGE_YEAR_RESTORED",
     targetType: "lodge_year", targetId: year.id,
     detail: { title: year.title },
     ipAddress: getClientIp(req),

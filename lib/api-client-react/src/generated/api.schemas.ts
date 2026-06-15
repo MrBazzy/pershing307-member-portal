@@ -679,6 +679,7 @@ export interface LodgeYear {
   startYear: number;
   endYear: number;
   status: LodgeYearStatus;
+  entryCount: number;
   createdAt: string;
   updatedAt: string;
 }
