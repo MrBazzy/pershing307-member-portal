@@ -30,7 +30,7 @@ const PM_SUPER_ADMIN_LEVEL = 90;
 const PRIVILEGED_ROLE_SLUGS = new Set(["site-administrator", "pm-super-administrator"]);
 
 const listQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(200).default(50),
+  limit: z.coerce.number().int().min(1).max(1000).default(50),
   offset: z.coerce.number().int().min(0).default(0),
   search: z.string().optional(),
 });

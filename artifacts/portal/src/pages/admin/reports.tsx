@@ -80,7 +80,7 @@ export default function AdminReportsPage() {
     );
   });
 
-  const allBirthdayEntries = (birthdayData?.months ?? []).flatMap(m => m.entries);
+  const allBirthdayEntries = (birthdayData?.months ?? []).flatMap(m => m.entries ?? []);
   const upcomingBirthdays = allBirthdayEntries
     .filter(b => b.daysUntil >= 0 && b.daysUntil <= birthdayWindow)
     .sort((a, b) => a.daysUntil - b.daysUntil);
