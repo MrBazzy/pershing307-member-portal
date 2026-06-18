@@ -177,7 +177,7 @@ export default function TracingBoardPage() {
                       >
                         <div className="py-3 px-4">
                           <div className="flex items-start gap-3">
-                            <DateBadge date={entry.date} size="md" />
+                            <DateBadge date={entry.date} size="md" variant="amber" />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
                                 <p className="text-sm font-medium text-foreground leading-snug">{entry.title}</p>
