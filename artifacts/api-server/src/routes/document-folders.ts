@@ -1,13 +1,14 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
-import { documentFoldersTable, userRolesTable, rolesTable, usersTable } from "@workspace/db/schema";
+import { documentFoldersTable, usersTable } from "@workspace/db/schema";
 import type { FolderAccessPolicy } from "@workspace/db/schema";
 import { eq, and, isNull, isNotNull, asc, count, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 import { writeAuditLog, getClientIp } from "../lib/audit";
 import { getLodgeId } from "../lib/config";
+import { getUserVisibilityContext } from "../lib/visibility";
 
 const router = Router();
 
@@ -54,19 +55,19 @@ const DEFAULT_ROOT_FOLDERS: {
   {
     title: "Entered Apprentice Ritual",
     description: "Ritual documents for the Entered Apprentice degree.",
-    accessPolicy: { type: "roles", slugs: ["entered-apprentice", "fellowcraft", "master-mason", "past-master", "worshipful-master", "site-administrator", "pm-super-administrator"] },
+    accessPolicy: { type: "degree", minDegree: 1 },
     sortOrder: 6,
   },
   {
     title: "Fellowcraft Ritual",
     description: "Ritual documents for the Fellowcraft degree.",
-    accessPolicy: { type: "roles", slugs: ["fellowcraft", "master-mason", "past-master", "worshipful-master", "site-administrator", "pm-super-administrator"] },
+    accessPolicy: { type: "degree", minDegree: 2 },
     sortOrder: 7,
   },
   {
     title: "Master Mason Ritual",
     description: "Ritual documents for the Master Mason degree.",
-    accessPolicy: { type: "roles", slugs: ["master-mason", "past-master", "worshipful-master", "site-administrator", "pm-super-administrator"] },
+    accessPolicy: { type: "degree", minDegree: 3 },
     sortOrder: 8,
   },
   {
@@ -81,22 +82,18 @@ function canAccess(
   policy: FolderAccessPolicy,
   userLevel: number,
   userSlugs: string[],
+  maxDegree: number,
 ): boolean {
   if (policy.type === "member") return userLevel >= MEMBER_LEVEL;
   if (policy.type === "roles") return policy.slugs.some((s) => userSlugs.includes(s));
+  if (policy.type === "degree") {
+    // Degree hierarchy: user's maxDegree must meet the minimum.
+    // Past Master and Worshipful Master implicitly have full degree access.
+    const degreeAccess = maxDegree >= policy.minDegree;
+    const roleAccess = userSlugs.includes("past-master") || userSlugs.includes("worshipful-master");
+    return degreeAccess || roleAccess;
+  }
   return false;
-}
-
-async function getUserRoleInfo(userId: string): Promise<{ level: number; slugs: string[] }> {
-  const rows = await db
-    .select({ permissionLevel: rolesTable.permissionLevel, slug: rolesTable.slug })
-    .from(userRolesTable)
-    .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
-    .where(eq(userRolesTable.userId, userId));
-  return {
-    level: rows.reduce((max, r) => Math.max(max, r.permissionLevel), 0),
-    slugs: rows.map((r) => r.slug),
-  };
 }
 
 async function seedDefaultFolders(lodgeId: string, userId: string): Promise<void> {
@@ -157,7 +154,7 @@ router.get("/", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) => {
   const lodgeId = await getLodgeId();
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
 
-  const { level, slugs } = await getUserRoleInfo(userId);
+  const { maxPermLevel: level, roleSlugs: slugs, maxDegree } = await getUserVisibilityContext(userId);
 
   // Seed default folders if none exist
   const rootCount = await db
@@ -178,7 +175,7 @@ router.get("/", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) => {
   // Filter to accessible ones
   const accessible = rootFolders.filter((f) => {
     if (!f.accessPolicy) return false;
-    return canAccess(f.accessPolicy as FolderAccessPolicy, level, slugs);
+    return canAccess(f.accessPolicy as FolderAccessPolicy, level, slugs, maxDegree);
   });
 
   if (accessible.length === 0) {
@@ -211,7 +208,7 @@ router.get("/:id", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) =>
   const lodgeId = await getLodgeId();
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
 
-  const { level, slugs } = await getUserRoleInfo(userId);
+  const { maxPermLevel: level, roleSlugs: slugs, maxDegree } = await getUserVisibilityContext(userId);
 
   // Fetch the folder + all its siblings/parents to resolve inherited policy
   const folder = await db
@@ -233,7 +230,7 @@ router.get("/:id", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) =>
     effectivePolicy = await getRootPolicy(folder, allFolders);
   }
 
-  if (!effectivePolicy || !canAccess(effectivePolicy, level, slugs)) {
+  if (!effectivePolicy || !canAccess(effectivePolicy, level, slugs, maxDegree)) {
     res.status(403).json({ error: "Access denied" });
     return;
   }

@@ -1,0 +1,116 @@
+DOCUMENTS-BUG-002 — Implement degree-based access for Ritual folders
+
+STEP 0 — Safety
+
+Before making changes:
+- Create Replit checkpoint/snapshot.
+- Create git tag if possible:
+
+v3.7-before-document-degree-policy-fix
+
+- Confirm build passes before implementation.
+
+Root cause confirmed:
+The Documents module currently uses a role-only helper in document-folders.ts.
+It reads user_roles but does not read user_degrees.
+
+The correct shared visibility engine already exists:
+
+artifacts/api-server/src/lib/visibility.ts
+
+It reads:
+- user_degrees
+- user_roles
+
+and correctly calculates:
+- maxDegree
+- roleSlugs
+- maxPermLevel
+
+Required fix:
+
+1. Replace the role-only access logic in document-folders.ts with the existing shared visibility engine:
+
+getUserVisibilityContext()
+
+2. Extend FolderAccessPolicy to support degree-based policy:
+
+{ type: "degree"; minDegree: number }
+
+3. Configure ritual folders as:
+
+Entered Apprentice Ritual:
+{ type: "degree", minDegree: 1 }
+
+Fellowcraft Ritual:
+{ type: "degree", minDegree: 2 }
+
+Master Mason Ritual:
+{ type: "degree", minDegree: 3 }
+
+Past Master Ritual:
+Keep role-based:
+{ type: "roles", slugs: ["past-master", "worshipful-master", "pm-super-administrator"] }
+
+4. Preserve role-based access for general folders.
+
+General folders must continue to use role/member policy logic.
+
+5. Preserve rule:
+Site Administrator does not automatically receive read access to restricted folders.
+
+6. Backend enforcement:
+Folder visibility must be enforced server-side.
+Do not rely only on frontend filtering.
+
+Acceptance tests:
+
+- Entered Apprentice sees:
+  - Entered Apprentice Ritual
+  - General Documents
+  - Meeting Minutes
+
+- Entered Apprentice does NOT see:
+  - Fellowcraft Ritual
+  - Master Mason Ritual
+  - Past Master Ritual
+
+- Fellowcraft sees:
+  - Entered Apprentice Ritual
+  - Fellowcraft Ritual
+
+- Fellowcraft does NOT see:
+  - Master Mason Ritual
+  - Past Master Ritual
+
+- Master Mason sees:
+  - Entered Apprentice Ritual
+  - Fellowcraft Ritual
+  - Master Mason Ritual
+
+- Master Mason does NOT see:
+  - Past Master Ritual
+
+- Past Master sees:
+  - Entered Apprentice Ritual
+  - Fellowcraft Ritual
+  - Master Mason Ritual
+  - Past Master Ritual
+
+- Worshipful Master sees:
+  - Entered Apprentice Ritual
+  - Fellowcraft Ritual
+  - Master Mason Ritual
+  - Past Master Ritual
+
+- Visitor does not see Documents.
+
+- Site Administrator without degree/role does not automatically see ritual folders.
+
+- PM Super Administrator sees Past Master Ritual.
+
+After implementation:
+- Confirm build passes.
+- Confirm Documents page loads.
+- Confirm folder visibility works for EA, FC, MM, Past Master, WM, Site Admin and Visitor.
+- Provide files changed.

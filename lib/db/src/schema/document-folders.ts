@@ -4,7 +4,8 @@ import { usersTable } from "./users";
 
 export type FolderAccessPolicy =
   | { type: "member" }
-  | { type: "roles"; slugs: string[] };
+  | { type: "roles"; slugs: string[] }
+  | { type: "degree"; minDegree: number };
 
 export const documentFoldersTable = pgTable("document_folders", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
