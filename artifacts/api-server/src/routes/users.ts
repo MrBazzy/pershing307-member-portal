@@ -14,7 +14,7 @@ import {
   passwordHistoryTable,
   auditLogsTable,
 } from "@workspace/db/schema";
-import { eq, and, or, ilike, count } from "drizzle-orm";
+import { eq, and, or, ilike, count, inArray } from "drizzle-orm";
 import { writeAuditLog, getClientIp } from "../lib/audit";
 import { getLodgeId, getConfig } from "../lib/config";
 import { requireAuth } from "../middlewares/requireAuth";
@@ -86,7 +86,28 @@ router.get("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) =
       .offset(offset),
   ]);
 
-  res.json({ users, total: totalResult[0]?.count ?? 0, limit, offset });
+  const userIds = users.map((u) => u.id);
+  const rolesMap = new Map<string, Array<{ id: string; name: string; slug: string; permissionLevel: number }>>();
+  if (userIds.length > 0) {
+    const allRoles = await db
+      .select({
+        userId: userRolesTable.userId,
+        id: rolesTable.id,
+        name: rolesTable.name,
+        slug: rolesTable.slug,
+        permissionLevel: rolesTable.permissionLevel,
+      })
+      .from(userRolesTable)
+      .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
+      .where(inArray(userRolesTable.userId, userIds));
+    for (const r of allRoles) {
+      if (!rolesMap.has(r.userId)) rolesMap.set(r.userId, []);
+      rolesMap.get(r.userId)!.push({ id: r.id, name: r.name, slug: r.slug, permissionLevel: r.permissionLevel });
+    }
+  }
+  const usersWithRoles = users.map((u) => ({ ...u, roles: rolesMap.get(u.id) ?? [] }));
+
+  res.json({ users: usersWithRoles, total: totalResult[0]?.count ?? 0, limit, offset });
 });
 
 router.get("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {

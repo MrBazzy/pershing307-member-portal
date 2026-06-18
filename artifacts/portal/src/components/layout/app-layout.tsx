@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Users, Mail, FileText, LogOut, ChevronRight,
   Shield, Globe, Settings, Menu, X, Cake, Map, UserCircle,
-  BookOpen, CalendarDays, Landmark, Fingerprint, FolderOpen,
+  BookOpen, CalendarDays, Landmark, Fingerprint, FolderOpen, BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -40,6 +40,7 @@ const MANAGEMENT_ITEMS: NavItem[] = [
   { href: "/admin/events", label: "Events", icon: CalendarDays },
   { href: "/admin/history", label: "History", icon: Landmark },
   { href: "/admin/roadmap", label: "Roadmap", icon: Map },
+  { href: "/admin/reports", label: "Reports", icon: BarChart3 },
   { href: "/admin/config", label: "Configuration", icon: Settings },
   { href: "/admin/audit-log", label: "Audit Log", icon: FileText },
 ];

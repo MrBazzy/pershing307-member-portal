@@ -310,7 +310,13 @@ export const ListUsersResponse = zod.object({
   "membershipStatus": zod.string().nullish(),
   "isActive": zod.boolean(),
   "lastLoginAt": zod.string().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "roles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "permissionLevel": zod.number()
+})).optional()
 })),
   "total": zod.number(),
   "limit": zod.number(),

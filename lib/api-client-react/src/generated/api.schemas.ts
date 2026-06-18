@@ -177,6 +177,13 @@ export interface ResetPasswordInput {
   password: string;
 }
 
+export interface RoleDetail {
+  id: string;
+  name: string;
+  slug: string;
+  permissionLevel: number;
+}
+
 export interface UserSummary {
   id: string;
   email: string;
@@ -190,6 +197,7 @@ export interface UserSummary {
   /** @nullable */
   lastLoginAt?: string | null;
   createdAt: string;
+  roles?: RoleDetail[];
 }
 
 export interface UserListResult {
@@ -197,13 +205,6 @@ export interface UserListResult {
   total: number;
   limit: number;
   offset: number;
-}
-
-export interface RoleDetail {
-  id: string;
-  name: string;
-  slug: string;
-  permissionLevel: number;
 }
 
 export type UserDetailBirthdayVisibility = typeof UserDetailBirthdayVisibility[keyof typeof UserDetailBirthdayVisibility];

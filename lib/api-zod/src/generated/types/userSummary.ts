@@ -5,6 +5,7 @@
  * Pershing307 Member Portal API
  * OpenAPI spec version: 0.2.0
  */
+import type { RoleDetail } from './roleDetail';
 
 export interface UserSummary {
   id: string;
@@ -19,4 +20,5 @@ export interface UserSummary {
   /** @nullable */
   lastLoginAt?: string | null;
   createdAt: string;
+  roles?: RoleDetail[];
 }
