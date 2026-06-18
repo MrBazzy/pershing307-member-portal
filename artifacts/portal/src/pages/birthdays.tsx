@@ -161,6 +161,7 @@ export default function BirthdaysPage() {
                             <DateBadge
                               month={b.month}
                               day={b.day}
+                              year={b.year}
                               variant="amber"
                               size="md"
                             />
