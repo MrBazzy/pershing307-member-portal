@@ -4,6 +4,8 @@ import {
   useListUsers,
   useListBirthdays,
   useListEvents,
+  useGetMemberDetailsReport,
+  type MemberDetailItem,
 } from "@workspace/api-client-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import {
   BarChart3, Users, Cake, CalendarDays, UserPlus, Printer, Search,
-  TrendingUp, CircleUser,
+  TrendingUp, CircleUser, FileText,
 } from "lucide-react";
 import { format, subDays, isAfter, isBefore, parseISO } from "date-fns";
 import { VISITOR_LEVEL, MEMBER_LEVEL, ADMIN_LEVEL } from "@/lib/roles";
@@ -48,10 +50,61 @@ function StatCard({ label, value, sub, icon: Icon, color }: {
   );
 }
 
+const DEGREE_ABBR: Record<number, string> = { 1: "EA", 2: "FC", 3: "MM" };
+
+function MemberDetailRow({ member, index }: { member: MemberDetailItem; index: number }) {
+  return (
+    <tr className="hover:bg-muted/30 transition-colors align-top print:hover:bg-transparent">
+      <td className="px-3 py-2.5 text-muted-foreground text-xs tabular-nums">{index}</td>
+      <td className="px-3 py-2.5 font-medium text-foreground text-sm whitespace-nowrap">
+        {member.lastName}, {member.firstName}
+      </td>
+      <td className="px-3 py-2.5 text-muted-foreground text-xs">{member.email}</td>
+      <td className="px-3 py-2.5 text-muted-foreground text-xs whitespace-nowrap">
+        {member.dateOfBirth ? format(parseISO(member.dateOfBirth), "MMM d, yyyy") : "—"}
+      </td>
+      <td className="px-3 py-2.5 text-muted-foreground text-xs whitespace-nowrap">
+        {format(parseISO(member.createdAt), "MMM d, yyyy")}
+      </td>
+      <td className="px-3 py-2.5 text-muted-foreground text-xs whitespace-nowrap">
+        {member.lastLoginAt ? format(parseISO(member.lastLoginAt), "MMM d, yyyy") : "—"}
+      </td>
+      <td className="px-3 py-2.5">
+        {member.roles.length === 0 ? (
+          <span className="text-xs text-muted-foreground/50 italic">None</span>
+        ) : (
+          <div className="space-y-0.5">
+            {member.roles.map((r) => (
+              <div key={r.slug} className="text-xs text-foreground leading-snug">{r.name}</div>
+            ))}
+          </div>
+        )}
+      </td>
+      <td className="px-3 py-2.5">
+        {member.degrees.length === 0 ? (
+          <span className="text-xs text-muted-foreground/50 italic">None</span>
+        ) : (
+          <div className="space-y-0.5">
+            {member.degrees.map((d) => (
+              <div key={d.degree} className="text-xs leading-snug whitespace-nowrap">
+                <span className="font-semibold text-foreground">{DEGREE_ABBR[d.degree] ?? `Deg ${d.degree}`}</span>
+                {d.conferredOn && (
+                  <span className="text-muted-foreground"> · {format(parseISO(d.conferredOn), "MMM d, yyyy")}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </td>
+    </tr>
+  );
+}
+
 export default function AdminReportsPage() {
   const { data: usersData, isLoading: usersLoading } = useListUsers({ limit: 1000, offset: 0 });
   const { data: birthdayData, isLoading: birthdaysLoading } = useListBirthdays();
   const { data: eventsData, isLoading: eventsLoading } = useListEvents({});
+  const { data: memberDetailsData, isLoading: memberDetailsLoading } = useGetMemberDetailsReport();
 
   const [rosterSearch, setRosterSearch] = useState("");
   const [birthdayWindow, setBirthdayWindow] = useState<30 | 60 | 90>(30);
@@ -80,7 +133,7 @@ export default function AdminReportsPage() {
     );
   });
 
-  const allBirthdayEntries = (birthdayData?.months ?? []).flatMap(m => m.entries ?? []);
+  const allBirthdayEntries = (birthdayData?.months ?? []).flatMap(m => m.birthdays ?? []);
   const upcomingBirthdays = allBirthdayEntries
     .filter(b => b.daysUntil >= 0 && b.daysUntil <= birthdayWindow)
     .sort((a, b) => a.daysUntil - b.daysUntil);
@@ -130,6 +183,7 @@ export default function AdminReportsPage() {
             <TabsTrigger value="birthdays">Birthdays</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="new-members">New Members</TabsTrigger>
+            <TabsTrigger value="member-details">Member Details</TabsTrigger>
           </TabsList>
 
           {/* ── OVERVIEW ── */}
@@ -421,6 +475,68 @@ export default function AdminReportsPage() {
                   )}
                 </div>
               </>
+            )}
+          </TabsContent>
+
+          {/* ── MEMBER DETAILS ── */}
+          <TabsContent value="member-details" className="space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-sm text-muted-foreground">
+                Full member records — name, email, date of birth, joined date, last login, all roles, and all degrees with conferred dates.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => window.print()}
+                className="shrink-0"
+              >
+                <Printer className="h-4 w-4 mr-1.5" />
+                Print
+              </Button>
+            </div>
+
+            {memberDetailsLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 rounded-lg" />
+                ))}
+              </div>
+            ) : !memberDetailsData?.members?.length ? (
+              <Card className="border-card-border border-dashed">
+                <CardContent className="py-12 text-center">
+                  <FileText className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">No member records found.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-card-border overflow-hidden">
+                <CardHeader className="pb-0 pt-3 px-4">
+                  <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    {memberDetailsData.members.length} member{memberDetailsData.members.length !== 1 ? "s" : ""}
+                  </CardTitle>
+                </CardHeader>
+                <div className="overflow-x-auto mt-2">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-y border-card-border bg-muted/40">
+                        <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide w-8">#</th>
+                        <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Name</th>
+                        <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Email</th>
+                        <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Date of Birth</th>
+                        <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Joined</th>
+                        <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Last Login</th>
+                        <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Roles</th>
+                        <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Degrees</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-card-border">
+                      {memberDetailsData.members.map((m, i) => (
+                        <MemberDetailRow key={m.id} member={m} index={i + 1} />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
             )}
           </TabsContent>
 

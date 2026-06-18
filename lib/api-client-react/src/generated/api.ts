@@ -96,6 +96,7 @@ import type {
   LodgeYearListResult,
   LoginInput,
   LoginResult,
+  MemberDetailReport,
   PasskeyAuthenticationResponse,
   PasskeyListResult,
   PasskeyLoginResult,
@@ -4200,6 +4201,83 @@ export const useUpdateDateOfBirth = <TError = ErrorType<void>,
       > => {
       return useMutation(getUpdateDateOfBirthMutationOptions(options));
     }
+
+export const getGetMemberDetailsReportUrl = () => {
+
+
+
+
+  return `/api/reports/member-details`
+}
+
+/**
+ * @summary Full member details report (name, email, DOB, roles, degrees, dates)
+ */
+export const getMemberDetailsReport = async ( options?: RequestInit): Promise<MemberDetailReport> => {
+
+  return customFetch<MemberDetailReport>(getGetMemberDetailsReportUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMemberDetailsReportQueryKey = () => {
+    return [
+    `/api/reports/member-details`
+    ] as const;
+    }
+
+
+export const getGetMemberDetailsReportQueryOptions = <TData = Awaited<ReturnType<typeof getMemberDetailsReport>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMemberDetailsReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMemberDetailsReportQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMemberDetailsReport>>> = ({ signal }) => getMemberDetailsReport({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMemberDetailsReport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMemberDetailsReportQueryResult = NonNullable<Awaited<ReturnType<typeof getMemberDetailsReport>>>
+export type GetMemberDetailsReportQueryError = ErrorType<void>
+
+
+/**
+ * @summary Full member details report (name, email, DOB, roles, degrees, dates)
+ */
+
+export function useGetMemberDetailsReport<TData = Awaited<ReturnType<typeof getMemberDetailsReport>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMemberDetailsReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMemberDetailsReportQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getListRoadmapItemsUrl = () => {
 

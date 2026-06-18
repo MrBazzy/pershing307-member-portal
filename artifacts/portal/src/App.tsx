@@ -197,9 +197,9 @@ function AppRoutes() {
         <Route path="/birthdays" component={() => <ProtectedRoute component={BirthdaysPage} minLevel={MEMBER_LEVEL} />} />
         <Route path="/documents" component={() => <ProtectedRoute component={DocumentsPage} minLevel={MEMBER_LEVEL} />} />
         <Route path="/documents/:id">
-          {(params: { id: string } | null) => (
+          {(params) => (
             <ProtectedRoute
-              component={() => <DocumentsFolderPage id={params?.id ?? ""} />}
+              component={() => <DocumentsFolderPage id={(params as { id: string } | null)?.id ?? ""} />}
               minLevel={MEMBER_LEVEL}
             />
           )}

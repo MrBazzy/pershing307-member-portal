@@ -1525,6 +1525,36 @@ export interface DocumentDomainAccessUpdateInput {
   minDegree?: number | null;
 }
 
+export interface MemberDetailRoleItem {
+  slug: string;
+  name: string;
+  permissionLevel: number;
+}
+
+export interface MemberDetailDegreeItem {
+  degree: number;
+  conferredOn?: string | null;
+  notes?: string | null;
+}
+
+export interface MemberDetailItem {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  membershipStatus: string;
+  isActive: boolean;
+  dateOfBirth?: string | null;
+  createdAt: string;
+  lastLoginAt?: string | null;
+  roles: MemberDetailRoleItem[];
+  degrees: MemberDetailDegreeItem[];
+}
+
+export interface MemberDetailReport {
+  members: MemberDetailItem[];
+}
+
 export type ListUsersParams = {
 /**
  * @minimum 1

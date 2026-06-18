@@ -43,6 +43,8 @@ tags:
     description: Lodge history, timeline, and historical documents
   - name: storage
     description: Object storage upload and serving endpoints
+  - name: reports
+    description: Administrative reports and exports
 paths:
   /healthz:
     get:
@@ -1188,6 +1190,25 @@ paths:
           description: Forbidden
         "404":
           description: User not found
+
+  /reports/member-details:
+    get:
+      operationId: getMemberDetailsReport
+      tags: [reports]
+      summary: Full member details report (name, email, DOB, roles, degrees, dates)
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Member details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberDetailReport"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
 
   /roadmap:
     get:
@@ -4832,3 +4853,69 @@ components:
           minimum: 1
           maximum: 3
           nullable: true
+
+    MemberDetailRoleItem:
+      type: object
+      required: [slug, name, permissionLevel]
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        permissionLevel:
+          type: integer
+
+    MemberDetailDegreeItem:
+      type: object
+      required: [degree]
+      properties:
+        degree:
+          type: integer
+        conferredOn:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    MemberDetailItem:
+      type: object
+      required: [id, firstName, lastName, email, membershipStatus, isActive, createdAt, roles, degrees]
+      properties:
+        id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        membershipStatus:
+          type: string
+        isActive:
+          type: boolean
+        dateOfBirth:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        lastLoginAt:
+          type: string
+          nullable: true
+        roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemberDetailRoleItem"
+        degrees:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemberDetailDegreeItem"
+
+    MemberDetailReport:
+      type: object
+      required: [members]
+      properties:
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemberDetailItem"

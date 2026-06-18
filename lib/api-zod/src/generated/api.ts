@@ -957,6 +957,34 @@ export const UpdateDateOfBirthResponse = zod.object({
 
 
 /**
+ * @summary Full member details report (name, email, DOB, roles, degrees, dates)
+ */
+export const GetMemberDetailsReportResponse = zod.object({
+  "members": zod.array(zod.object({
+  "id": zod.string(),
+  "firstName": zod.string(),
+  "lastName": zod.string(),
+  "email": zod.string(),
+  "membershipStatus": zod.string(),
+  "isActive": zod.boolean(),
+  "dateOfBirth": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "lastLoginAt": zod.string().nullish(),
+  "roles": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "permissionLevel": zod.number()
+})),
+  "degrees": zod.array(zod.object({
+  "degree": zod.number(),
+  "conferredOn": zod.string().nullish(),
+  "notes": zod.string().nullish()
+}))
+}))
+})
+
+
+/**
  * @summary List roadmap items (visible only for members, all for admins)
  */
 export const ListRoadmapItemsResponse = zod.object({
