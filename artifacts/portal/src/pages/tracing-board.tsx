@@ -66,6 +66,14 @@ function formatTime(start: string | null, end: string | null): string | null {
   return end ? `${start} – ${end}` : start;
 }
 
+const IMPORTANT_KEYWORDS = [
+  "stated meeting", "installation meeting", "installation", "annual meeting", "annual communication",
+];
+function isImportantEntry(title: string): boolean {
+  const lower = title.toLowerCase();
+  return IMPORTANT_KEYWORDS.some((k) => lower.includes(k));
+}
+
 export default function TracingBoardPage() {
   const { data: yearsData, isLoading: yearsLoading } = useListLodgeYears();
   const { data: activeData } = useGetActiveLodgeYear();
@@ -158,44 +166,52 @@ export default function TracingBoardPage() {
                   {group.label}
                 </h2>
                 <div className="space-y-2">
-                  {group.entries.map((entry) => (
-                    <Card key={entry.id} className="border-card-border hover:border-primary/30 transition-colors">
-                      <CardContent className="py-3 px-4">
-                        <div className="flex items-start gap-3">
-                          <DateBadge date={entry.date} size="md" />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2">
-                              <p className="text-sm font-medium text-foreground leading-snug">{entry.title}</p>
-                              {entry.categoryName && (
-                                <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded shrink-0">
-                                  {entry.categoryName}
-                                </span>
+                  {group.entries.map((entry) => {
+                    const important = isImportantEntry(entry.title);
+                    return (
+                      <div
+                        key={entry.id}
+                        className={important
+                          ? "border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md bg-card overflow-hidden hover:border-primary/30 transition-colors"
+                          : "border border-card-border rounded-xl shadow-sm bg-card overflow-hidden hover:shadow-md transition-shadow"}
+                      >
+                        <div className="py-3 px-4">
+                          <div className="flex items-start gap-3">
+                            <DateBadge date={entry.date} size="md" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="text-sm font-medium text-foreground leading-snug">{entry.title}</p>
+                                {entry.categoryName && (
+                                  <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded shrink-0">
+                                    {entry.categoryName}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
+                                {formatTime(entry.startTime, entry.endTime) && (
+                                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                    <Clock className="h-3 w-3" />
+                                    {formatTime(entry.startTime, entry.endTime)}
+                                  </span>
+                                )}
+                                {entry.location && (
+                                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                    <MapPin className="h-3 w-3" />
+                                    {entry.location}
+                                  </span>
+                                )}
+                              </div>
+                              {entry.description && (
+                                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed line-clamp-2">
+                                  {entry.description}
+                                </p>
                               )}
                             </div>
-                            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
-                              {formatTime(entry.startTime, entry.endTime) && (
-                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  <Clock className="h-3 w-3" />
-                                  {formatTime(entry.startTime, entry.endTime)}
-                                </span>
-                              )}
-                              {entry.location && (
-                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  <MapPin className="h-3 w-3" />
-                                  {entry.location}
-                                </span>
-                              )}
-                            </div>
-                            {entry.description && (
-                              <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed line-clamp-2">
-                                {entry.description}
-                              </p>
-                            )}
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}

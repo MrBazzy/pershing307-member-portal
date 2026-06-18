@@ -49,12 +49,12 @@ export default function HistoricalTimelinePage() {
         </Card>
       ) : (
         <div className="relative">
-          <div className="absolute left-[4.5rem] top-0 bottom-0 w-px bg-border hidden sm:block" />
+          <div className="absolute left-[4.5rem] top-0 bottom-0 w-px bg-sidebar-active/30 hidden sm:block" />
           <div className="space-y-3">
             {entries.map((entry) => (
               <div key={entry.id} className="flex gap-4 items-start">
                 <div className="w-16 shrink-0 text-right">
-                  <span className="inline-block font-bold text-primary text-sm leading-tight pt-3.5">
+                  <span className="inline-flex items-center justify-center px-2 py-1 rounded-sm text-[11px] font-bold bg-sidebar-active/15 text-sidebar-active border border-sidebar-active/30 mt-3">
                     {displayYear(entry.year)}
                   </span>
                 </div>

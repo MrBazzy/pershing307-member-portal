@@ -29,6 +29,7 @@ export function HistoryLayout({ children }: HistoryLayoutProps) {
             <p className="text-xs text-muted-foreground">Heritage of General John J. Pershing Lodge No. 307</p>
           </div>
         </div>
+        <div className="h-px bg-sidebar-active/40" />
 
         <div className="border-b border-border">
           <nav className="flex gap-0 -mb-px" aria-label="History sections">

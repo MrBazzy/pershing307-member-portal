@@ -36,7 +36,7 @@ export default function BirthdaysPage() {
     <AppLayout>
       <div className="p-6 max-w-4xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-serif font-semibold text-foreground flex items-center gap-2">
+          <h1 className="text-2xl font-serif font-semibold text-primary flex items-center gap-2">
             <Cake className="h-6 w-6 text-muted-foreground" />
             Birthday Calendar
           </h1>
@@ -46,71 +46,73 @@ export default function BirthdaysPage() {
         </div>
 
         {/* Upcoming birthdays */}
-        <Card className="border-card-border" data-testid="section-upcoming-birthdays">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Star className="h-4 w-4 text-amber-500" />
-              Upcoming — Next 30 Days
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {upcomingLoading ? (
-              <div className="space-y-2">
-                {[1, 2, 3].map((i) => <Skeleton key={i} className="h-9 w-full" />)}
-              </div>
-            ) : upcoming.length > 0 ? (
-              <div className="divide-y divide-border -mx-2">
-                {upcoming.map((b) => (
-                  <div key={b.id} className="flex items-center justify-between px-2 py-2.5" data-testid={`upcoming-birthday-${b.id}`}>
-                    <div className="flex items-center gap-3">
-                      <DateBadge
-                        month={b.month}
-                        day={b.day}
-                        year={new Date(Date.now() + b.daysUntil * 86400000).getFullYear()}
-                        variant="amber"
-                        size="sm"
-                      />
-                      <div>
-                        <span className="text-sm font-medium text-foreground">
-                          {b.firstName} {b.lastName}
-                        </span>
-                        {b.age !== undefined && (
-                          <p className="text-xs text-muted-foreground">
-                            {b.daysUntil === 0 ? `Turns ${b.age}` : `Turning ${b.age + 1}`} · {b.year}
-                          </p>
-                        )}
+        <div data-testid="section-upcoming-birthdays">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3 px-1 flex items-center gap-2">
+            <Star className="h-3 w-3 text-amber-500" />
+            Upcoming — Next 30 Days
+          </h2>
+          {upcomingLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
+            </div>
+          ) : upcoming.length > 0 ? (
+            <div className="space-y-2">
+              {upcoming.map((b) => (
+                <Card key={b.id} className="border-card-border" data-testid={`upcoming-birthday-${b.id}`}>
+                  <CardContent className="py-3 px-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <DateBadge
+                          month={b.month}
+                          day={b.day}
+                          year={new Date(Date.now() + b.daysUntil * 86400000).getFullYear()}
+                          variant="amber"
+                          size="md"
+                        />
+                        <div>
+                          <span className="text-sm font-medium text-foreground">
+                            {b.firstName} {b.lastName}
+                          </span>
+                          {b.age !== undefined && (
+                            <p className="text-xs text-muted-foreground">
+                              {b.daysUntil === 0 ? `Turns ${b.age}` : `Turning ${b.age + 1}`}{b.year ? ` · ${b.year}` : ""}
+                            </p>
+                          )}
+                        </div>
                       </div>
+                      <span
+                        className={`text-xs font-semibold px-2 py-1 rounded-sm shrink-0 ${
+                          b.daysUntil === 0
+                            ? "bg-amber-100 text-amber-700 border border-amber-200"
+                            : b.daysUntil <= 7
+                            ? "bg-blue-50 text-blue-700 border border-blue-200"
+                            : "bg-muted text-muted-foreground border border-border"
+                        }`}
+                      >
+                        {b.daysUntil === 0
+                          ? "Today! 🎂"
+                          : b.daysUntil === 1
+                          ? "Tomorrow"
+                          : `In ${b.daysUntil} days`}
+                      </span>
                     </div>
-                    <span
-                      className={`text-xs font-semibold px-2 py-1 rounded-sm ${
-                        b.daysUntil === 0
-                          ? "bg-amber-100 text-amber-700 border border-amber-200"
-                          : b.daysUntil <= 7
-                          ? "bg-blue-50 text-blue-700 border border-blue-200"
-                          : "bg-muted text-muted-foreground border border-border"
-                      }`}
-                    >
-                      {b.daysUntil === 0
-                        ? "Today! 🎂"
-                        : b.daysUntil === 1
-                        ? "Tomorrow"
-                        : `In ${b.daysUntil} days`}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="py-8 text-center">
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="border-card-border">
+              <CardContent className="py-8 text-center">
                 <Cake className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground">No birthdays in the next 30 days.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         {/* Full calendar by month */}
         <div>
-          <h2 className="text-sm font-semibold text-foreground mb-3">All Birthdays by Month</h2>
+          <h2 className="text-sm font-semibold text-primary mb-3">All Birthdays by Month</h2>
           {calendarLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[1, 2, 3, 4].map((i) => (

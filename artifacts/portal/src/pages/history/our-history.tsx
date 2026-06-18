@@ -33,13 +33,16 @@ export default function OurHistoryPage() {
       ) : (
         <Card className="border-card-border">
           <CardContent className="py-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="flex items-center justify-center w-8 h-8 rounded-sm bg-primary/10 shrink-0">
-                <Landmark className="h-4 w-4 text-primary" />
+            <div className="mb-6">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-center justify-center w-8 h-8 rounded-sm bg-primary/10 shrink-0">
+                  <Landmark className="h-4 w-4 text-primary" />
+                </div>
+                <h2 className="text-xl font-serif font-semibold text-primary">
+                  {page?.title ?? "Our History"}
+                </h2>
               </div>
-              <h2 className="text-xl font-semibold text-primary">
-                {page?.title ?? "Our History"}
-              </h2>
+              <div className="h-px bg-sidebar-active/40" />
             </div>
 
             {page?.content ? (

@@ -73,8 +73,8 @@ export default function HistoricalDocumentsPage() {
             <Card key={doc.id} className="border-card-border">
               <CardContent className="py-4 px-5">
                 <div className="flex items-start gap-3">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-sm bg-muted shrink-0 mt-0.5">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex items-center justify-center w-8 h-8 rounded-sm bg-amber-50 border border-amber-100 shrink-0 mt-0.5">
+                    <FileText className="h-4 w-4 text-amber-700" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start gap-2 flex-wrap">

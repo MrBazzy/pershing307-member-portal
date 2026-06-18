@@ -1,0 +1,115 @@
+UI-SPRINT-001G — Complete Portal Visual Consistency
+
+Goal:
+Apply the approved Pershing Portal visual style consistently across the portal.
+
+Preserve:
+- functionality
+- permissions
+- routes
+- database schema
+- business logic
+
+1. Dashboard
+
+Primary cards with gold accent line:
+- Tracing Board
+- Upcoming Events
+- Upcoming Birthdays
+- Planned Portal Features
+
+Secondary cards without gold accent line:
+- Total Members
+- Active Members
+- Recent Events
+- Recent Activity
+
+Move secondary cards below the primary lodge-life cards.
+
+2. Tracing Board
+
+Use current Tracing Board layout as reference.
+
+Apply gold accent only to important lodge entries:
+- Stated Meeting
+- Installation Meeting
+- Annual Meeting
+
+All other entries:
+- rounded card
+- soft shadow
+- no gold top line
+
+3. Events
+
+Make Events page use the same layout as Tracing Board:
+- same cards
+- same date badges
+- same spacing
+- same typography
+- same filters/search style
+- same empty state style
+
+4. Birthdays
+
+Make Birthday page use the same layout family as Tracing Board and Events:
+- same cards
+- same date badge style
+- same spacing
+- same typography
+- same empty state style
+
+Birthday cards may use gold accent line.
+
+Preserve:
+- birthday privacy
+- age calculation
+- active-member filtering
+
+5. History
+
+Give History a warmer Gentlemen’s Club / Lodge Library feeling:
+- warm ivory background
+- elegant serif headings
+- limited reading width
+- gold divider under title
+- vertical timeline with gold year badges
+- archive/library styling for historical documents
+- optional subtle watermark at 3–5% opacity
+
+History should feel like a heritage section, not an admin page.
+
+6. Management Pages
+
+Management pages should remain professional and efficient:
+- rounded containers
+- soft shadow
+- clean tables inside styled panels
+- no excessive gold accents
+
+Apply to:
+- Members
+- Invitations
+- Configuration
+- Roadmap Management
+- Tracing Board Management
+- Events Management
+- History Management
+- Audit Log
+
+7. Navigation
+
+Keep grouped sidebar:
+- Lodge
+- Management
+
+Maintain TDA environment banner.
+
+8. Build Verification
+
+After implementation:
+- confirm build passes
+- confirm login works
+- confirm dashboard loads
+- confirm Tracing Board, Events, Birthdays, History and Management pages open
+- list files changed

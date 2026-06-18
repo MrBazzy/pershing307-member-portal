@@ -412,7 +412,7 @@ function AdminStatsSection() {
           </h2>
           <Link href="/admin/audit-log" className="text-xs text-primary hover:underline" data-testid="link-view-all-audit">View all</Link>
         </div>
-        <div className="bg-card border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md divide-y divide-border overflow-hidden">
+        <div className="bg-card border border-card-border rounded-xl shadow-sm divide-y divide-border overflow-hidden">
           {auditLoading ? (
             Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="px-4 py-3 flex items-center gap-3">
@@ -485,17 +485,17 @@ export default function DashboardPage() {
         {/* Member+: full dashboard */}
         {isMember && (
           <>
-            {isAdmin && <AdminStatsSection />}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <UpcomingActivitiesWidget isAdmin={isAdmin} />
+              <UpcomingEventsWidget isAdmin={isAdmin} />
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <UpcomingBirthdaysWidget />
               <RoadmapWidget isAdmin={isAdmin} />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <UpcomingActivitiesWidget isAdmin={isAdmin} />
-              <UpcomingEventsWidget isAdmin={isAdmin} />
-            </div>
+            {isAdmin && <AdminStatsSection />}
           </>
         )}
       </div>
@@ -516,7 +516,7 @@ function StatCard({
 }) {
   return (
     <Link href={href} className="block" data-testid={`stat-card-${label.toLowerCase().replace(/\s+/g, "-")}`}>
-      <div className="bg-card border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md p-4 hover:shadow-lg transition-shadow group">
+      <div className="bg-card border border-card-border rounded-xl shadow-sm p-4 hover:shadow-md transition-shadow group">
         <div className="flex items-center gap-2 text-muted-foreground mb-2 group-hover:text-primary/80 transition-colors">
           {icon}
           <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
