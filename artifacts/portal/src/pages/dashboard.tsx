@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import squareAndCompasses from "@assets/FR_1781777880230.jpg";
 import {
   useListAuditLogs,
   useListUsers,
@@ -458,7 +459,20 @@ export default function DashboardPage() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
+      {/* Fixed Masonic watermark — dashboard only, stays in place while cards scroll over */}
+      <div
+        className="fixed inset-0 md:left-60 hidden md:flex items-center justify-center pointer-events-none select-none"
+        style={{ zIndex: 0 }}
+        aria-hidden="true"
+      >
+        <img
+          src={squareAndCompasses}
+          alt=""
+          className="w-[500px] h-[500px] object-contain opacity-[0.04]"
+        />
+      </div>
+
+      <div className="relative p-6 max-w-5xl mx-auto space-y-6" style={{ zIndex: 1 }}>
         <div>
           <h1 className="text-2xl font-serif font-semibold text-primary">
             Welcome, {user?.firstName}
