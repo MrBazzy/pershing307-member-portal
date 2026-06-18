@@ -345,7 +345,7 @@ function UpcomingEventsWidget({ isAdmin }: { isAdmin: boolean }) {
           <div className="space-y-2">
             {events.map((e) => (
               <div key={e.id} className="flex items-start gap-2 py-1.5 border-b border-border last:border-0">
-                <DateBadge date={e.date} size="sm" />
+                <DateBadge date={e.date} size="sm" variant="amber" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-foreground leading-snug truncate">{e.title}</p>
                   <p className="text-[11px] text-muted-foreground">
