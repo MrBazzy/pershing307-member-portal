@@ -65,12 +65,9 @@ function AgendaView({ events }: { events: EventItem[] }) {
       )}
       {groups.map((group) => (
         <div key={group.label}>
-          <div className="mb-3 px-1">
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">
-              {group.label}
-            </h2>
-            <div className="h-px w-10 bg-sidebar-active/50" />
-          </div>
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3 px-1">
+            {group.label}
+          </h2>
           <div className="space-y-2">
             {group.events.map((event) => (
               <EventCard key={event.id} event={event} />
@@ -86,12 +83,9 @@ function AgendaView({ events }: { events: EventItem[] }) {
           <div className="space-y-6 mt-4">
             {pastGroups.reverse().map((group) => (
               <div key={group.label}>
-                <div className="mb-3 px-1">
-                  <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1.5 opacity-60">
-                    {group.label}
-                  </h2>
-                  <div className="h-px w-10 bg-sidebar-active/30" />
-                </div>
+                <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3 px-1 opacity-60">
+                  {group.label}
+                </h2>
                 <div className="space-y-2 opacity-60">
                   {group.events.map((event) => (
                     <EventCard key={event.id} event={event} />
