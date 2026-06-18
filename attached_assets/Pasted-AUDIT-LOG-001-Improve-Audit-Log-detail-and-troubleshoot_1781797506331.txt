@@ -1,0 +1,147 @@
+AUDIT-LOG-001 — Improve Audit Log detail and troubleshooting clarity
+
+STEP 0 — Safety
+
+Before making changes:
+- Create Replit checkpoint/snapshot.
+- Create git tag if possible:
+
+v3.x-before-audit-log-improvements
+
+- Confirm build passes before implementation.
+
+Goal:
+Make the Audit Log useful for Site Administrators and PM Super Administrators.
+
+Current issue:
+Audit Log entries are too short and sometimes unclear.
+
+Required behavior:
+Each Audit Log line should clearly explain:
+
+- Who performed the action
+- What action was performed
+- Which user/object was affected
+- When it happened
+- Whether it succeeded or failed
+- If failed, what likely went wrong in simple words
+- What the administrator or user should do next, where applicable
+
+Examples:
+
+Instead of:
+ROLE_UPDATED
+
+Show:
+Brother John Smith granted the role Past Master to Brother Peter Jones.
+Time: 18 June 2026, 14:32
+Result: Success
+
+Instead of:
+LOGIN_FAILED
+
+Show:
+Failed login attempt for Brother Peter Jones.
+Reason: Incorrect password.
+Recommended action: Ask the user to try again or use Forgot Password if needed.
+
+Instead of:
+PASSKEY_FAILED
+
+Show:
+Passkey login failed for Brother John Smith.
+Reason: The passkey response could not be verified. This may happen if the passkey was created for another browser, device, or domain.
+Recommended action: Ask the user to remove the old passkey and register a new one from this device and portal URL.
+
+Requirements:
+
+1. Audit Log display
+Improve the Audit Log UI so each entry shows:
+- Actor
+- Action
+- Target
+- Timestamp
+- Result
+- Details
+- Recommended action, if applicable
+
+2. Human-readable messages
+Add human-readable descriptions for common events:
+- Login success
+- Login failure
+- Logout
+- Password reset requested
+- Password reset completed
+- Temporary password generated
+- Role assigned
+- Role removed
+- Degree assigned
+- Degree removed
+- Member activated/deactivated
+- Membership status changed
+- Invitation created
+- Invitation accepted
+- Invitation revoked
+- 2FA enabled/disabled
+- 2FA failed
+- Passkey registered
+- Passkey login failed
+- Passkey revoked
+- Configuration changed
+- Roadmap updated
+- Birthday updated
+- History updated
+- Tracing Board updated
+- Event updated
+
+3. Troubleshooting messages
+For failed actions, add simple explanation and recommended next step.
+
+Examples:
+- Incorrect password
+- Account locked
+- Missing role
+- Permission denied
+- Invalid or expired invitation
+- SMTP failure
+- Passkey origin/RP ID mismatch
+- Passkey challenge mismatch
+- 2FA code invalid
+- Session expired
+
+4. Do not expose sensitive data
+Never log:
+- Passwords
+- Temporary passwords
+- 2FA secrets
+- Passkey private data
+- Session tokens
+- SMTP passwords
+
+5. Backend structure
+If needed, extend audit log metadata to include:
+- actorUserId
+- actorName
+- targetUserId
+- targetName
+- actionType
+- result
+- technicalCode
+- humanMessage
+- recommendedAction
+- metadataJson
+
+6. UI filtering
+If feasible, allow filtering by:
+- User
+- Action type
+- Success/Failure
+- Date range
+
+7. Acceptance criteria
+A Site Administrator should be able to open Audit Log and immediately understand:
+- who did what
+- when it happened
+- whether it worked
+- what went wrong
+- what to do next

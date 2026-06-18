@@ -1,28 +1,35 @@
 ---
-name: Pershing307 Sprint 2A
-description: Birthday Calendar and Roadmap Box — what was built and what remains.
+name: Pershing307 Sprint 2A and later
+description: Birthday Calendar, Roadmap Box, Audit Log improvements — what was built and key decisions
 ---
 
-## Birthday Calendar
-- `date_of_birth date` column added to `users` table (nullable).
-- `GET /api/birthdays/upcoming` — next 30 days, all authenticated users.
-- `GET /api/birthdays` — all birthdays grouped by month, authenticated.
-- `PATCH /api/users/:id/date-of-birth` — Site Admin only, audits `DOB_UPDATED`.
-- Portal: `/birthdays` full calendar page; "Upcoming Birthdays" dashboard widget (all users).
-- Nav: "Birthdays" (Cake icon) visible to all authenticated users.
+## Completed features
 
-## Roadmap Box
-- `roadmap_items` table: id, lodge_id, title, description, status (text), sort_order, is_visible, created_by, created_at, updated_at.
-- Status values: `planned` | `in-progress` | `completed` | `future-idea`.
-- `GET /api/roadmap` — members see only `is_visible=true`; admins (≥80) see all.
-- `POST /api/roadmap`, `PUT /api/roadmap/:id`, `DELETE /api/roadmap/:id`, `POST /api/roadmap/reorder` — Site Admin only.
-- Portal: "Coming Next" dashboard widget (all users); `/admin/roadmap` CRUD page (admin only).
-- Nav: "Roadmap" (Map icon) admin-only.
+### Birthday Calendar (Sprint 2A)
+- Added upcoming birthdays widget to dashboard
+- DB: DOB stored in users table; birthday API filters within next 30 days
 
-## Pending (intentionally deferred)
-- DOB edit UI in admin/users member detail panel — backend endpoint exists and works, UI not yet added.
-- Documents (Sprint 2B), Lodge Calendar (Sprint 2C).
+### Roadmap Box (Sprint 2A)
+- Dashboard roadmap summary widget
+- Uses lodge-year + roadmap-item data
 
-**Why:** Spec said "do not implement Documents or Lodge Calendar yet." DOB editing in admin/users was not in the T004 session plan scope.
+### DOB Edit (pending)
+- Admin/users DOB edit UI — NOT YET implemented (noted in Sprint 2A)
 
-**How to apply:** When extending admin/users to edit DOB, use `PATCH /api/users/:id/date-of-birth` with body `{ dateOfBirth: "YYYY-MM-DD" | null }`.
+### Audit Log enhancements (AUDIT-LOG-001)
+- Complete rewrite of `artifacts/portal/src/pages/admin/audit-log.tsx`
+- Pure frontend interpretation layer — no backend changes needed
+- `interpret(action, detail, actorEmail, targetId)` → { category, result, summary, details?, recommendation? }
+- Covers all ~105 AuditAction types across 14 categories
+- Known detail payloads decoded: LOGIN_FAILED reasons, PASSKEY_LOGIN_FAILED reasons,
+  TOTP_FAILED attempt counts, ROLE_GRANTED roleName, INVITATION_CREATED name+email, etc.
+- Filters: actor email (server-side, debounced), category (client-side), result success/failure
+  (client-side), date range from/to (server-side)
+- Fetch 500 server-side; display 50 at a time with "Show more"
+
+**Why no backend changes:** The existing API already returns the full `detail` jsonb column
+and supports actorEmail/from/to/action filter params. The interpretation layer is entirely
+frontend-safe — adding it there avoids OpenAPI changes and codegen runs.
+
+## Key file
+- `artifacts/portal/src/pages/admin/audit-log.tsx` — full page + interpret() function
