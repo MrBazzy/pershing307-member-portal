@@ -3,6 +3,7 @@ import { HistoryLayout } from "@/components/history/history-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Landmark } from "lucide-react";
 import { format } from "date-fns";
+import squareAndCompasses from "@assets/FR_1781777880230.jpg";
 
 const YEAR_ONLY = /^\s*(\d{4})\s*$/;
 const YEAR_WITH_TITLE = /^\s*(\d{4})\s*[-–—:]\s*(.+?)\s*$/;
@@ -182,9 +183,11 @@ export default function OurHistoryPage() {
               className="absolute inset-0 flex items-center justify-center pointer-events-none select-none"
               aria-hidden="true"
             >
-              <span className="text-[220px] font-serif font-bold text-primary opacity-[0.03] leading-none">
-                G
-              </span>
+              <img
+                src={squareAndCompasses}
+                alt=""
+                className="w-56 h-56 object-contain opacity-[0.04]"
+              />
             </div>
             <div className="relative">
               <div className="inline-flex items-center gap-3 mb-5">
