@@ -100,22 +100,9 @@ function AgendaView({ events }: { events: EventItem[] }) {
   );
 }
 
-const IMPORTANT_EVENT_KEYWORDS = [
-  "installation", "annual", "gala", "banquet", "feast", "grand lodge", "district", "visitation",
-];
-function isImportantEvent(title: string): boolean {
-  const lower = title.toLowerCase();
-  return IMPORTANT_EVENT_KEYWORDS.some((k) => lower.includes(k));
-}
-
 function EventCard({ event }: { event: EventItem }) {
-  const important = isImportantEvent(event.title);
   return (
-    <div
-      className={important
-        ? "border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md bg-card overflow-hidden hover:border-primary/30 transition-colors"
-        : "border border-card-border rounded-xl shadow-sm bg-card overflow-hidden hover:shadow-md transition-shadow"}
-    >
+    <div className="border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md bg-card overflow-hidden hover:border-primary/30 transition-colors">
       <div className="py-3 px-4">
         <div className="flex items-start gap-3">
           <DateBadge date={event.date} size="md" />
