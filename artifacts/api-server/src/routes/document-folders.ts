@@ -36,19 +36,19 @@ const DEFAULT_ROOT_FOLDERS: {
   {
     title: "Secretary Documents",
     description: "Documents for the Lodge Secretary and senior officers.",
-    accessPolicy: { type: "roles", slugs: ["worshipful-master", "secretary", "site-administrator", "pm-super-administrator"] },
+    accessPolicy: { type: "roles", slugs: ["worshipful-master", "secretary", "pm-super-administrator"] },
     sortOrder: 3,
   },
   {
     title: "Treasury Documents",
     description: "Financial records and treasury documents.",
-    accessPolicy: { type: "roles", slugs: ["worshipful-master", "treasurer", "site-administrator", "pm-super-administrator"] },
+    accessPolicy: { type: "roles", slugs: ["worshipful-master", "treasurer", "pm-super-administrator"] },
     sortOrder: 4,
   },
   {
     title: "Worshipful Master Documents",
     description: "Documents for the Worshipful Master.",
-    accessPolicy: { type: "roles", slugs: ["worshipful-master", "site-administrator", "pm-super-administrator"] },
+    accessPolicy: { type: "roles", slugs: ["worshipful-master", "pm-super-administrator"] },
     sortOrder: 5,
   },
   {
