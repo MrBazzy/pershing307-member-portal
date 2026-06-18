@@ -60,7 +60,7 @@ function UpcomingBirthdaysWidget() {
   const birthdays = data?.birthdays ?? [];
 
   return (
-    <Card className="border-card-border" data-testid="widget-upcoming-birthdays">
+    <Card data-testid="widget-upcoming-birthdays">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-semibold flex items-center gap-2">
           <Cake className="h-4 w-4 text-muted-foreground" />
@@ -194,7 +194,7 @@ function RoadmapWidget({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <>
-      <Card className="border-card-border" data-testid="widget-roadmap">
+      <Card data-testid="widget-roadmap">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold flex items-center justify-between">
             <span className="flex items-center gap-2">
@@ -269,7 +269,7 @@ function UpcomingActivitiesWidget({ isAdmin }: { isAdmin: boolean }) {
   }>;
 
   return (
-    <Card className="border-card-border">
+    <Card>
       <CardHeader className="pb-2 flex flex-row items-center justify-between">
         <CardTitle className="text-sm font-semibold flex items-center gap-2">
           <BookOpen className="h-4 w-4 text-muted-foreground" />
@@ -326,7 +326,7 @@ function UpcomingEventsWidget({ isAdmin }: { isAdmin: boolean }) {
   }>;
 
   return (
-    <Card className="border-card-border">
+    <Card>
       <CardHeader className="pb-2 flex flex-row items-center justify-between">
         <CardTitle className="text-sm font-semibold flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-muted-foreground" />
