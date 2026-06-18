@@ -79,8 +79,8 @@ export function AppLayout({ children }: AppLayoutProps) {
         className={cn(
           "flex items-center gap-2.5 px-3 py-2 rounded-sm text-sm transition-colors",
           active
-            ? "bg-primary text-primary-foreground font-medium"
-            : "text-muted-foreground hover:bg-accent hover:text-foreground"
+            ? "bg-sidebar-active text-sidebar-active-foreground font-medium"
+            : "text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground"
         )}
       >
         <item.icon className="h-4 w-4 shrink-0" />
@@ -92,14 +92,14 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const SidebarContent = ({ onNav }: { onNav?: () => void }) => (
     <>
-      <div className="px-5 pt-5 pb-3 border-b border-border">
+      <div className="px-5 pt-5 pb-3 border-b border-sidebar-border">
         <div className="flex items-center gap-2.5">
-          <div className="flex items-center justify-center w-8 h-8 rounded-sm bg-primary shrink-0">
-            <span className="text-primary-foreground font-serif font-bold text-sm">G</span>
+          <div className="flex items-center justify-center w-8 h-8 rounded-sm bg-sidebar-active shrink-0">
+            <span className="text-sidebar-active-foreground font-serif font-bold text-sm">G</span>
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-foreground truncate leading-tight">Pershing No. 307</p>
-            <p className="text-[10px] text-muted-foreground truncate leading-tight">Member Portal</p>
+            <p className="text-xs font-semibold text-sidebar-foreground truncate leading-tight">Pershing No. 307</p>
+            <p className="text-[10px] text-sidebar-muted truncate leading-tight">Member Portal</p>
           </div>
         </div>
         <EnvBannerSidebar />
@@ -125,8 +125,8 @@ export function AppLayout({ children }: AppLayoutProps) {
         {/* Management block — admins only */}
         {isAdmin && (
           <div className="pt-3">
-            <div className="rounded-md border border-border bg-muted/40 px-1.5 py-1.5 space-y-0.5">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest px-2 pb-0.5 pt-0.5">
+            <div className="rounded-md border border-sidebar-border bg-sidebar-accent/40 px-1.5 py-1.5 space-y-0.5">
+              <p className="text-[10px] font-semibold text-sidebar-muted uppercase tracking-widest px-2 pb-0.5 pt-0.5">
                 Management
               </p>
               {MANAGEMENT_ITEMS.map((item) => (
@@ -140,7 +140,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         {isVisitorOrAbove && (
           <>
             <div className="pt-3 pb-1 px-3">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Settings</p>
+              <p className="text-[10px] font-semibold text-sidebar-muted uppercase tracking-widest">Settings</p>
             </div>
             {isMemberOrAbove && (
               <NavLink item={{ href: "/settings/profile", label: "Profile", icon: UserCircle }} onNav={onNav} />
@@ -150,17 +150,17 @@ export function AppLayout({ children }: AppLayoutProps) {
         )}
       </nav>
 
-      <Separator />
+      <Separator className="bg-sidebar-border" />
       <div className="p-3">
         <div className="px-3 py-2 mb-1">
-          <p className="text-xs font-medium text-foreground truncate">
+          <p className="text-xs font-medium text-sidebar-foreground truncate">
             {user?.firstName} {user?.lastName}
           </p>
-          <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
+          <p className="text-[11px] text-sidebar-muted truncate">{user?.email}</p>
         </div>
         <Button
           variant="ghost" size="sm"
-          className="w-full justify-start text-muted-foreground hover:text-foreground text-xs"
+          className="w-full justify-start text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent text-xs"
           onClick={handleLogout}
           disabled={logout.isPending}
           data-testid="button-logout"
@@ -174,7 +174,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background flex">
-      <aside className="hidden md:flex w-60 shrink-0 border-r border-border bg-card flex-col">
+      <aside className="hidden md:flex w-60 shrink-0 border-r border-sidebar-border bg-sidebar flex-col">
         <SidebarContent />
       </aside>
 
@@ -184,7 +184,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             className="absolute inset-0 bg-background/80 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="absolute left-0 top-0 bottom-0 w-72 bg-card border-r border-border flex flex-col z-50 shadow-xl">
+          <aside className="absolute left-0 top-0 bottom-0 w-72 bg-sidebar border-r border-sidebar-border flex flex-col z-50 shadow-xl">
             <div className="absolute top-3 right-3">
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMobileOpen(false)}>
                 <X className="h-4 w-4" />
@@ -201,8 +201,8 @@ export function AppLayout({ children }: AppLayoutProps) {
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-6 h-6 rounded-sm bg-primary">
-              <span className="text-primary-foreground font-serif font-bold text-xs">G</span>
+            <div className="flex items-center justify-center w-6 h-6 rounded-sm bg-sidebar-active">
+              <span className="text-sidebar-active-foreground font-serif font-bold text-xs">G</span>
             </div>
             <span className="text-sm font-semibold text-foreground">Pershing No. 307</span>
           </div>
