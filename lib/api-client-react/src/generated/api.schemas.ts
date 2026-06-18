@@ -1221,6 +1221,56 @@ export interface DocumentAttachmentUploadRequest {
   contentType: string;
 }
 
+export interface HistorySection {
+  id: string;
+  yearPeriod: string;
+  chapterTitle: string;
+  bodyText: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HistorySectionListResult {
+  sections: HistorySection[];
+}
+
+export interface CreateHistorySectionInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  yearPeriod: string;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  chapterTitle: string;
+  /** @maxLength 20000 */
+  bodyText?: string;
+  sortOrder?: number;
+}
+
+export interface UpdateHistorySectionInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  yearPeriod?: string;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  chapterTitle?: string;
+  /** @maxLength 20000 */
+  bodyText?: string;
+  sortOrder?: number;
+}
+
+export interface ReorderHistorySectionsInput {
+  orderedIds: string[];
+}
+
 export interface DocumentAttachmentUploadResponse {
   /** Presigned GCS URL for PUT upload */
   uploadURL: string;
@@ -1265,5 +1315,9 @@ limit?: number;
 
 export type ListEventsParams = {
 from?: string;
+};
+
+export type DeleteHistorySection200 = {
+  success: boolean;
 };
 

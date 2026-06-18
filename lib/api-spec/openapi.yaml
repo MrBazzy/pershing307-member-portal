@@ -2148,6 +2148,131 @@ paths:
         "404":
           description: Document not found
 
+  /history/sections:
+    get:
+      operationId: listHistorySections
+      tags: [history]
+      summary: List Our History sections in sort order (Visitor+)
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: History sections
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistorySectionListResult"
+        "401":
+          description: Unauthorized
+    post:
+      operationId: createHistorySection
+      tags: [history]
+      summary: Create a history section (Site Admin only)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateHistorySectionInput"
+      responses:
+        "201":
+          description: Section created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistorySection"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+
+  /history/sections/reorder:
+    patch:
+      operationId: reorderHistorySections
+      tags: [history]
+      summary: Reorder history sections (Site Admin only)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderHistorySectionsInput"
+      responses:
+        "200":
+          description: Sections reordered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistorySectionListResult"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+
+  /history/sections/{id}:
+    put:
+      operationId: updateHistorySection
+      tags: [history]
+      summary: Update a history section (Site Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateHistorySectionInput"
+      responses:
+        "200":
+          description: Section updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistorySection"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+        "404":
+          description: Section not found
+    delete:
+      operationId: deleteHistorySection
+      tags: [history]
+      summary: Delete a history section (Site Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Section deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success]
+                properties:
+                  success:
+                    type: boolean
+        "403":
+          description: Forbidden
+        "404":
+          description: Section not found
+
   /storage/objects/{objectPath}:
     get:
       operationId: getStorageObject
@@ -3731,6 +3856,78 @@ components:
           type: string
           minLength: 1
           description: MIME type of the file
+
+    HistorySection:
+      type: object
+      required: [id, yearPeriod, chapterTitle, bodyText, sortOrder, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        yearPeriod:
+          type: string
+        chapterTitle:
+          type: string
+        bodyText:
+          type: string
+        sortOrder:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    HistorySectionListResult:
+      type: object
+      required: [sections]
+      properties:
+        sections:
+          type: array
+          items:
+            $ref: "#/components/schemas/HistorySection"
+
+    CreateHistorySectionInput:
+      type: object
+      required: [yearPeriod, chapterTitle]
+      properties:
+        yearPeriod:
+          type: string
+          minLength: 1
+          maxLength: 100
+        chapterTitle:
+          type: string
+          minLength: 1
+          maxLength: 300
+        bodyText:
+          type: string
+          maxLength: 20000
+        sortOrder:
+          type: integer
+
+    UpdateHistorySectionInput:
+      type: object
+      properties:
+        yearPeriod:
+          type: string
+          minLength: 1
+          maxLength: 100
+        chapterTitle:
+          type: string
+          minLength: 1
+          maxLength: 300
+        bodyText:
+          type: string
+          maxLength: 20000
+        sortOrder:
+          type: integer
+
+    ReorderHistorySectionsInput:
+      type: object
+      required: [orderedIds]
+      properties:
+        orderedIds:
+          type: array
+          items:
+            type: string
 
     DocumentAttachmentUploadResponse:
       type: object

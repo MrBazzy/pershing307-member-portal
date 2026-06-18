@@ -1,155 +1,12 @@
-import { useGetHistoryPage } from "@workspace/api-client-react";
+import { useListHistorySections } from "@workspace/api-client-react";
 import { HistoryLayout } from "@/components/history/history-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Landmark } from "lucide-react";
-import { format } from "date-fns";
 import squareAndCompasses from "@assets/FR_1781777880230.jpg";
-
-const YEAR_ONLY = /^\s*(\d{4})\s*$/;
-const YEAR_WITH_TITLE = /^\s*(\d{4})\s*[-–—:]\s*(.+?)\s*$/;
-
-function stripAnchors(html: string): string {
-  return html.replace(/<a[^>]*>([\s\S]*?)<\/a>/gi, "$1").replace(/<[^>]+>/g, "").trim();
-}
-
-function dividerHtml(): string {
-  return `<div class="chapter-divider"><div class="chapter-divider-line"></div><div class="chapter-divider-gems"><div class="chapter-divider-diamond"></div><div class="chapter-divider-diamond"></div><div class="chapter-divider-diamond"></div></div><div class="chapter-divider-line"></div></div>`;
-}
-
-function chapterBlock(year: string, title: string, isFirst: boolean): string {
-  const divider = isFirst ? "" : dividerHtml();
-  const header = year
-    ? `<div class="chapter-header"><span class="chapter-year">${year}</span><span class="chapter-title">${title}</span></div>`
-    : `<div class="chapter-header"><span class="chapter-title-only">${title}</span></div>`;
-  return `<div class="chapter-block">${divider}${header}</div>`;
-}
-
-/** Returns true if a <p>'s plain text starts with an asterisk — marks a chapter heading. */
-function isAsteriskHeading(plainText: string): boolean {
-  return plainText.trimStart().startsWith("*");
-}
-
-/** Strip leading asterisk and whitespace from a heading line. */
-function removeAsterisk(text: string): string {
-  return text.replace(/^\*\s*/, "").trim();
-}
-
-/**
- * Extract date/year from brackets: (1959), (2009–2012), (1959 – Present).
- * Returns the bracket contents as `year` and the surrounding text as `title`.
- */
-function extractYear(text: string): { year: string; title: string } {
-  // Anything in parentheses: (1959), (2009–2012), (1959 – Present)
-  const bracketed = text.match(/^(.*?)\s*\(([^)]+)\)\s*(.*?)$/);
-  if (bracketed) {
-    const year = bracketed[2].trim();
-    const title = (bracketed[1] + " " + bracketed[3]).trim().replace(/\s{2,}/g, " ");
-    return { year, title };
-  }
-  // "1959 — Title" or "1959: Title"
-  const yearFirst = text.match(YEAR_WITH_TITLE);
-  if (yearFirst) return { year: yearFirst[1], title: yearFirst[2].trim() };
-  // Bare year
-  const yearOnly = text.match(YEAR_ONLY);
-  if (yearOnly) return { year: yearOnly[1], title: "" };
-
-  return { year: "", title: text };
-}
-
-function enhanceContent(html: string): string {
-  type TokType = "h2" | "h3" | "h4" | "chapter-p" | "text";
-  const tokens: Array<{ type: TokType; text: string; raw: string }> = [];
-
-  // Match both headings and paragraphs
-  const re = /<(h[234]|p)([^>]*?)>([\s\S]*?)<\/(?:h[234]|p)>/gi;
-  let last = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = re.exec(html)) !== null) {
-    if (match.index > last) {
-      tokens.push({ type: "text", text: "", raw: html.slice(last, match.index) });
-    }
-    const tag = match[1].toLowerCase();
-    const inner = match[3];
-    const plainText = stripAnchors(inner);
-
-    if (tag === "p" && isAsteriskHeading(plainText)) {
-      tokens.push({ type: "chapter-p", text: removeAsterisk(plainText), raw: match[0] });
-    } else if (tag === "h2" || tag === "h3" || tag === "h4") {
-      tokens.push({ type: tag as TokType, text: plainText, raw: match[0] });
-    } else {
-      tokens.push({ type: "text", text: "", raw: match[0] });
-    }
-    last = match.index + match[0].length;
-  }
-  if (last < html.length) {
-    tokens.push({ type: "text", text: "", raw: html.slice(last) });
-  }
-
-  const output: string[] = [];
-  let chapterCount = 0;
-  let i = 0;
-
-  while (i < tokens.length) {
-    const tok = tokens[i];
-
-    if (tok.type === "chapter-p") {
-      const { year, title } = extractYear(tok.text);
-      output.push(chapterBlock(year, title, chapterCount === 0));
-      chapterCount++;
-    } else if (tok.type === "h2") {
-      const yearOnly = tok.text.match(YEAR_ONLY);
-      const yearWithTitle = tok.text.match(YEAR_WITH_TITLE);
-      if (yearOnly) {
-        const year = yearOnly[1];
-        const next = tokens[i + 1];
-        if (next && next.type === "h3") {
-          output.push(chapterBlock(year, next.text, chapterCount === 0));
-          chapterCount++;
-          i += 2;
-          continue;
-        } else {
-          output.push(chapterBlock(year, "", chapterCount === 0));
-          chapterCount++;
-        }
-      } else if (yearWithTitle) {
-        output.push(chapterBlock(yearWithTitle[1], yearWithTitle[2], chapterCount === 0));
-        chapterCount++;
-      } else {
-        output.push(chapterBlock("", tok.text, chapterCount === 0));
-        chapterCount++;
-      }
-    } else if (tok.type === "h3") {
-      output.push(chapterBlock("", tok.text, chapterCount === 0));
-      chapterCount++;
-    } else if (tok.type === "h4") {
-      const isFirst = chapterCount === 0;
-      const divider = isFirst ? "" : dividerHtml();
-      output.push(`<div class="chapter-block">${divider}<div class="chapter-header"><span class="chapter-title-only">${tok.text}</span></div></div>`);
-      chapterCount++;
-    } else {
-      output.push(tok.raw);
-    }
-
-    i++;
-  }
-
-  return output.join("");
-}
-
-function prepareContent(content: string): string {
-  if (!content.trim()) return "";
-  if (/<[a-z][\s\S]*>/i.test(content)) return content;
-  return content
-    .split(/\n\n+/)
-    .filter(Boolean)
-    .map((para) => `<p>${para.replace(/\n/g, "<br>")}</p>`)
-    .join("");
-}
 
 function ElegantDivider() {
   return (
-    <div className="flex items-center gap-2.5 my-1" aria-hidden="true">
+    <div className="flex items-center gap-2.5" aria-hidden="true">
       <div className="flex-1 h-px bg-border" />
       <div className="flex items-center gap-1 shrink-0">
         <div className="w-1.5 h-1.5 bg-sidebar-active/50 rotate-45" />
@@ -161,9 +18,27 @@ function ElegantDivider() {
   );
 }
 
+function renderBodyText(text: string) {
+  if (!text.trim()) return null;
+  const paras = text.split(/\n\n+/).filter(Boolean);
+  return paras.map((p, i) => (
+    <p key={i} className="text-sm leading-relaxed text-foreground/85 mt-3 first:mt-0 whitespace-pre-wrap">
+      {p.replace(/\n/g, " ")}
+    </p>
+  ));
+}
+
+interface Section {
+  id: string;
+  yearPeriod: string;
+  chapterTitle: string;
+  bodyText: string;
+  sortOrder: number;
+}
+
 export default function OurHistoryPage() {
-  const { data, isLoading } = useGetHistoryPage();
-  const page = data?.page;
+  const { data, isLoading } = useListHistorySections();
+  const sections = (data?.sections ?? []) as Section[];
 
   return (
     <HistoryLayout>
@@ -174,12 +49,19 @@ export default function OurHistoryPage() {
             <Skeleton className="h-6 w-72 mx-auto" />
             <Skeleton className="h-4 w-56 mx-auto" />
           </div>
-          <div className="px-6 py-8 max-w-[850px] mx-auto space-y-3">
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-px w-full" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
+          <div className="px-6 py-8 max-w-[850px] mx-auto space-y-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-px w-full" />
+                <div className="flex items-center gap-3 mt-4">
+                  <Skeleton className="h-6 w-14" />
+                  <Skeleton className="h-5 w-48" />
+                </div>
+                <Skeleton className="h-4 w-full mt-3" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            ))}
           </div>
         </div>
       ) : (
@@ -214,45 +96,37 @@ export default function OurHistoryPage() {
             </div>
           </div>
 
-          {/* Article */}
+          {/* Sections */}
           <div className="px-6 py-10">
             <div className="max-w-[850px] mx-auto">
 
-              {/* Section header */}
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="text-[11px] font-bold text-sidebar-active bg-sidebar-active/10 border border-sidebar-active/30 px-2.5 py-1 rounded-sm tracking-wider">
-                    1959
-                  </span>
-                  <h2 className="text-xl font-serif font-semibold text-primary">
-                    {page?.title ?? "Our History"}
-                  </h2>
-                </div>
-                <ElegantDivider />
-              </div>
-
-              {/* Prose */}
-              {page?.content ? (
-                <div
-                  className="history-article"
-                  dangerouslySetInnerHTML={{
-                    __html: enhanceContent(prepareContent(page.content)),
-                  }}
-                />
-              ) : (
+              {sections.length === 0 ? (
                 <div className="text-center py-12">
                   <Landmark className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
                   <p className="text-sm text-muted-foreground">Check back later.</p>
                 </div>
-              )}
-
-              {/* Last updated */}
-              {page?.updatedAt && (
-                <div className="mt-10">
-                  <ElegantDivider />
-                  <p className="text-[11px] text-muted-foreground mt-3">
-                    Last updated {format(new Date(page.updatedAt), "MMMM d, yyyy")}
-                  </p>
+              ) : (
+                <div className="space-y-0">
+                  {sections.map((section, idx) => (
+                    <div key={section.id} className="chapter-section">
+                      {idx > 0 && (
+                        <div className="my-8">
+                          <ElegantDivider />
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-[10px] font-bold text-sidebar-active bg-sidebar-active/10 border border-sidebar-active/30 px-2.5 py-1 rounded-sm tracking-wider whitespace-nowrap shrink-0">
+                          {section.yearPeriod}
+                        </span>
+                        <h2 className="text-[1.15rem] font-serif font-semibold text-primary leading-snug">
+                          {section.chapterTitle}
+                        </h2>
+                      </div>
+                      <div className="history-article">
+                        {renderBodyText(section.bodyText)}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
 

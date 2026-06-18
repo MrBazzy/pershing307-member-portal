@@ -21,3 +21,4 @@ export * from "./events";
 export * from "./history-page";
 export * from "./history-timeline";
 export * from "./history-documents";
+export * from "./history-sections";

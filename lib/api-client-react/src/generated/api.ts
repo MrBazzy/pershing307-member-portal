@@ -38,6 +38,7 @@ import type {
   CreateCategoryInput,
   CreateEventInput,
   CreateHistoryDocumentInput,
+  CreateHistorySectionInput,
   CreateHistoryTimelineEntryInput,
   CreateLodgeYearInput,
   CreateRoadmapItemInput,
@@ -47,6 +48,7 @@ import type {
   DegreeDefinitionListResult,
   DegreeDefinitionUpdateInput,
   DegreeInput,
+  DeleteHistorySection200,
   DocumentAttachmentUploadRequest,
   DocumentAttachmentUploadResponse,
   DomainGrantInput,
@@ -64,6 +66,8 @@ import type {
   HistoryDocument,
   HistoryDocumentListResult,
   HistoryPageResult,
+  HistorySection,
+  HistorySectionListResult,
   HistoryTimelineEntry,
   HistoryTimelineListResult,
   InvitationCreatedResult,
@@ -81,6 +85,7 @@ import type {
   LoginResult,
   ProfileUpdateInput,
   ReorderCategoriesInput,
+  ReorderHistorySectionsInput,
   ReorderRoadmapInput,
   ResetPasswordInput,
   RoadmapItem,
@@ -104,6 +109,7 @@ import type {
   UpdateEventInput,
   UpdateHistoryDocumentInput,
   UpdateHistoryPageInput,
+  UpdateHistorySectionInput,
   UpdateHistoryTimelineEntryInput,
   UpdateLodgeYearInput,
   UpdateMembershipStatusInput,
@@ -7393,6 +7399,367 @@ export const useRemoveHistoryDocumentAttachment = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRemoveHistoryDocumentAttachmentMutationOptions(options));
+    }
+
+export const getListHistorySectionsUrl = () => {
+
+
+
+
+  return `/api/history/sections`
+}
+
+/**
+ * @summary List Our History sections in sort order (Visitor+)
+ */
+export const listHistorySections = async ( options?: RequestInit): Promise<HistorySectionListResult> => {
+
+  return customFetch<HistorySectionListResult>(getListHistorySectionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListHistorySectionsQueryKey = () => {
+    return [
+    `/api/history/sections`
+    ] as const;
+    }
+
+
+export const getListHistorySectionsQueryOptions = <TData = Awaited<ReturnType<typeof listHistorySections>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listHistorySections>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListHistorySectionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listHistorySections>>> = ({ signal }) => listHistorySections({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listHistorySections>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListHistorySectionsQueryResult = NonNullable<Awaited<ReturnType<typeof listHistorySections>>>
+export type ListHistorySectionsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List Our History sections in sort order (Visitor+)
+ */
+
+export function useListHistorySections<TData = Awaited<ReturnType<typeof listHistorySections>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listHistorySections>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListHistorySectionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateHistorySectionUrl = () => {
+
+
+
+
+  return `/api/history/sections`
+}
+
+/**
+ * @summary Create a history section (Site Admin only)
+ */
+export const createHistorySection = async (createHistorySectionInput: CreateHistorySectionInput, options?: RequestInit): Promise<HistorySection> => {
+
+  return customFetch<HistorySection>(getCreateHistorySectionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createHistorySectionInput,)
+  }
+);}
+
+
+
+
+export const getCreateHistorySectionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createHistorySection>>, TError,{data: BodyType<CreateHistorySectionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createHistorySection>>, TError,{data: BodyType<CreateHistorySectionInput>}, TContext> => {
+
+const mutationKey = ['createHistorySection'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createHistorySection>>, {data: BodyType<CreateHistorySectionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createHistorySection(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateHistorySectionMutationResult = NonNullable<Awaited<ReturnType<typeof createHistorySection>>>
+    export type CreateHistorySectionMutationBody = BodyType<CreateHistorySectionInput>
+    export type CreateHistorySectionMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a history section (Site Admin only)
+ */
+export const useCreateHistorySection = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createHistorySection>>, TError,{data: BodyType<CreateHistorySectionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createHistorySection>>,
+        TError,
+        {data: BodyType<CreateHistorySectionInput>},
+        TContext
+      > => {
+      return useMutation(getCreateHistorySectionMutationOptions(options));
+    }
+
+export const getReorderHistorySectionsUrl = () => {
+
+
+
+
+  return `/api/history/sections/reorder`
+}
+
+/**
+ * @summary Reorder history sections (Site Admin only)
+ */
+export const reorderHistorySections = async (reorderHistorySectionsInput: ReorderHistorySectionsInput, options?: RequestInit): Promise<HistorySectionListResult> => {
+
+  return customFetch<HistorySectionListResult>(getReorderHistorySectionsUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reorderHistorySectionsInput,)
+  }
+);}
+
+
+
+
+export const getReorderHistorySectionsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reorderHistorySections>>, TError,{data: BodyType<ReorderHistorySectionsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reorderHistorySections>>, TError,{data: BodyType<ReorderHistorySectionsInput>}, TContext> => {
+
+const mutationKey = ['reorderHistorySections'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reorderHistorySections>>, {data: BodyType<ReorderHistorySectionsInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  reorderHistorySections(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReorderHistorySectionsMutationResult = NonNullable<Awaited<ReturnType<typeof reorderHistorySections>>>
+    export type ReorderHistorySectionsMutationBody = BodyType<ReorderHistorySectionsInput>
+    export type ReorderHistorySectionsMutationError = ErrorType<void>
+
+    /**
+ * @summary Reorder history sections (Site Admin only)
+ */
+export const useReorderHistorySections = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reorderHistorySections>>, TError,{data: BodyType<ReorderHistorySectionsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reorderHistorySections>>,
+        TError,
+        {data: BodyType<ReorderHistorySectionsInput>},
+        TContext
+      > => {
+      return useMutation(getReorderHistorySectionsMutationOptions(options));
+    }
+
+export const getUpdateHistorySectionUrl = (id: string,) => {
+
+
+
+
+  return `/api/history/sections/${id}`
+}
+
+/**
+ * @summary Update a history section (Site Admin only)
+ */
+export const updateHistorySection = async (id: string,
+    updateHistorySectionInput: UpdateHistorySectionInput, options?: RequestInit): Promise<HistorySection> => {
+
+  return customFetch<HistorySection>(getUpdateHistorySectionUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateHistorySectionInput,)
+  }
+);}
+
+
+
+
+export const getUpdateHistorySectionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateHistorySection>>, TError,{id: string;data: BodyType<UpdateHistorySectionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateHistorySection>>, TError,{id: string;data: BodyType<UpdateHistorySectionInput>}, TContext> => {
+
+const mutationKey = ['updateHistorySection'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateHistorySection>>, {id: string;data: BodyType<UpdateHistorySectionInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateHistorySection(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateHistorySectionMutationResult = NonNullable<Awaited<ReturnType<typeof updateHistorySection>>>
+    export type UpdateHistorySectionMutationBody = BodyType<UpdateHistorySectionInput>
+    export type UpdateHistorySectionMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a history section (Site Admin only)
+ */
+export const useUpdateHistorySection = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateHistorySection>>, TError,{id: string;data: BodyType<UpdateHistorySectionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateHistorySection>>,
+        TError,
+        {id: string;data: BodyType<UpdateHistorySectionInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateHistorySectionMutationOptions(options));
+    }
+
+export const getDeleteHistorySectionUrl = (id: string,) => {
+
+
+
+
+  return `/api/history/sections/${id}`
+}
+
+/**
+ * @summary Delete a history section (Site Admin only)
+ */
+export const deleteHistorySection = async (id: string, options?: RequestInit): Promise<DeleteHistorySection200> => {
+
+  return customFetch<DeleteHistorySection200>(getDeleteHistorySectionUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteHistorySectionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteHistorySection>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteHistorySection>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteHistorySection'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteHistorySection>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteHistorySection(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteHistorySectionMutationResult = NonNullable<Awaited<ReturnType<typeof deleteHistorySection>>>
+
+    export type DeleteHistorySectionMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a history section (Site Admin only)
+ */
+export const useDeleteHistorySection = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteHistorySection>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteHistorySection>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDeleteHistorySectionMutationOptions(options));
     }
 
 export const getGetStorageObjectUrl = (objectPath: string,) => {

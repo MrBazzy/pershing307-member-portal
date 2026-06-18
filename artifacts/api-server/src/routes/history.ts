@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
-import { historyPageTable, historyTimelineTable, historyDocumentsTable } from "@workspace/db/schema";
+import { historyPageTable, historyTimelineTable, historyDocumentsTable, historySectionsTable } from "@workspace/db/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
@@ -328,6 +328,115 @@ router.delete("/documents/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), as
   res.json({ success: true });
 });
 
+// ─── History Sections ─────────────────────────────────────────────────────────
+
+router.get("/sections", requireAuth(), requireRole(VISITOR_LEVEL), async (req, res) => {
+  const lodgeId = await getLodgeId();
+  if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
+
+  const sections = await db.select().from(historySectionsTable)
+    .where(eq(historySectionsTable.lodgeId, lodgeId))
+    .orderBy(asc(historySectionsTable.sortOrder), asc(historySectionsTable.createdAt));
+
+  res.json({ sections: sections.map(formatSection) });
+});
+
+router.post("/sections", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const lodgeId = await getLodgeId();
+  const actorId = req.session!.userId!;
+  if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
+
+  const parsed = z.object({
+    yearPeriod: z.string().min(1).max(100),
+    chapterTitle: z.string().min(1).max(300),
+    bodyText: z.string().max(20000).optional(),
+    sortOrder: z.number().int().optional(),
+  }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid request", issues: parsed.error.issues }); return; }
+
+  const [section] = await db.insert(historySectionsTable)
+    .values({
+      lodgeId,
+      yearPeriod: parsed.data.yearPeriod,
+      chapterTitle: parsed.data.chapterTitle,
+      bodyText: parsed.data.bodyText ?? "",
+      sortOrder: parsed.data.sortOrder ?? 0,
+      createdBy: actorId,
+    }).returning();
+
+  await writeAuditLog({ lodgeId, actorId, action: "HISTORY_SECTION_CREATED", targetType: "history_section", targetId: section.id, detail: { chapterTitle: section.chapterTitle }, ipAddress: getClientIp(req) });
+  res.status(201).json(formatSection(section));
+});
+
+// IMPORTANT: /sections/reorder must be defined before /sections/:id
+router.patch("/sections/reorder", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const lodgeId = await getLodgeId();
+  const actorId = req.session!.userId!;
+  if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
+
+  const parsed = z.object({
+    orderedIds: z.array(z.string()).min(1),
+  }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid request" }); return; }
+
+  await Promise.all(
+    parsed.data.orderedIds.map((id, idx) =>
+      db.update(historySectionsTable)
+        .set({ sortOrder: idx, updatedAt: new Date() })
+        .where(and(eq(historySectionsTable.id, id), eq(historySectionsTable.lodgeId, lodgeId)))
+    )
+  );
+
+  const sections = await db.select().from(historySectionsTable)
+    .where(eq(historySectionsTable.lodgeId, lodgeId))
+    .orderBy(asc(historySectionsTable.sortOrder), asc(historySectionsTable.createdAt));
+
+  await writeAuditLog({ lodgeId, actorId, action: "HISTORY_SECTIONS_REORDERED", ipAddress: getClientIp(req) });
+  res.json({ sections: sections.map(formatSection) });
+});
+
+router.put("/sections/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const sectionId = String(req.params.id);
+  const lodgeId = await getLodgeId();
+  const actorId = req.session!.userId!;
+  if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
+
+  const parsed = z.object({
+    yearPeriod: z.string().min(1).max(100).optional(),
+    chapterTitle: z.string().min(1).max(300).optional(),
+    bodyText: z.string().max(20000).optional(),
+    sortOrder: z.number().int().optional(),
+  }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid request" }); return; }
+
+  const existing = await db.select().from(historySectionsTable)
+    .where(and(eq(historySectionsTable.id, sectionId), eq(historySectionsTable.lodgeId, lodgeId))).limit(1);
+  if (existing.length === 0) { res.status(404).json({ error: "Section not found" }); return; }
+
+  const [section] = await db.update(historySectionsTable)
+    .set({ ...parsed.data, updatedAt: new Date() })
+    .where(eq(historySectionsTable.id, sectionId))
+    .returning();
+
+  await writeAuditLog({ lodgeId, actorId, action: "HISTORY_SECTION_UPDATED", targetType: "history_section", targetId: sectionId, ipAddress: getClientIp(req) });
+  res.json(formatSection(section));
+});
+
+router.delete("/sections/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const sectionId = String(req.params.id);
+  const lodgeId = await getLodgeId();
+  const actorId = req.session!.userId!;
+  if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
+
+  const existing = await db.select().from(historySectionsTable)
+    .where(and(eq(historySectionsTable.id, sectionId), eq(historySectionsTable.lodgeId, lodgeId))).limit(1);
+  if (existing.length === 0) { res.status(404).json({ error: "Section not found" }); return; }
+
+  await db.delete(historySectionsTable).where(eq(historySectionsTable.id, sectionId));
+  await writeAuditLog({ lodgeId, actorId, action: "HISTORY_SECTION_DELETED", targetType: "history_section", targetId: sectionId, detail: { chapterTitle: existing[0].chapterTitle }, ipAddress: getClientIp(req) });
+  res.json({ success: true });
+});
+
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
 function formatPage(p: typeof historyPageTable.$inferSelect) {
@@ -340,6 +449,10 @@ function formatTimelineEntry(e: typeof historyTimelineTable.$inferSelect) {
 
 function formatDocument(d: typeof historyDocumentsTable.$inferSelect) {
   return { id: d.id, title: d.title, description: d.description ?? null, documentDate: d.documentDate ?? null, category: d.category ?? null, fileUrl: d.fileUrl ?? null, sortOrder: d.sortOrder, createdAt: d.createdAt.toISOString(), updatedAt: d.updatedAt.toISOString() };
+}
+
+function formatSection(s: typeof historySectionsTable.$inferSelect) {
+  return { id: s.id, yearPeriod: s.yearPeriod, chapterTitle: s.chapterTitle, bodyText: s.bodyText, sortOrder: s.sortOrder, createdAt: s.createdAt.toISOString(), updatedAt: s.updatedAt.toISOString() };
 }
 
 export default router;

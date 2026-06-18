@@ -22,7 +22,7 @@ import AdminConfigPage from "@/pages/admin/config";
 import AdminRoadmapPage from "@/pages/admin/roadmap";
 import AdminTracingBoardPage from "@/pages/admin/tracing-board";
 import AdminEventsPage from "@/pages/admin/events";
-import AdminHistoryPage from "@/pages/admin/history";
+import AdminHistorySectionsPage from "@/pages/admin/history-sections";
 import AdminHistoryTimelinePage from "@/pages/admin/history-timeline";
 import AdminHistoryDocumentsPage from "@/pages/admin/history-documents";
 import TracingBoardPage from "@/pages/tracing-board";
@@ -201,7 +201,7 @@ function AppRoutes() {
         <Route path="/admin/roadmap" component={() => <ProtectedRoute component={AdminRoadmapPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/tracing-board" component={() => <ProtectedRoute component={AdminTracingBoardPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/events" component={() => <ProtectedRoute component={AdminEventsPage} minLevel={ADMIN_LEVEL} />} />
-        <Route path="/admin/history" component={() => <ProtectedRoute component={AdminHistoryPage} minLevel={ADMIN_LEVEL} />} />
+        <Route path="/admin/history" component={() => <ProtectedRoute component={AdminHistorySectionsPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/history/timeline" component={() => <ProtectedRoute component={AdminHistoryTimelinePage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/history/documents" component={() => <ProtectedRoute component={AdminHistoryDocumentsPage} minLevel={ADMIN_LEVEL} />} />
 

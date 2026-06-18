@@ -1921,6 +1921,106 @@ export const RemoveHistoryDocumentAttachmentResponse = zod.object({
 
 
 /**
+ * @summary List Our History sections in sort order (Visitor+)
+ */
+export const ListHistorySectionsResponse = zod.object({
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "yearPeriod": zod.string(),
+  "chapterTitle": zod.string(),
+  "bodyText": zod.string(),
+  "sortOrder": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Create a history section (Site Admin only)
+ */
+export const createHistorySectionBodyYearPeriodMax = 100;
+
+export const createHistorySectionBodyChapterTitleMax = 300;
+
+export const createHistorySectionBodyBodyTextMax = 20000;
+
+
+
+export const CreateHistorySectionBody = zod.object({
+  "yearPeriod": zod.string().min(1).max(createHistorySectionBodyYearPeriodMax),
+  "chapterTitle": zod.string().min(1).max(createHistorySectionBodyChapterTitleMax),
+  "bodyText": zod.string().max(createHistorySectionBodyBodyTextMax).optional(),
+  "sortOrder": zod.number().optional()
+})
+
+
+/**
+ * @summary Reorder history sections (Site Admin only)
+ */
+export const ReorderHistorySectionsBody = zod.object({
+  "orderedIds": zod.array(zod.string())
+})
+
+export const ReorderHistorySectionsResponse = zod.object({
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "yearPeriod": zod.string(),
+  "chapterTitle": zod.string(),
+  "bodyText": zod.string(),
+  "sortOrder": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Update a history section (Site Admin only)
+ */
+export const UpdateHistorySectionParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateHistorySectionBodyYearPeriodMax = 100;
+
+export const updateHistorySectionBodyChapterTitleMax = 300;
+
+export const updateHistorySectionBodyBodyTextMax = 20000;
+
+
+
+export const UpdateHistorySectionBody = zod.object({
+  "yearPeriod": zod.string().min(1).max(updateHistorySectionBodyYearPeriodMax).optional(),
+  "chapterTitle": zod.string().min(1).max(updateHistorySectionBodyChapterTitleMax).optional(),
+  "bodyText": zod.string().max(updateHistorySectionBodyBodyTextMax).optional(),
+  "sortOrder": zod.number().optional()
+})
+
+export const UpdateHistorySectionResponse = zod.object({
+  "id": zod.string(),
+  "yearPeriod": zod.string(),
+  "chapterTitle": zod.string(),
+  "bodyText": zod.string(),
+  "sortOrder": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Delete a history section (Site Admin only)
+ */
+export const DeleteHistorySectionParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteHistorySectionResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
  * @summary Serve an uploaded object (authenticated users only)
  */
 export const GetStorageObjectParams = zod.object({

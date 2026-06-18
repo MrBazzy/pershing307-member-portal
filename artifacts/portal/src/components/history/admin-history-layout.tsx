@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Landmark, Settings } from "lucide-react";
 
 const ADMIN_TABS = [
-  { href: "/admin/history", label: "Our History" },
+  { href: "/admin/history", label: "History Sections" },
   { href: "/admin/history/timeline", label: "Historical Timeline" },
   { href: "/admin/history/documents", label: "Historical Documents" },
 ];
