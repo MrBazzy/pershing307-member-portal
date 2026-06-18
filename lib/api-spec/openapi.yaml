@@ -3738,7 +3738,7 @@ components:
         year:
           type: integer
           minimum: 1700
-          maximum: 2200
+          maximum: 9999
         title:
           type: string
           minLength: 1
@@ -3755,7 +3755,7 @@ components:
         year:
           type: integer
           minimum: 1700
-          maximum: 2200
+          maximum: 9999
         title:
           type: string
           minLength: 1

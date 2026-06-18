@@ -133,7 +133,7 @@ router.post("/timeline", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (re
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
 
   const parsed = z.object({
-    year: z.number().int().min(1700).max(2200),
+    year: z.number().int().min(1700).max(9999),
     title: z.string().min(1).max(300),
     description: z.string().max(5000).nullable().optional(),
     sortOrder: z.number().int().optional(),
@@ -161,7 +161,7 @@ router.put("/timeline/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async 
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
 
   const parsed = z.object({
-    year: z.number().int().min(1700).max(2200).optional(),
+    year: z.number().int().min(1700).max(9999).optional(),
     title: z.string().min(1).max(300).optional(),
     description: z.string().max(5000).nullable().optional(),
     sortOrder: z.number().int().optional(),
