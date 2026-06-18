@@ -25,7 +25,7 @@ export function HistoryLayout({ children }: HistoryLayoutProps) {
             <Landmark className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-foreground">History</h1>
+            <h1 className="text-xl font-semibold text-primary">History</h1>
             <p className="text-xs text-muted-foreground">Heritage of General John J. Pershing Lodge No. 307</p>
           </div>
         </div>

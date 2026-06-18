@@ -129,7 +129,7 @@ export default function BirthdaysPage() {
               {months.map((month) => (
                 <Card key={month.month} className="border-card-border" data-testid={`month-${month.month}`}>
                   <CardHeader className="pb-2 pt-4">
-                    <CardTitle className="text-sm font-semibold text-foreground">
+                    <CardTitle className="text-sm font-semibold">
                       {month.monthName}
                       <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">
                         ({month.birthdays.length})
@@ -163,13 +163,15 @@ export default function BirthdaysPage() {
               ))}
             </div>
           ) : (
-            <div className="py-12 text-center bg-card border border-card-border rounded-sm">
-              <Cake className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm font-medium text-foreground">No birthdays on file yet</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                An administrator can add dates of birth to member profiles
-              </p>
-            </div>
+            <Card className="border-card-border">
+              <CardContent className="py-12 text-center">
+                <Cake className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-sm font-medium text-foreground">No birthdays on file yet</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  An administrator can add dates of birth to member profiles
+                </p>
+              </CardContent>
+            </Card>
           )}
         </div>
       </div>

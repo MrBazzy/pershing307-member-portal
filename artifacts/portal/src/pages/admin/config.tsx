@@ -407,7 +407,7 @@ function SendTestEmailSection() {
   };
 
   return (
-    <div className="border rounded-lg px-4 pb-4">
+    <div className="border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md px-4 pb-4">
       <div className="py-3 flex items-center gap-1.5">
         <Send className="h-3.5 w-3.5 text-muted-foreground" />
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
@@ -537,7 +537,7 @@ export default function AdminConfigPage() {
     <AppLayout>
       <div className="p-4 sm:p-6 space-y-6 max-w-2xl">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <h1 className="text-2xl font-serif font-semibold text-primary flex items-center gap-2">
             <Settings className="h-6 w-6" /> Configuration
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
@@ -554,7 +554,7 @@ export default function AdminConfigPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="border rounded-lg px-4">
+            <div className="border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md px-4">
               <div className="py-3 flex items-center gap-2">
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                   Lodge Information
@@ -580,7 +580,7 @@ export default function AdminConfigPage() {
               </div>
             </div>
 
-            <div className="border rounded-lg px-4">
+            <div className="border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md px-4">
               <div className="py-3 flex items-center gap-1.5">
                 <Mail className="h-3.5 w-3.5 text-muted-foreground" />
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
@@ -598,7 +598,7 @@ export default function AdminConfigPage() {
 
             <SendTestEmailSection />
 
-            <div className="border rounded-lg px-4">
+            <div className="border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md px-4">
               <h2 className="text-sm font-semibold py-3 text-muted-foreground uppercase tracking-wide">
                 Session &amp; Lockout
               </h2>
@@ -610,7 +610,7 @@ export default function AdminConfigPage() {
               </div>
             </div>
 
-            <div className="border rounded-lg px-4">
+            <div className="border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md px-4">
               <h2 className="text-sm font-semibold py-3 text-muted-foreground uppercase tracking-wide">
                 Security
               </h2>
@@ -622,7 +622,7 @@ export default function AdminConfigPage() {
               </div>
             </div>
 
-            <div className="border rounded-lg px-4">
+            <div className="border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md px-4">
               <h2 className="text-sm font-semibold py-3 text-muted-foreground uppercase tracking-wide">
                 Invitations
               </h2>

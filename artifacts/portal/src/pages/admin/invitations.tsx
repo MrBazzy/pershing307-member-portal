@@ -244,7 +244,7 @@ export default function AdminInvitationsPage() {
           ))}
         </div>
 
-        <div className="bg-card border rounded-sm overflow-hidden">
+        <div className="bg-card border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/30">

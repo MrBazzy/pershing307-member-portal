@@ -178,7 +178,7 @@ export default function AdminRoadmapPage() {
       <div className="p-6 max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-serif font-semibold text-foreground flex items-center gap-2">
+            <h1 className="text-2xl font-serif font-semibold text-primary flex items-center gap-2">
               <Map className="h-6 w-6 text-muted-foreground" />
               Roadmap
             </h1>
