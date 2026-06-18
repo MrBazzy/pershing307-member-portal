@@ -161,7 +161,7 @@ export default function BirthdaysPage() {
                             <DateBadge
                               month={b.month}
                               day={b.day}
-                              year={b.year}
+                              year={new Date().getFullYear()}
                               variant="amber"
                               size="md"
                             />
