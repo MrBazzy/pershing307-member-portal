@@ -117,6 +117,7 @@ import type {
   UpdatePershingBioInput,
   UpdateRoadmapItemInput,
   UpdateTracingBoardEntryInput,
+  UpdateUserNameInput,
   UserDegreeListResult,
   UserDetailResult,
   UserDomainAccessListResult,
@@ -4037,6 +4038,78 @@ export const useUpdateBirthdayVisibility = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpdateBirthdayVisibilityMutationOptions(options));
+    }
+
+export const getUpdateUserNameUrl = (id: string,) => {
+
+
+
+
+  return `/api/users/${id}/name`
+}
+
+/**
+ * @summary Update a member's first and last name (Site Admin only)
+ */
+export const updateUserName = async (id: string,
+    updateUserNameInput: UpdateUserNameInput, options?: RequestInit): Promise<SuccessResult> => {
+
+  return customFetch<SuccessResult>(getUpdateUserNameUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateUserNameInput,)
+  }
+);}
+
+
+
+
+export const getUpdateUserNameMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUserName>>, TError,{id: string;data: BodyType<UpdateUserNameInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateUserName>>, TError,{id: string;data: BodyType<UpdateUserNameInput>}, TContext> => {
+
+const mutationKey = ['updateUserName'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateUserName>>, {id: string;data: BodyType<UpdateUserNameInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateUserName(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateUserNameMutationResult = NonNullable<Awaited<ReturnType<typeof updateUserName>>>
+    export type UpdateUserNameMutationBody = BodyType<UpdateUserNameInput>
+    export type UpdateUserNameMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a member's first and last name (Site Admin only)
+ */
+export const useUpdateUserName = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUserName>>, TError,{id: string;data: BodyType<UpdateUserNameInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateUserName>>,
+        TError,
+        {id: string;data: BodyType<UpdateUserNameInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateUserNameMutationOptions(options));
     }
 
 export const getUpdateDateOfBirthUrl = (id: string,) => {

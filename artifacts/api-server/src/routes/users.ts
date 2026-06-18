@@ -818,6 +818,55 @@ const dateOfBirthSchema = z.object({
     .nullable(),
 });
 
+router.patch("/:id/name", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const targetId = String(req.params.id);
+  const actorId = req.session!.userId!;
+  const lodgeId = await getLodgeId();
+
+  const parsed = z.object({
+    firstName: z.string().min(1).max(100).trim(),
+    lastName: z.string().min(1).max(100).trim(),
+  }).safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "First name and last name are required." });
+    return;
+  }
+
+  const existing = await db
+    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName })
+    .from(usersTable)
+    .where(and(eq(usersTable.id, targetId), eq(usersTable.lodgeId, lodgeId!)))
+    .limit(1);
+
+  if (existing.length === 0) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const { firstName, lastName } = parsed.data;
+  await db
+    .update(usersTable)
+    .set({ firstName, lastName, updatedAt: new Date() })
+    .where(eq(usersTable.id, targetId));
+
+  await writeAuditLog({
+    lodgeId,
+    actorId,
+    action: "USER_NAME_UPDATED",
+    targetType: "user",
+    targetId,
+    detail: {
+      previousFirstName: existing[0].firstName,
+      previousLastName: existing[0].lastName,
+      updatedFirstName: firstName,
+      updatedLastName: lastName,
+    },
+    ipAddress: getClientIp(req),
+  });
+
+  res.json({ success: true });
+});
+
 router.patch("/:id/date-of-birth", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const targetId = String(req.params.id);
   const actorId = req.session!.userId!;

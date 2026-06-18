@@ -542,6 +542,19 @@ export interface BirthdaysByMonthResult {
   months: BirthdayMonth[];
 }
 
+export interface UpdateUserNameInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  firstName: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  lastName: string;
+}
+
 export interface UpdateDateOfBirthInput {
   /** @nullable */
   dateOfBirth?: string | null;

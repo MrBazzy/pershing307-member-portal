@@ -910,6 +910,30 @@ export const UpdateBirthdayVisibilityResponse = zod.object({
 
 
 /**
+ * @summary Update a member's first and last name (Site Admin only)
+ */
+export const UpdateUserNameParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateUserNameBodyFirstNameMax = 100;
+
+export const updateUserNameBodyLastNameMax = 100;
+
+
+
+export const UpdateUserNameBody = zod.object({
+  "firstName": zod.string().min(1).max(updateUserNameBodyFirstNameMax),
+  "lastName": zod.string().min(1).max(updateUserNameBodyLastNameMax)
+})
+
+export const UpdateUserNameResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
  * @summary Update a member's date of birth (Site Admin only)
  */
 export const UpdateDateOfBirthParams = zod.object({

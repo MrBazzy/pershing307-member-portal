@@ -137,6 +137,7 @@ export * from './updateRoadmapItemInput';
 export * from './updateRoadmapItemInputStatus';
 export * from './updateTracingBoardEntryInput';
 export * from './updateTracingBoardEntryInputVisibility';
+export * from './updateUserNameInput';
 export * from './userDegree';
 export * from './userDegreeListResult';
 export * from './userDetail';

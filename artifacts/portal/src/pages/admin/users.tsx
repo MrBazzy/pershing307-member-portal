@@ -5,7 +5,7 @@ import {
   useGrantUserDomain, useRevokeUserDomain, useListDomains, useListDegreeDefinitions,
   useAddUserDegree, useRemoveUserDegree, useResetTestUser,
   useUpdateUserMembershipStatus, useFixMembership, useAdminResetPassword,
-  useUpdateDateOfBirth,
+  useUpdateDateOfBirth, useUpdateUserName,
   getListUsersQueryKey, getGetUserQueryKey, getGetUserDomainsQueryKey, getGetUserDegreesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -241,11 +241,13 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [membershipStatusEdit, setMembershipStatusEdit] = useState("");
   const [dobEdit, setDobEdit] = useState<string>("");
+  const [firstNameEdit, setFirstNameEdit] = useState("");
+  const [lastNameEdit, setLastNameEdit] = useState("");
   const [pwdResetConfirmOpen, setPwdResetConfirmOpen] = useState(false);
   const [tempPasswordResult, setTempPasswordResult] = useState<{ tempPassword: string; expiresAt: string } | null>(null);
   const [copiedPassword, setCopiedPassword] = useState(false);
 
-  useEffect(() => { setMembershipStatusEdit(""); setDobEdit(""); }, [userId]);
+  useEffect(() => { setMembershipStatusEdit(""); setDobEdit(""); setFirstNameEdit(""); setLastNameEdit(""); }, [userId]);
 
   const { data, isLoading } = useGetUser(userId ?? "", {
     query: { enabled: !!userId, queryKey: getGetUserQueryKey(userId ?? "") },
@@ -268,6 +270,7 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
   const resetTestUser = useResetTestUser();
   const adminResetPassword = useAdminResetPassword();
   const updateDateOfBirth = useUpdateDateOfBirth();
+  const updateUserName = useUpdateUserName();
 
   const isPmSuperAdmin = currentUser?.roles?.some((r) => r.permissionLevel >= 90) ?? false;
 
@@ -334,6 +337,61 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
                   <DetailItem label="Last Login">
                     {user.lastLoginAt ? formatDistanceToNow(new Date(user.lastLoginAt), { addSuffix: true }) : "Never"}
                   </DetailItem>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Name</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      className="h-8 text-xs"
+                      placeholder="First name"
+                      value={firstNameEdit !== "" ? firstNameEdit : (user.firstName ?? "")}
+                      onChange={(e) => setFirstNameEdit(e.target.value)}
+                      data-testid="input-first-name"
+                    />
+                    <Input
+                      className="h-8 text-xs"
+                      placeholder="Last name"
+                      value={lastNameEdit !== "" ? lastNameEdit : (user.lastName ?? "")}
+                      onChange={(e) => setLastNameEdit(e.target.value)}
+                      data-testid="input-last-name"
+                    />
+                  </div>
+                  <Button
+                    size="sm" className="h-8 px-3 mt-2"
+                    disabled={
+                      updateUserName.isPending ||
+                      (
+                        (firstNameEdit === "" || firstNameEdit === user.firstName) &&
+                        (lastNameEdit === "" || lastNameEdit === user.lastName)
+                      ) ||
+                      (firstNameEdit !== "" && firstNameEdit.trim() === "") ||
+                      (lastNameEdit !== "" && lastNameEdit.trim() === "")
+                    }
+                    onClick={() => {
+                      if (!userId) return;
+                      const newFirst = firstNameEdit !== "" ? firstNameEdit.trim() : user.firstName;
+                      const newLast = lastNameEdit !== "" ? lastNameEdit.trim() : user.lastName;
+                      if (!newFirst || !newLast) return;
+                      updateUserName.mutate(
+                        { id: userId, data: { firstName: newFirst, lastName: newLast } },
+                        {
+                          onSuccess: () => {
+                            invalidate();
+                            setFirstNameEdit("");
+                            setLastNameEdit("");
+                            toast({ title: "Name updated" });
+                          },
+                          onError: (e: any) => toast({ title: "Error", description: e?.data?.error ?? "Failed to update name", variant: "destructive" }),
+                        }
+                      );
+                    }}
+                    data-testid="button-save-name"
+                  >
+                    {updateUserName.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save Name"}
+                  </Button>
                 </div>
 
                 <Separator />

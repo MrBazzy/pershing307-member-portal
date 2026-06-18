@@ -1123,6 +1123,39 @@ paths:
         "401":
           description: Unauthorized
 
+  /users/{id}/name:
+    patch:
+      operationId: updateUserName
+      tags: [users]
+      summary: Update a member's first and last name (Site Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserNameInput"
+      responses:
+        "200":
+          description: Name updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "400":
+          description: Invalid input
+        "403":
+          description: Forbidden
+        "404":
+          description: User not found
+
   /users/{id}/date-of-birth:
     patch:
       operationId: updateDateOfBirth
@@ -3191,6 +3224,19 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/BirthdayMonth"
+
+    UpdateUserNameInput:
+      type: object
+      required: [firstName, lastName]
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 100
 
     UpdateDateOfBirthInput:
       type: object
