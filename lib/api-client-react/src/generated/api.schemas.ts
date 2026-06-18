@@ -1414,6 +1414,14 @@ export interface DocumentFolderDomainLinkInput {
   frame?: DocumentFolderDomainLinkInputFrame;
 }
 
+export type DocumentDomainItemFrame = typeof DocumentDomainItemFrame[keyof typeof DocumentDomainItemFrame];
+
+
+export const DocumentDomainItemFrame = {
+  general: 'general',
+  ritual: 'ritual',
+} as const;
+
 export type DocumentDomainItemAccessLogic = typeof DocumentDomainItemAccessLogic[keyof typeof DocumentDomainItemAccessLogic];
 
 
@@ -1428,6 +1436,7 @@ export interface DocumentDomainItem {
   id: string;
   name: string;
   slug: string;
+  frame: DocumentDomainItemFrame;
   description?: string | null;
   accessLogic: DocumentDomainItemAccessLogic;
   allowedRoleSlugs: string[];
@@ -1443,6 +1452,14 @@ export interface DocumentDomainListResult {
 export interface DocumentDomainResult {
   domain: DocumentDomainItem;
 }
+
+export type DocumentDomainCreateInputFrame = typeof DocumentDomainCreateInputFrame[keyof typeof DocumentDomainCreateInputFrame];
+
+
+export const DocumentDomainCreateInputFrame = {
+  general: 'general',
+  ritual: 'ritual',
+} as const;
 
 export type DocumentDomainCreateInputAccessLogic = typeof DocumentDomainCreateInputAccessLogic[keyof typeof DocumentDomainCreateInputAccessLogic];
 
@@ -1465,6 +1482,7 @@ export interface DocumentDomainCreateInput {
      * @maxLength 100
      */
   slug: string;
+  frame?: DocumentDomainCreateInputFrame;
   /** @maxLength 1000 */
   description?: string | null;
   accessLogic: DocumentDomainCreateInputAccessLogic;

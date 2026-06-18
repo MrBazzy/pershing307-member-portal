@@ -4721,7 +4721,7 @@ components:
 
     DocumentDomainItem:
       type: object
-      required: [id, name, slug, accessLogic, allowedRoleSlugs, createdAt, updatedAt]
+      required: [id, name, slug, frame, accessLogic, allowedRoleSlugs, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -4729,6 +4729,9 @@ components:
           type: string
         slug:
           type: string
+        frame:
+          type: string
+          enum: [general, ritual]
         description:
           type: string
           nullable: true
@@ -4777,6 +4780,9 @@ components:
           type: string
           minLength: 1
           maxLength: 100
+        frame:
+          type: string
+          enum: [general, ritual]
         description:
           type: string
           maxLength: 1000

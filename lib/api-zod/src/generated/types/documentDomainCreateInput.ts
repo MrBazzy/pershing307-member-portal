@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.2.0
  */
 import type { DocumentDomainCreateInputAccessLogic } from './documentDomainCreateInputAccessLogic';
+import type { DocumentDomainCreateInputFrame } from './documentDomainCreateInputFrame';
 
 export interface DocumentDomainCreateInput {
   /**
@@ -18,6 +19,7 @@ export interface DocumentDomainCreateInput {
      * @maxLength 100
      */
   slug: string;
+  frame?: DocumentDomainCreateInputFrame;
   /** @maxLength 1000 */
   description?: string | null;
   accessLogic: DocumentDomainCreateInputAccessLogic;

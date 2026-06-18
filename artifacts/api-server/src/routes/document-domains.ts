@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import { protectedDomainsTable, usersTable, userDomainAccessTable } from "@workspace/db/schema";
-import type { DomainAccessLogic } from "@workspace/db/schema";
+import type { DomainAccessLogic, DomainFrame } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
@@ -16,9 +16,12 @@ const PM_SUPER_LEVEL = 90;
 
 const ACCESS_LOGIC_VALUES = ["role_only", "degree_only", "role_or_degree", "role_and_degree"] as const;
 
+const FRAME_VALUES = ["general", "ritual"] as const;
+
 const createDomainSchema = z.object({
   name: z.string().min(1).max(200),
   slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "Slug must be lowercase letters, numbers, and hyphens only"),
+  frame: z.enum(FRAME_VALUES).optional().default("general"),
   description: z.string().max(1000).nullable().optional(),
   accessLogic: z.enum(ACCESS_LOGIC_VALUES),
   allowedRoleSlugs: z.array(z.string()).optional().default([]),
@@ -41,6 +44,7 @@ function formatDomain(d: typeof protectedDomainsTable.$inferSelect) {
     id: d.id,
     name: d.name,
     slug: d.slug,
+    frame: (d.frame ?? "general") as DomainFrame,
     description: d.description ?? null,
     accessLogic: d.accessLogic as DomainAccessLogic,
     allowedRoleSlugs: (d.allowedRoleSlugs as string[]) ?? [],
@@ -89,7 +93,7 @@ router.post("/", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, res) =>
   const parsed = createDomainSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() }); return; }
 
-  const { name, slug, description, accessLogic, allowedRoleSlugs, minDegree } = parsed.data;
+  const { name, slug, frame, description, accessLogic, allowedRoleSlugs, minDegree } = parsed.data;
 
   // Check slug uniqueness
   const existing = await db
@@ -112,6 +116,7 @@ router.post("/", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, res) =>
       lodgeId,
       name,
       slug,
+      frame: frame ?? "general",
       description: description ?? null,
       accessLogic,
       allowedRoleSlugs: allowedRoleSlugs ?? [],

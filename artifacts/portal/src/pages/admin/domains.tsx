@@ -220,6 +220,7 @@ export default function AdminDomainsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createSlug, setCreateSlug] = useState("");
+  const [createFrame, setCreateFrame] = useState<"general" | "ritual">("general");
   const [createDesc, setCreateDesc] = useState("");
   const [createLogic, setCreateLogic] = useState<"role_only" | "degree_only" | "role_or_degree" | "role_and_degree">("role_only");
   const [createRoles, setCreateRoles] = useState<string[]>([]);
@@ -237,6 +238,7 @@ export default function AdminDomainsPage() {
         data: {
           name: createName.trim(),
           slug: createSlug.trim(),
+          frame: createFrame,
           description: createDesc.trim() || null,
           accessLogic: createLogic as DocumentDomainAccessUpdateInputAccessLogic,
           allowedRoleSlugs: createRoles,
@@ -247,7 +249,7 @@ export default function AdminDomainsPage() {
         onSuccess: () => {
           toast({ title: "Domain created" });
           setShowCreate(false);
-          setCreateName(""); setCreateSlug(""); setCreateDesc("");
+          setCreateName(""); setCreateSlug(""); setCreateFrame("general"); setCreateDesc("");
           setCreateLogic("role_only"); setCreateRoles([]); setCreateDegree("");
           invalidate();
         },
@@ -374,9 +376,16 @@ export default function AdminDomainsPage() {
         )}
 
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-40 rounded-lg" />
+          <div className="space-y-8">
+            {[0, 1].map((s) => (
+              <div key={s}>
+                <Skeleton className="h-5 w-40 mb-4 rounded" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-40 rounded-lg" />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         ) : domains.length === 0 ? (
@@ -386,20 +395,42 @@ export default function AdminDomainsPage() {
               <p className="text-sm text-muted-foreground">No domains configured yet.</p>
             </CardContent>
           </Card>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {domains.map((d) => (
-              <DomainCard
-                key={d.id}
-                domain={d}
-                isPmSuper={isPmSuper}
-                onEdit={openEdit}
-                onEditAccess={openEditAccess}
-                onDelete={setDeleteTarget}
-              />
-            ))}
-          </div>
-        )}
+        ) : (() => {
+          const generalDomains = domains.filter((d) => d.frame !== "ritual");
+          const ritualDomains = domains.filter((d) => d.frame === "ritual");
+          const showBoth = generalDomains.length > 0 && ritualDomains.length > 0;
+          return (
+            <div className="space-y-8">
+              {generalDomains.length > 0 && (
+                <div>
+                  <div className="mb-4">
+                    <h2 className="text-base font-semibold text-foreground">General Documents</h2>
+                    <p className="text-sm text-muted-foreground mt-0.5">Access rules for administrative and member-facing domains.</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {generalDomains.map((d) => (
+                      <DomainCard key={d.id} domain={d} isPmSuper={isPmSuper} onEdit={openEdit} onEditAccess={openEditAccess} onDelete={setDeleteTarget} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {showBoth && <Separator />}
+              {ritualDomains.length > 0 && (
+                <div>
+                  <div className="mb-4">
+                    <h2 className="text-base font-semibold text-foreground">Ritual Documents</h2>
+                    <p className="text-sm text-muted-foreground mt-0.5">Access rules for degree ritual materials and ceremonial resources.</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {ritualDomains.map((d) => (
+                      <DomainCard key={d.id} domain={d} isPmSuper={isPmSuper} onEdit={openEdit} onEditAccess={openEditAccess} onDelete={setDeleteTarget} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Create Domain Dialog */}
@@ -433,6 +464,18 @@ export default function AdminDomainsPage() {
                   onChange={(e) => setCreateSlug(e.target.value)}
                 />
               </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Frame</label>
+              <Select value={createFrame} onValueChange={(v) => setCreateFrame(v as "general" | "ritual")}>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">General Documents</SelectItem>
+                  <SelectItem value="ritual">Ritual Documents</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="text-sm font-medium">Description <span className="font-normal text-muted-foreground">(optional)</span></label>

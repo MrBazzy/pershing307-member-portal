@@ -6,11 +6,13 @@
  * OpenAPI spec version: 0.2.0
  */
 import type { DocumentDomainItemAccessLogic } from './documentDomainItemAccessLogic';
+import type { DocumentDomainItemFrame } from './documentDomainItemFrame';
 
 export interface DocumentDomainItem {
   id: string;
   name: string;
   slug: string;
+  frame: DocumentDomainItemFrame;
   description?: string | null;
   accessLogic: DocumentDomainItemAccessLogic;
   allowedRoleSlugs: string[];
