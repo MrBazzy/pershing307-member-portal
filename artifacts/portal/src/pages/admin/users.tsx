@@ -6,9 +6,10 @@ import {
   useAddUserDegree, useRemoveUserDegree, useResetTestUser,
   useUpdateUserMembershipStatus, useFixMembership, useAdminResetPassword,
   useUpdateDateOfBirth, useUpdateUserName,
+  listUserPasskeys, revokeUserPasskey,
   getListUsersQueryKey, getGetUserQueryKey, getGetUserDomainsQueryKey, getGetUserDegreesQueryKey,
 } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,11 +28,74 @@ import { useAuth } from "@/hooks/use-auth";
 import { formatDistanceToNow, format } from "date-fns";
 import {
   Users, UserX, UserCheck, Plus, Trash2, Search, ChevronLeft, ChevronRight, Loader2,
-  AlertTriangle, KeyRound, Copy, Check, Cake,
+  AlertTriangle, KeyRound, Copy, Check, Cake, Fingerprint,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 50;
+
+function AdminPasskeysPanel({ userId, onRevoked }: { userId: string | null; onRevoked: () => void }) {
+  const { toast } = useToast();
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["admin-passkeys", userId],
+    queryFn: () => listUserPasskeys(userId!),
+    enabled: !!userId,
+  });
+  const passkeys = data?.passkeys ?? [];
+
+  const handleRevoke = async (passkeyId: string, label: string) => {
+    if (!userId) return;
+    setRevokingId(passkeyId);
+    try {
+      await revokeUserPasskey(userId, passkeyId);
+      toast({ title: "Passkey revoked", description: `"${label}" has been revoked.` });
+      refetch();
+      onRevoked();
+    } catch {
+      toast({ title: "Failed to revoke passkey", variant: "destructive" });
+    } finally {
+      setRevokingId(null);
+    }
+  };
+
+  if (!userId) return null;
+
+  return (
+    <div className="mt-3">
+      <p className="text-[11px] font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5">
+        <Fingerprint className="h-3 w-3" /> Passkeys
+        {!isLoading && (
+          <span className="ml-auto tabular-nums">
+            {passkeys.length === 0 ? "none" : `${passkeys.length} registered`}
+          </span>
+        )}
+      </p>
+      {isLoading && <p className="text-[11px] text-muted-foreground">Loading…</p>}
+      {!isLoading && passkeys.length === 0 && (
+        <p className="text-[11px] text-muted-foreground">No passkeys registered.</p>
+      )}
+      {passkeys.map((pk) => (
+        <div key={pk.id} className="flex items-center justify-between gap-2 mt-1">
+          <span className="text-[11px] truncate">{pk.label}</span>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-5 w-5 shrink-0 text-muted-foreground hover:text-destructive"
+            disabled={revokingId === pk.id}
+            onClick={() => handleRevoke(pk.id, pk.label)}
+            aria-label={`Revoke passkey: ${pk.label}`}
+          >
+            {revokingId === pk.id
+              ? <Loader2 className="h-3 w-3 animate-spin" />
+              : <Trash2 className="h-3 w-3" />}
+          </Button>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
@@ -575,6 +639,8 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
                   {isSelf && (
                     <p className="text-[11px] text-muted-foreground mt-1.5">You cannot reset your own password here. Use Account Settings.</p>
                   )}
+
+                  <AdminPasskeysPanel userId={userId} onRevoked={invalidate} />
                 </div>
 
                 <Separator />

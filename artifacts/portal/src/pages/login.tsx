@@ -3,7 +3,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocation } from "wouter";
-import { useLogin, useVerifyTwoFactor, getGetCurrentUserQueryKey } from "@workspace/api-client-react";
+import {
+  useLogin, useVerifyTwoFactor, getGetCurrentUserQueryKey,
+  beginPasskeyAuthentication, completePasskeyAuthentication,
+} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AuthLayout } from "@/components/layout/auth-layout";
 import { Button } from "@/components/ui/button";
@@ -12,8 +15,9 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
-import { Loader2, Shield } from "lucide-react";
+import { Loader2, Shield, Fingerprint } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { startAuthentication } from "@simplewebauthn/browser";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -51,6 +55,8 @@ export default function LoginPage() {
       sessionStorage.removeItem("loginNotice");
     }
   }, []);
+
+  const [passkeyPending, setPasskeyPending] = useState(false);
 
   const login = useLogin();
   const verifyTwoFactor = useVerifyTwoFactor();
@@ -117,6 +123,38 @@ export default function LoginPage() {
         },
       }
     );
+  };
+
+  const handlePasskeyLogin = async () => {
+    setPasskeyPending(true);
+    try {
+      const options = await beginPasskeyAuthentication();
+      let assertion;
+      try {
+        assertion = await startAuthentication({ optionsJSON: options as any });
+      } catch (e: any) {
+        if (e?.name === "NotAllowedError") {
+          toast({ title: "Cancelled", description: "Passkey sign-in was cancelled.", variant: "destructive" });
+          return;
+        }
+        throw e;
+      }
+      const result = await completePasskeyAuthentication({ body: assertion as any });
+      queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+      if ((result as any)?.user?.mustChangePassword || (result as any)?.user?.profileSetupRequired) {
+        setLocation("/setup");
+      } else {
+        setLocation("/dashboard");
+      }
+    } catch (e: any) {
+      toast({
+        title: "Passkey sign-in failed",
+        description: e?.data?.error ?? e?.message ?? "Could not verify your passkey. Please try a password instead.",
+        variant: "destructive",
+      });
+    } finally {
+      setPasskeyPending(false);
+    }
   };
 
   const handleBackToLogin = () => {
@@ -317,6 +355,29 @@ export default function LoginPage() {
           </Button>
         </form>
       </Form>
+
+      <div className="relative my-5">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="bg-card px-2 text-muted-foreground">or</span>
+        </div>
+      </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        disabled={passkeyPending}
+        onClick={handlePasskeyLogin}
+        data-testid="button-passkey-login"
+      >
+        {passkeyPending
+          ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          : <Fingerprint className="h-4 w-4 mr-2" />}
+        Sign in with Passkey
+      </Button>
     </AuthLayout>
   );
 }

@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Users, Mail, FileText, LogOut, ChevronRight,
   Shield, Globe, GraduationCap, Settings, Menu, X, Cake, Map, UserCircle,
-  BookOpen, CalendarDays, Landmark,
+  BookOpen, CalendarDays, Landmark, Fingerprint,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -154,6 +154,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               <NavLink item={{ href: "/settings/profile", label: "Profile", icon: UserCircle }} onNav={onNav} />
             )}
             <NavLink item={{ href: "/settings/2fa", label: "Two-Factor Auth", icon: Shield }} onNav={onNav} />
+            <NavLink item={{ href: "/settings/passkeys", label: "Passkeys", icon: Fingerprint }} onNav={onNav} />
           </>
         )}
       </nav>

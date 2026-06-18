@@ -34,6 +34,7 @@ import HistoricalDocumentsPage from "@/pages/history/documents";
 import PershingBiographyPage from "@/pages/history/pershing";
 import TwoFactorPage from "@/pages/settings/two-factor";
 import ProfileSettingsPage from "@/pages/settings/profile";
+import PasskeysPage from "@/pages/settings/passkeys";
 import BirthdaysPage from "@/pages/birthdays";
 import { useEffect } from "react";
 import { VISITOR_LEVEL, MEMBER_LEVEL, ADMIN_LEVEL } from "@/lib/roles";
@@ -194,6 +195,7 @@ function AppRoutes() {
 
         <Route path="/settings/profile" component={() => <ProtectedRoute component={ProfileSettingsPage} minLevel={MEMBER_LEVEL} />} />
         <Route path="/settings/2fa" component={() => <ProtectedRoute component={TwoFactorPage} minLevel={VISITOR_LEVEL} />} />
+        <Route path="/settings/passkeys" component={() => <ProtectedRoute component={PasskeysPage} minLevel={VISITOR_LEVEL} />} />
 
         <Route path="/admin/users" component={() => <ProtectedRoute component={AdminUsersPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/invitations" component={() => <ProtectedRoute component={AdminInvitationsPage} minLevel={ADMIN_LEVEL} />} />

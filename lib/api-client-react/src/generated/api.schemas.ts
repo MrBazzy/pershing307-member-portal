@@ -1310,6 +1310,46 @@ export interface DocumentAttachmentUploadResponse {
   objectPath: string;
 }
 
+/**
+ * WebAuthn registration credential response from the browser
+ */
+export interface PasskeyRegistrationResponse { [key: string]: unknown }
+
+/**
+ * WebAuthn authentication assertion response from the browser
+ */
+export interface PasskeyAuthenticationResponse { [key: string]: unknown }
+
+export interface PasskeyItem {
+  id: string;
+  label: string;
+  aaguid?: string | null;
+  createdAt: string;
+  lastUsedAt?: string | null;
+  transports: string[];
+}
+
+export interface PasskeyListResult {
+  passkeys: PasskeyItem[];
+}
+
+export type PasskeyLoginResultUserRolesItem = { [key: string]: unknown };
+
+export type PasskeyLoginResultUser = {
+  id?: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  displayName?: string | null;
+  mustChangePassword?: boolean;
+  profileSetupRequired?: boolean;
+  roles?: PasskeyLoginResultUserRolesItem[];
+};
+
+export interface PasskeyLoginResult {
+  user: PasskeyLoginResultUser;
+}
+
 export type ListUsersParams = {
 /**
  * @minimum 1
@@ -1352,4 +1392,8 @@ from?: string;
 export type DeleteHistorySection200 = {
   success: boolean;
 };
+
+export type BeginPasskeyRegistration200 = { [key: string]: unknown };
+
+export type BeginPasskeyAuthentication200 = { [key: string]: unknown };
 

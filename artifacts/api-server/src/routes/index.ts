@@ -17,6 +17,7 @@ import tracingBoardRouter from "./tracing-board";
 import eventsRouter from "./events";
 import historyRouter from "./history";
 import storageRouter from "./storage";
+import passkeysRouter from "./passkeys";
 
 const router: IRouter = Router();
 
@@ -38,5 +39,6 @@ router.use("/tracing-board", tracingBoardRouter);
 router.use("/events", eventsRouter);
 router.use("/history", historyRouter);
 router.use(storageRouter);
+router.use("/passkeys", passkeysRouter);
 
 export default router;

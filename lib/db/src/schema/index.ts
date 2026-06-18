@@ -23,3 +23,4 @@ export * from "./history-timeline";
 export * from "./history-documents";
 export * from "./history-sections";
 export * from "./pershing-bio";
+export * from "./passkey-credentials";

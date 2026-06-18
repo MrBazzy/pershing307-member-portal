@@ -2372,6 +2372,167 @@ paths:
         "404":
           description: Object not found
 
+  /passkeys:
+    get:
+      operationId: listMyPasskeys
+      tags: [passkeys]
+      summary: List my registered passkeys
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Passkey list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasskeyListResult"
+
+  /passkeys/registration/begin:
+    post:
+      operationId: beginPasskeyRegistration
+      tags: [passkeys]
+      summary: Begin passkey registration (returns WebAuthn options)
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: WebAuthn registration options
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /passkeys/registration/complete:
+    post:
+      operationId: completePasskeyRegistration
+      tags: [passkeys]
+      summary: Complete passkey registration
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasskeyRegistrationResponse"
+      responses:
+        "200":
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "400":
+          description: Verification failed
+
+  /passkeys/{id}:
+    delete:
+      operationId: deletePasskey
+      tags: [passkeys]
+      summary: Remove my passkey
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Passkey removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "404":
+          description: Not found
+
+  /passkeys/authentication/begin:
+    post:
+      operationId: beginPasskeyAuthentication
+      tags: [passkeys]
+      summary: Begin passkey authentication (returns WebAuthn options)
+      responses:
+        "200":
+          description: WebAuthn authentication options
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /passkeys/authentication/complete:
+    post:
+      operationId: completePasskeyAuthentication
+      tags: [passkeys]
+      summary: Complete passkey authentication and establish session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasskeyAuthenticationResponse"
+      responses:
+        "200":
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasskeyLoginResult"
+        "401":
+          description: Authentication failed
+
+  /passkeys/users/{userId}:
+    get:
+      operationId: listUserPasskeys
+      tags: [passkeys]
+      summary: Admin — list a user's passkeys
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Passkey list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasskeyListResult"
+
+  /passkeys/users/{userId}/{passkeyId}:
+    delete:
+      operationId: revokeUserPasskey
+      tags: [passkeys]
+      summary: Admin — revoke a user's passkey
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: passkeyId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Passkey revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "404":
+          description: Not found
+
 components:
   schemas:
     HealthStatus:
@@ -4058,3 +4219,72 @@ components:
         objectPath:
           type: string
           description: Normalized object path to store in the database
+
+    PasskeyRegistrationResponse:
+      type: object
+      description: WebAuthn registration credential response from the browser
+      additionalProperties: true
+
+    PasskeyAuthenticationResponse:
+      type: object
+      description: WebAuthn authentication assertion response from the browser
+      additionalProperties: true
+
+    PasskeyItem:
+      type: object
+      required: [id, label, createdAt, transports]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        aaguid:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        lastUsedAt:
+          type: string
+          format: date-time
+          nullable: true
+        transports:
+          type: array
+          items:
+            type: string
+
+    PasskeyListResult:
+      type: object
+      required: [passkeys]
+      properties:
+        passkeys:
+          type: array
+          items:
+            $ref: "#/components/schemas/PasskeyItem"
+
+    PasskeyLoginResult:
+      type: object
+      required: [user]
+      properties:
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+            email:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+            displayName:
+              type: string
+              nullable: true
+            mustChangePassword:
+              type: boolean
+            profileSetupRequired:
+              type: boolean
+            roles:
+              type: array
+              items:
+                type: object

@@ -10,6 +10,9 @@ declare module "express-session" {
     failedTotpAttempts?: number;
     totpLockedUntil?: string;
     forceLogout?: boolean;
+    webauthnChallenge?: string;
+    webauthnRpId?: string;
+    webauthnOrigin?: string;
   }
 }
 

@@ -2091,3 +2091,108 @@ export const GetStorageObjectParams = zod.object({
 })
 
 
+/**
+ * @summary List my registered passkeys
+ */
+export const ListMyPasskeysResponse = zod.object({
+  "passkeys": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "aaguid": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "lastUsedAt": zod.coerce.date().nullish(),
+  "transports": zod.array(zod.string())
+}))
+})
+
+
+/**
+ * @summary Begin passkey registration (returns WebAuthn options)
+ */
+export const BeginPasskeyRegistrationResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Complete passkey registration
+ */
+export const CompletePasskeyRegistrationBody = zod.record(zod.string(), zod.unknown()).describe('WebAuthn registration credential response from the browser')
+
+export const CompletePasskeyRegistrationResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary Remove my passkey
+ */
+export const DeletePasskeyParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeletePasskeyResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary Begin passkey authentication (returns WebAuthn options)
+ */
+export const BeginPasskeyAuthenticationResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Complete passkey authentication and establish session
+ */
+export const CompletePasskeyAuthenticationBody = zod.record(zod.string(), zod.unknown()).describe('WebAuthn authentication assertion response from the browser')
+
+export const CompletePasskeyAuthenticationResponse = zod.object({
+  "user": zod.object({
+  "id": zod.string().optional(),
+  "email": zod.string().optional(),
+  "firstName": zod.string().optional(),
+  "lastName": zod.string().optional(),
+  "displayName": zod.string().nullish(),
+  "mustChangePassword": zod.boolean().optional(),
+  "profileSetupRequired": zod.boolean().optional(),
+  "roles": zod.array(zod.object({
+
+}).passthrough()).optional()
+})
+})
+
+
+/**
+ * @summary Admin — list a user's passkeys
+ */
+export const ListUserPasskeysParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const ListUserPasskeysResponse = zod.object({
+  "passkeys": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "aaguid": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "lastUsedAt": zod.coerce.date().nullish(),
+  "transports": zod.array(zod.string())
+}))
+})
+
+
+/**
+ * @summary Admin — revoke a user's passkey
+ */
+export const RevokeUserPasskeyParams = zod.object({
+  "userId": zod.coerce.string(),
+  "passkeyId": zod.coerce.string()
+})
+
+export const RevokeUserPasskeyResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@google-cloud/storage": "^7.21.0",
+    "@simplewebauthn/server": "^13.3.1",
     "@types/connect-pg-simple": "^7.0.3",
     "@types/express-session": "^1.19.0",
     "@types/nodemailer": "^8.0.0",
