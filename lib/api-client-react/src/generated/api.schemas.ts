@@ -1077,6 +1077,25 @@ export interface UpdateHistoryPageInput {
   content: string;
 }
 
+export interface PershingBio {
+  id: string;
+  biographyText: string;
+  lodgeConnectionText: string;
+  updatedAt: string;
+  createdAt: string;
+}
+
+export interface PershingBioResult {
+  bio: PershingBio;
+}
+
+export interface UpdatePershingBioInput {
+  /** @maxLength 20000 */
+  biographyText?: string;
+  /** @maxLength 10000 */
+  lodgeConnectionText?: string;
+}
+
 export interface HistoryTimelineEntry {
   id: string;
   year: number;
@@ -1095,7 +1114,7 @@ export interface HistoryTimelineListResult {
 export interface CreateHistoryTimelineEntryInput {
   /**
      * @minimum 1700
-     * @maximum 2200
+     * @maximum 9999
      */
   year: number;
   /**
@@ -1114,7 +1133,7 @@ export interface CreateHistoryTimelineEntryInput {
 export interface UpdateHistoryTimelineEntryInput {
   /**
      * @minimum 1700
-     * @maximum 2200
+     * @maximum 9999
      */
   year?: number;
   /**

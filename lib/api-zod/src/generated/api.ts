@@ -1702,6 +1702,45 @@ export const UpdateHistoryPageResponse = zod.object({
 
 
 /**
+ * @summary Get the General John J. Pershing biography page (Visitor+)
+ */
+export const GetPershingBioResponse = zod.object({
+  "bio": zod.object({
+  "id": zod.string(),
+  "biographyText": zod.string(),
+  "lodgeConnectionText": zod.string(),
+  "updatedAt": zod.string(),
+  "createdAt": zod.string()
+})
+})
+
+
+/**
+ * @summary Update the General Pershing biography (Site Admin only)
+ */
+export const updatePershingBioBodyBiographyTextMax = 20000;
+
+export const updatePershingBioBodyLodgeConnectionTextMax = 10000;
+
+
+
+export const UpdatePershingBioBody = zod.object({
+  "biographyText": zod.string().max(updatePershingBioBodyBiographyTextMax).optional(),
+  "lodgeConnectionText": zod.string().max(updatePershingBioBodyLodgeConnectionTextMax).optional()
+})
+
+export const UpdatePershingBioResponse = zod.object({
+  "bio": zod.object({
+  "id": zod.string(),
+  "biographyText": zod.string(),
+  "lodgeConnectionText": zod.string(),
+  "updatedAt": zod.string(),
+  "createdAt": zod.string()
+})
+})
+
+
+/**
  * @summary List historical timeline entries (Visitor+)
  */
 export const ListHistoryTimelineResponse = zod.object({
@@ -1721,7 +1760,7 @@ export const ListHistoryTimelineResponse = zod.object({
  * @summary Create a timeline entry (Site Admin only)
  */
 export const createHistoryTimelineEntryBodyYearMin = 1700;
-export const createHistoryTimelineEntryBodyYearMax = 2200;
+export const createHistoryTimelineEntryBodyYearMax = 9999;
 
 export const createHistoryTimelineEntryBodyTitleMax = 300;
 
@@ -1745,7 +1784,7 @@ export const UpdateHistoryTimelineEntryParams = zod.object({
 })
 
 export const updateHistoryTimelineEntryBodyYearMin = 1700;
-export const updateHistoryTimelineEntryBodyYearMax = 2200;
+export const updateHistoryTimelineEntryBodyYearMax = 9999;
 
 export const updateHistoryTimelineEntryBodyTitleMax = 300;
 

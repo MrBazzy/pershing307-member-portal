@@ -9,7 +9,7 @@
 export interface UpdateHistoryTimelineEntryInput {
   /**
      * @minimum 1700
-     * @maximum 2200
+     * @maximum 9999
      */
   year?: number;
   /**

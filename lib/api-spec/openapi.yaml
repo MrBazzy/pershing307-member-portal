@@ -1898,6 +1898,46 @@ paths:
         "403":
           description: Forbidden
 
+  /history/pershing-bio:
+    get:
+      operationId: getPershingBio
+      tags: [history]
+      summary: Get the General John J. Pershing biography page (Visitor+)
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Pershing biography content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PershingBioResult"
+        "401":
+          description: Unauthorized
+    put:
+      operationId: updatePershingBio
+      tags: [history]
+      summary: Update the General Pershing biography (Site Admin only)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePershingBioInput"
+      responses:
+        "200":
+          description: Updated biography
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PershingBioResult"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+
   /history/timeline:
     get:
       operationId: listHistoryTimeline
@@ -3702,6 +3742,38 @@ components:
         content:
           type: string
           maxLength: 50000
+
+    PershingBio:
+      type: object
+      required: [id, biographyText, lodgeConnectionText, updatedAt, createdAt]
+      properties:
+        id:
+          type: string
+        biographyText:
+          type: string
+        lodgeConnectionText:
+          type: string
+        updatedAt:
+          type: string
+        createdAt:
+          type: string
+
+    PershingBioResult:
+      type: object
+      required: [bio]
+      properties:
+        bio:
+          $ref: "#/components/schemas/PershingBio"
+
+    UpdatePershingBioInput:
+      type: object
+      properties:
+        biographyText:
+          type: string
+          maxLength: 20000
+        lodgeConnectionText:
+          type: string
+          maxLength: 10000
 
     HistoryTimelineEntry:
       type: object

@@ -25,11 +25,13 @@ import AdminEventsPage from "@/pages/admin/events";
 import AdminHistorySectionsPage from "@/pages/admin/history-sections";
 import AdminHistoryTimelinePage from "@/pages/admin/history-timeline";
 import AdminHistoryDocumentsPage from "@/pages/admin/history-documents";
+import AdminHistoryPershingPage from "@/pages/admin/history-pershing";
 import TracingBoardPage from "@/pages/tracing-board";
 import EventsPage from "@/pages/events";
 import OurHistoryPage from "@/pages/history/our-history";
 import HistoricalTimelinePage from "@/pages/history/timeline";
 import HistoricalDocumentsPage from "@/pages/history/documents";
+import PershingBiographyPage from "@/pages/history/pershing";
 import TwoFactorPage from "@/pages/settings/two-factor";
 import ProfileSettingsPage from "@/pages/settings/profile";
 import BirthdaysPage from "@/pages/birthdays";
@@ -186,6 +188,7 @@ function AppRoutes() {
         <Route path="/history" component={() => <ProtectedRoute component={OurHistoryPage} minLevel={VISITOR_LEVEL} />} />
         <Route path="/history/timeline" component={() => <ProtectedRoute component={HistoricalTimelinePage} minLevel={VISITOR_LEVEL} />} />
         <Route path="/history/documents" component={() => <ProtectedRoute component={HistoricalDocumentsPage} minLevel={VISITOR_LEVEL} />} />
+        <Route path="/history/pershing" component={() => <ProtectedRoute component={PershingBiographyPage} minLevel={VISITOR_LEVEL} />} />
         <Route path="/events" component={() => <ProtectedRoute component={EventsPage} minLevel={MEMBER_LEVEL} />} />
         <Route path="/birthdays" component={() => <ProtectedRoute component={BirthdaysPage} minLevel={MEMBER_LEVEL} />} />
 
@@ -204,6 +207,7 @@ function AppRoutes() {
         <Route path="/admin/history" component={() => <ProtectedRoute component={AdminHistorySectionsPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/history/timeline" component={() => <ProtectedRoute component={AdminHistoryTimelinePage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/history/documents" component={() => <ProtectedRoute component={AdminHistoryDocumentsPage} minLevel={ADMIN_LEVEL} />} />
+        <Route path="/admin/history/pershing" component={() => <ProtectedRoute component={AdminHistoryPershingPage} minLevel={ADMIN_LEVEL} />} />
 
         <Route component={NotFound} />
       </Switch>

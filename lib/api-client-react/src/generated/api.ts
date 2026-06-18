@@ -83,6 +83,7 @@ import type {
   LodgeYearListResult,
   LoginInput,
   LoginResult,
+  PershingBioResult,
   ProfileUpdateInput,
   ReorderCategoriesInput,
   ReorderHistorySectionsInput,
@@ -113,6 +114,7 @@ import type {
   UpdateHistoryTimelineEntryInput,
   UpdateLodgeYearInput,
   UpdateMembershipStatusInput,
+  UpdatePershingBioInput,
   UpdateRoadmapItemInput,
   UpdateTracingBoardEntryInput,
   UserDegreeListResult,
@@ -6677,6 +6679,154 @@ export const useUpdateHistoryPage = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpdateHistoryPageMutationOptions(options));
+    }
+
+export const getGetPershingBioUrl = () => {
+
+
+
+
+  return `/api/history/pershing-bio`
+}
+
+/**
+ * @summary Get the General John J. Pershing biography page (Visitor+)
+ */
+export const getPershingBio = async ( options?: RequestInit): Promise<PershingBioResult> => {
+
+  return customFetch<PershingBioResult>(getGetPershingBioUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPershingBioQueryKey = () => {
+    return [
+    `/api/history/pershing-bio`
+    ] as const;
+    }
+
+
+export const getGetPershingBioQueryOptions = <TData = Awaited<ReturnType<typeof getPershingBio>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPershingBio>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPershingBioQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPershingBio>>> = ({ signal }) => getPershingBio({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPershingBio>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPershingBioQueryResult = NonNullable<Awaited<ReturnType<typeof getPershingBio>>>
+export type GetPershingBioQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the General John J. Pershing biography page (Visitor+)
+ */
+
+export function useGetPershingBio<TData = Awaited<ReturnType<typeof getPershingBio>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPershingBio>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPershingBioQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdatePershingBioUrl = () => {
+
+
+
+
+  return `/api/history/pershing-bio`
+}
+
+/**
+ * @summary Update the General Pershing biography (Site Admin only)
+ */
+export const updatePershingBio = async (updatePershingBioInput: UpdatePershingBioInput, options?: RequestInit): Promise<PershingBioResult> => {
+
+  return customFetch<PershingBioResult>(getUpdatePershingBioUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updatePershingBioInput,)
+  }
+);}
+
+
+
+
+export const getUpdatePershingBioMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePershingBio>>, TError,{data: BodyType<UpdatePershingBioInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePershingBio>>, TError,{data: BodyType<UpdatePershingBioInput>}, TContext> => {
+
+const mutationKey = ['updatePershingBio'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePershingBio>>, {data: BodyType<UpdatePershingBioInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updatePershingBio(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePershingBioMutationResult = NonNullable<Awaited<ReturnType<typeof updatePershingBio>>>
+    export type UpdatePershingBioMutationBody = BodyType<UpdatePershingBioInput>
+    export type UpdatePershingBioMutationError = ErrorType<void>
+
+    /**
+ * @summary Update the General Pershing biography (Site Admin only)
+ */
+export const useUpdatePershingBio = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePershingBio>>, TError,{data: BodyType<UpdatePershingBioInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePershingBio>>,
+        TError,
+        {data: BodyType<UpdatePershingBioInput>},
+        TContext
+      > => {
+      return useMutation(getUpdatePershingBioMutationOptions(options));
     }
 
 export const getListHistoryTimelineUrl = () => {

@@ -8,6 +8,7 @@ const TABS = [
   { href: "/history", label: "Our History" },
   { href: "/history/timeline", label: "Historical Timeline" },
   { href: "/history/documents", label: "Historical Documents" },
+  { href: "/history/pershing", label: "General John J. Pershing" },
 ];
 
 interface HistoryLayoutProps {

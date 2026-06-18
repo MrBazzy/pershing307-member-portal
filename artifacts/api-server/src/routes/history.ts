@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
-import { historyPageTable, historyTimelineTable, historyDocumentsTable, historySectionsTable } from "@workspace/db/schema";
+import { historyPageTable, historyTimelineTable, historyDocumentsTable, historySectionsTable, pershingBioTable } from "@workspace/db/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
@@ -437,6 +437,51 @@ router.delete("/sections/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), asy
   res.json({ success: true });
 });
 
+// ─── Pershing Biography ───────────────────────────────────────────────────────
+
+router.get("/pershing-bio", requireAuth(), requireRole(VISITOR_LEVEL), async (req, res) => {
+  const lodgeId = await getLodgeId();
+  if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
+
+  let [bio] = await db.select().from(pershingBioTable)
+    .where(eq(pershingBioTable.lodgeId, lodgeId)).limit(1);
+
+  if (!bio) {
+    [bio] = await db.insert(pershingBioTable)
+      .values({ lodgeId })
+      .returning();
+  }
+
+  res.json({ bio: formatPershingBio(bio) });
+});
+
+router.put("/pershing-bio", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const lodgeId = await getLodgeId();
+  const actorId = req.session!.userId!;
+  if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
+
+  const parsed = z.object({
+    biographyText: z.string().max(20000).optional(),
+    lodgeConnectionText: z.string().max(10000).optional(),
+  }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid request" }); return; }
+
+  let [existing] = await db.select().from(pershingBioTable)
+    .where(eq(pershingBioTable.lodgeId, lodgeId)).limit(1);
+
+  if (!existing) {
+    [existing] = await db.insert(pershingBioTable).values({ lodgeId }).returning();
+  }
+
+  const [bio] = await db.update(pershingBioTable)
+    .set({ ...parsed.data, updatedBy: actorId, updatedAt: new Date() })
+    .where(eq(pershingBioTable.id, existing.id))
+    .returning();
+
+  await writeAuditLog({ lodgeId, actorId, action: "PERSHING_BIO_UPDATED", ipAddress: getClientIp(req) });
+  res.json({ bio: formatPershingBio(bio) });
+});
+
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
 function formatPage(p: typeof historyPageTable.$inferSelect) {
@@ -453,6 +498,10 @@ function formatDocument(d: typeof historyDocumentsTable.$inferSelect) {
 
 function formatSection(s: typeof historySectionsTable.$inferSelect) {
   return { id: s.id, yearPeriod: s.yearPeriod, chapterTitle: s.chapterTitle, bodyText: s.bodyText, sortOrder: s.sortOrder, createdAt: s.createdAt.toISOString(), updatedAt: s.updatedAt.toISOString() };
+}
+
+function formatPershingBio(b: typeof pershingBioTable.$inferSelect) {
+  return { id: b.id, biographyText: b.biographyText, lodgeConnectionText: b.lodgeConnectionText, updatedAt: b.updatedAt.toISOString(), createdAt: b.createdAt.toISOString() };
 }
 
 export default router;
