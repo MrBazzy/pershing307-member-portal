@@ -65,9 +65,12 @@ function AgendaView({ events }: { events: EventItem[] }) {
       )}
       {groups.map((group) => (
         <div key={group.label}>
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3 px-1">
-            {group.label}
-          </h2>
+          <div className="mb-3 px-1">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">
+              {group.label}
+            </h2>
+            <div className="h-px w-10 bg-sidebar-active/50" />
+          </div>
           <div className="space-y-2">
             {group.events.map((event) => (
               <EventCard key={event.id} event={event} />
@@ -83,9 +86,12 @@ function AgendaView({ events }: { events: EventItem[] }) {
           <div className="space-y-6 mt-4">
             {pastGroups.reverse().map((group) => (
               <div key={group.label}>
-                <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3 px-1 opacity-60">
-                  {group.label}
-                </h2>
+                <div className="mb-3 px-1">
+                  <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1.5 opacity-60">
+                    {group.label}
+                  </h2>
+                  <div className="h-px w-10 bg-sidebar-active/30" />
+                </div>
                 <div className="space-y-2 opacity-60">
                   {group.events.map((event) => (
                     <EventCard key={event.id} event={event} />
@@ -100,17 +106,30 @@ function AgendaView({ events }: { events: EventItem[] }) {
   );
 }
 
+const IMPORTANT_EVENT_KEYWORDS = [
+  "installation", "annual", "gala", "banquet", "feast", "grand lodge", "district", "visitation",
+];
+function isImportantEvent(title: string): boolean {
+  const lower = title.toLowerCase();
+  return IMPORTANT_EVENT_KEYWORDS.some((k) => lower.includes(k));
+}
+
 function EventCard({ event }: { event: EventItem }) {
+  const important = isImportantEvent(event.title);
   return (
-    <Card className="border-card-border hover:border-primary/30 transition-colors">
-      <CardContent className="py-3 px-4">
+    <div
+      className={important
+        ? "border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md bg-card overflow-hidden hover:border-primary/30 transition-colors"
+        : "border border-card-border rounded-xl shadow-sm bg-card overflow-hidden hover:shadow-md transition-shadow"}
+    >
+      <div className="py-3 px-4">
         <div className="flex items-start gap-3">
           <DateBadge date={event.date} size="md" />
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <p className="text-sm font-medium text-foreground leading-snug">{event.title}</p>
               {event.categoryName && (
-                <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded shrink-0">
+                <span className="text-[10px] font-medium bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full shrink-0">
                   {event.categoryName}
                 </span>
               )}
@@ -136,8 +155,8 @@ function EventCard({ event }: { event: EventItem }) {
             )}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -229,7 +248,7 @@ export default function EventsPage() {
               <CalendarDays className="h-5 w-5 text-muted-foreground" />
               <h1 className="text-2xl font-serif font-bold text-primary">Events</h1>
             </div>
-            <p className="text-sm text-muted-foreground">Lodge activities and events</p>
+            <p className="text-sm text-muted-foreground">Social, educational and special lodge events</p>
           </div>
           <div className="flex items-center gap-1 border border-border rounded-sm p-0.5">
             <Button
@@ -240,7 +259,7 @@ export default function EventsPage() {
               data-testid="view-agenda"
             >
               <List className="h-3.5 w-3.5 mr-1.5" />
-              Agenda
+              List View
             </Button>
             <Button
               variant={view === "calendar" ? "default" : "ghost"}
