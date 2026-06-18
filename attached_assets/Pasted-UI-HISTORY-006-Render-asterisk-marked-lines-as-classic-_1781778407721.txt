@@ -1,0 +1,83 @@
+UI-HISTORY-006 — Render asterisk-marked lines as classic chapter headings
+
+I have updated the Our History text so that every chapter heading starts with an asterisk "*".
+
+Example source text:
+
+* Origins in NATO Europe (1959)
+
+Required rendering behavior on the public Our History page:
+
+1. Detect headings
+- Any line or paragraph starting with "*" must be treated as a chapter heading.
+
+2. Remove asterisk
+- Do not display the "*" in the public view.
+
+3. Extract date/year
+- Extract the year or date range between brackets.
+- Examples:
+  - (1959)
+  - (2009–2012)
+  - (1959 – Present)
+
+4. Move date to the front
+Display the extracted date/year before the heading title.
+
+Example:
+
+[1959] Origins in NATO Europe
+
+5. Date badge styling
+The extracted year/date should appear:
+- in a small square or badge
+- Masonic Gold border
+- warm ivory background
+- gold or midnight-blue text
+- visually aligned with the heading
+
+6. Heading styling
+The heading title should:
+- start with a capital letter
+- use an elegant classic book-style heading font
+- use Midnight Blue
+- not be underlined
+- not look like a hyperlink
+- feel like a chapter heading in a classic historical book
+
+7. Remove brackets from title
+The date/year must not remain at the end of the heading.
+
+Example source:
+* Origins in NATO Europe (1959)
+
+Rendered:
+[1959] Origins in NATO Europe
+
+8. Divider before each heading
+Before each detected chapter heading, show the elegant divider.
+
+Update the divider:
+- thin horizontal line
+- three small centered Masonic Gold diamonds instead of one
+- good vertical spacing
+- restrained and classic, not flashy
+
+9. Hero watermark
+Use the uploaded Square & Compasses + G symbol as the hero watermark.
+- Very low opacity: 3–5%
+- Centered behind the hero title
+- Must not distract from the text
+
+10. Preserve
+Do not change:
+- stored text content
+- database schema
+- routes
+- permissions
+- History Management editor
+- Timeline page
+- Historical Documents page
+
+Goal:
+Administrators can mark chapter headings by starting a line with "*", and the public Our History page automatically renders those lines as elegant classic-book chapter headings.

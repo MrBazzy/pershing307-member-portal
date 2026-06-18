@@ -13,7 +13,7 @@ function stripAnchors(html: string): string {
 }
 
 function dividerHtml(): string {
-  return `<div class="chapter-divider"><div class="chapter-divider-line"></div><div class="chapter-divider-diamond"></div><div class="chapter-divider-line"></div></div>`;
+  return `<div class="chapter-divider"><div class="chapter-divider-line"></div><div class="chapter-divider-gems"><div class="chapter-divider-diamond"></div><div class="chapter-divider-diamond"></div><div class="chapter-divider-diamond"></div></div><div class="chapter-divider-line"></div></div>`;
 }
 
 function chapterBlock(year: string, title: string, isFirst: boolean): string {
@@ -24,21 +24,25 @@ function chapterBlock(year: string, title: string, isFirst: boolean): string {
   return `<div class="chapter-block">${divider}${header}</div>`;
 }
 
-/** Returns true if a <p> inner HTML is entirely bold+underlined (any nesting order). */
-function isBoldUnderlinedParagraph(inner: string): boolean {
-  const s = inner.trim();
-  return (
-    /^<strong[^>]*>\s*<u[^>]*>[\s\S]*<\/u>\s*<\/strong>$/i.test(s) ||
-    /^<u[^>]*>\s*<strong[^>]*>[\s\S]*<\/strong>\s*<\/u>$/i.test(s)
-  );
+/** Returns true if a <p>'s plain text starts with an asterisk — marks a chapter heading. */
+function isAsteriskHeading(plainText: string): boolean {
+  return plainText.trimStart().startsWith("*");
 }
 
-/** Extract year from patterns like "Title (1959)", "(1959) Title", or "1959 — Title". */
+/** Strip leading asterisk and whitespace from a heading line. */
+function removeAsterisk(text: string): string {
+  return text.replace(/^\*\s*/, "").trim();
+}
+
+/**
+ * Extract date/year from brackets: (1959), (2009–2012), (1959 – Present).
+ * Returns the bracket contents as `year` and the surrounding text as `title`.
+ */
 function extractYear(text: string): { year: string; title: string } {
-  // "Title (1959)" or "(1959) Title"
-  const bracketed = text.match(/^(.*?)\s*\((\d{4})\)\s*(.*?)$/);
+  // Anything in parentheses: (1959), (2009–2012), (1959 – Present)
+  const bracketed = text.match(/^(.*?)\s*\(([^)]+)\)\s*(.*?)$/);
   if (bracketed) {
-    const year = bracketed[2];
+    const year = bracketed[2].trim();
     const title = (bracketed[1] + " " + bracketed[3]).trim().replace(/\s{2,}/g, " ");
     return { year, title };
   }
@@ -69,8 +73,8 @@ function enhanceContent(html: string): string {
     const inner = match[3];
     const plainText = stripAnchors(inner);
 
-    if (tag === "p" && isBoldUnderlinedParagraph(inner)) {
-      tokens.push({ type: "chapter-p", text: plainText, raw: match[0] });
+    if (tag === "p" && isAsteriskHeading(plainText)) {
+      tokens.push({ type: "chapter-p", text: removeAsterisk(plainText), raw: match[0] });
     } else if (tag === "h2" || tag === "h3" || tag === "h4") {
       tokens.push({ type: tag as TokType, text: plainText, raw: match[0] });
     } else {
@@ -145,9 +149,13 @@ function prepareContent(content: string): string {
 
 function ElegantDivider() {
   return (
-    <div className="flex items-center gap-3 my-1" aria-hidden="true">
+    <div className="flex items-center gap-2.5 my-1" aria-hidden="true">
       <div className="flex-1 h-px bg-border" />
-      <div className="w-1.5 h-1.5 bg-sidebar-active/50 rotate-45 shrink-0" />
+      <div className="flex items-center gap-1 shrink-0">
+        <div className="w-1.5 h-1.5 bg-sidebar-active/50 rotate-45" />
+        <div className="w-1.5 h-1.5 bg-sidebar-active/50 rotate-45" />
+        <div className="w-1.5 h-1.5 bg-sidebar-active/50 rotate-45" />
+      </div>
       <div className="flex-1 h-px bg-border" />
     </div>
   );
