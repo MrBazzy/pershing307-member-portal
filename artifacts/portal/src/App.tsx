@@ -17,7 +17,6 @@ import AdminUsersPage from "@/pages/admin/users";
 import AdminInvitationsPage from "@/pages/admin/invitations";
 import AdminAuditLogPage from "@/pages/admin/audit-log";
 import AdminDomainsPage from "@/pages/admin/domains";
-import AdminDegreesPage from "@/pages/admin/degrees";
 import AdminConfigPage from "@/pages/admin/config";
 import AdminRoadmapPage from "@/pages/admin/roadmap";
 import AdminTracingBoardPage from "@/pages/admin/tracing-board";
@@ -212,7 +211,6 @@ function AppRoutes() {
         <Route path="/admin/users" component={() => <ProtectedRoute component={AdminUsersPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/invitations" component={() => <ProtectedRoute component={AdminInvitationsPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/domains" component={() => <ProtectedRoute component={AdminDomainsPage} minLevel={ADMIN_LEVEL} />} />
-        <Route path="/admin/degrees" component={() => <ProtectedRoute component={AdminDegreesPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/config" component={() => <ProtectedRoute component={AdminConfigPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/audit-log" component={() => <ProtectedRoute component={AdminAuditLogPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/roadmap" component={() => <ProtectedRoute component={AdminRoadmapPage} minLevel={ADMIN_LEVEL} />} />

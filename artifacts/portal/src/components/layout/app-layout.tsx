@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Users, Mail, FileText, LogOut, ChevronRight,
-  Shield, Globe, GraduationCap, Settings, Menu, X, Cake, Map, UserCircle,
+  Shield, Globe, Settings, Menu, X, Cake, Map, UserCircle,
   BookOpen, CalendarDays, Landmark, Fingerprint, FolderOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,6 @@ const MANAGEMENT_ITEMS: NavItem[] = [
   { href: "/admin/invitations", label: "Invitations", icon: Mail },
   { href: "/admin/domains", label: "Domains & Access Control", icon: Globe },
   { href: "/admin/document-management", label: "Document Management", icon: FolderOpen },
-  { href: "/admin/degrees", label: "Degrees", icon: GraduationCap },
   { href: "/admin/tracing-board", label: "Tracing Board", icon: BookOpen },
   { href: "/admin/events", label: "Events", icon: CalendarDays },
   { href: "/admin/history", label: "History", icon: Landmark },
