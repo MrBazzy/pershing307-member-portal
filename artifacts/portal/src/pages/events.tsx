@@ -59,7 +59,7 @@ function AgendaView({ events }: { events: EventItem[] }) {
         <Card className="border-card-border">
           <CardContent className="py-12 text-center">
             <CalendarDays className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No upcoming events to show.</p>
+            <p className="text-sm text-muted-foreground">No upcoming Events in the next 30 days.</p>
           </CardContent>
         </Card>
       )}

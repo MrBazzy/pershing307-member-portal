@@ -102,7 +102,7 @@ export default function BirthdaysPage() {
             ) : (
               <div className="py-8 text-center">
                 <Cake className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">No birthdays in the next 30 days</p>
+                <p className="text-sm text-muted-foreground">No birthdays in the next 30 days.</p>
               </div>
             )}
           </CardContent>

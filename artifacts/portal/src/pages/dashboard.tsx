@@ -283,7 +283,7 @@ function UpcomingActivitiesWidget({ isAdmin }: { isAdmin: boolean }) {
             {[1, 2, 3].map((i) => <Skeleton key={i} className="h-9 w-full" />)}
           </div>
         ) : entries.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No entries in the next 30 days</p>
+          <p className="text-sm text-muted-foreground text-center py-4">No Tracing Board entries in the next 30 days.</p>
         ) : (
           <div className="space-y-2">
             {entries.map((e) => (
@@ -340,7 +340,7 @@ function UpcomingEventsWidget({ isAdmin }: { isAdmin: boolean }) {
             {[1, 2, 3].map((i) => <Skeleton key={i} className="h-9 w-full" />)}
           </div>
         ) : events.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No events in the next 30 days</p>
+          <p className="text-sm text-muted-foreground text-center py-4">No upcoming Events in the next 30 days.</p>
         ) : (
           <div className="space-y-2">
             {events.map((e) => (
@@ -384,7 +384,7 @@ function AdminStatsSection() {
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         <StatCard
           icon={<Users className="h-4 w-4" />}
           label="Total Members"
@@ -412,7 +412,7 @@ function AdminStatsSection() {
           </h2>
           <Link href="/admin/audit-log" className="text-xs text-primary hover:underline" data-testid="link-view-all-audit">View all</Link>
         </div>
-        <div className="bg-card border border-card-border rounded-sm divide-y divide-border">
+        <div className="bg-card border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md divide-y divide-border overflow-hidden">
           {auditLoading ? (
             Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="px-4 py-3 flex items-center gap-3">
@@ -487,12 +487,12 @@ export default function DashboardPage() {
           <>
             {isAdmin && <AdminStatsSection />}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <UpcomingBirthdaysWidget />
               <RoadmapWidget isAdmin={isAdmin} />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <UpcomingActivitiesWidget isAdmin={isAdmin} />
               <UpcomingEventsWidget isAdmin={isAdmin} />
             </div>
@@ -516,8 +516,8 @@ function StatCard({
 }) {
   return (
     <Link href={href} className="block" data-testid={`stat-card-${label.toLowerCase().replace(/\s+/g, "-")}`}>
-      <div className="bg-card border border-card-border rounded-sm p-4 hover:border-primary/30 transition-colors group">
-        <div className="flex items-center gap-2 text-muted-foreground mb-2 group-hover:text-primary transition-colors">
+      <div className="bg-card border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md p-4 hover:shadow-lg transition-shadow group">
+        <div className="flex items-center gap-2 text-muted-foreground mb-2 group-hover:text-primary/80 transition-colors">
           {icon}
           <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
         </div>

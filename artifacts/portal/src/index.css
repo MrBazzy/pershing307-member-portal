@@ -28,6 +28,7 @@
   --color-popover-border: hsl(var(--popover-border));
 
   --color-primary: hsl(var(--primary));
+  --color-primary-hover: hsl(var(--primary-hover));
   --color-primary-foreground: hsl(var(--primary-foreground));
   --color-primary-border: var(--primary-border);
 
@@ -58,8 +59,8 @@
 }
 
 :root {
-  --app-font-sans: "Inter", sans-serif;
-  --app-font-serif: "Playfair Display", serif;
+  --app-font-sans: "Inter", system-ui, sans-serif;
+  --app-font-serif: "Merriweather", "Georgia", serif;
   --app-font-mono: "Space Mono", monospace;
 
   --background: 45 22% 96.5%;
@@ -84,14 +85,15 @@
   --popover-foreground: 220 40% 10%;
   --popover-border: 220 20% 90%;
 
-  --primary: 220 40% 20%;
+  --primary: 215 68% 14%;
+  --primary-hover: 215 55% 22%;
   --primary-foreground: 0 0% 100%;
-  
-  --secondary: 40 40% 40%; /* subtle gold */
-  --secondary-foreground: 0 0% 100%;
+
+  --secondary: 46 65% 52%;
+  --secondary-foreground: 215 68% 8%;
 
   --muted: 220 20% 92%;
-  --muted-foreground: 220 10% 40%;
+  --muted-foreground: 215 16% 47%;
 
   --accent: 220 20% 90%;
   --accent-foreground: 220 40% 20%;
