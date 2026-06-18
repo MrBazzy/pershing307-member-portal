@@ -26,7 +26,7 @@ export function HistoryLayout({ children }: HistoryLayoutProps) {
           </div>
           <div>
             <h1 className="text-xl font-semibold text-primary">History</h1>
-            <p className="text-xs text-muted-foreground">Heritage of General John J. Pershing Lodge No. 307</p>
+            <p className="text-xs text-muted-foreground">Tracing our journey from Fontainebleau to Maastricht since 1959</p>
           </div>
         </div>
         <div className="h-px bg-sidebar-active/40" />
