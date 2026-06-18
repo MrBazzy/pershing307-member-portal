@@ -7,11 +7,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, User, Shield, ChevronRight, Loader2, Eye, EyeOff, KeyRound, Lock } from "lucide-react";
+import { CheckCircle, User, Shield, ChevronRight, Loader2, KeyRound, Lock } from "lucide-react";
 import { PasswordStrength } from "@/components/password-strength";
 
 const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
@@ -53,8 +54,7 @@ export default function SetupPage() {
   const { toast } = useToast();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
+
 
   /**
    * One-way latch: fires only when BOTH mustChangePassword AND
@@ -191,12 +191,7 @@ export default function SetupPage() {
                     <FormItem>
                       <FormLabel>Temporary Password</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Input type={showCurrent ? "text" : "password"} {...field} autoComplete="current-password" />
-                          <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" onClick={() => setShowCurrent(!showCurrent)}>
-                            {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </button>
-                        </div>
+                        <PasswordInput {...field} autoComplete="current-password" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -205,12 +200,7 @@ export default function SetupPage() {
                     <FormItem>
                       <FormLabel>New Password</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Input type={showNew ? "text" : "password"} {...field} autoComplete="new-password" />
-                          <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" onClick={() => setShowNew(!showNew)}>
-                            {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </button>
-                        </div>
+                        <PasswordInput {...field} autoComplete="new-password" />
                       </FormControl>
                       <PasswordStrength password={forcedNewPassword} />
                       <FormMessage />
@@ -219,7 +209,7 @@ export default function SetupPage() {
                   <FormField control={forcedPasswordForm.control} name="confirmPassword" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Confirm New Password</FormLabel>
-                      <FormControl><Input type="password" {...field} autoComplete="new-password" /></FormControl>
+                      <FormControl><PasswordInput {...field} autoComplete="new-password" /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />

@@ -6,6 +6,7 @@ import { useGetInvitationByToken, useAcceptInvitation, getGetInvitationByTokenQu
 import { AuthLayout } from "@/components/layout/auth-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -174,9 +175,8 @@ export default function AcceptInvitationPage() {
               <FormItem>
                 <FormLabel>Choose a Password</FormLabel>
                 <FormControl>
-                  <Input
+                  <PasswordInput
                     {...field}
-                    type="password"
                     autoComplete="new-password"
                     autoFocus
                     data-testid="input-password"
@@ -194,9 +194,8 @@ export default function AcceptInvitationPage() {
               <FormItem>
                 <FormLabel>Confirm Password</FormLabel>
                 <FormControl>
-                  <Input
+                  <PasswordInput
                     {...field}
-                    type="password"
                     autoComplete="new-password"
                     data-testid="input-confirm-password"
                   />

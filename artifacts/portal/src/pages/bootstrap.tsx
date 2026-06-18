@@ -7,6 +7,7 @@ import { useRunBootstrap } from "@workspace/api-client-react";
 import { AuthLayout } from "@/components/layout/auth-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -259,7 +260,7 @@ export default function BootstrapPage() {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input {...field} type="password" autoComplete="new-password" data-testid="input-admin-password" />
+                  <PasswordInput {...field} autoComplete="new-password" data-testid="input-admin-password" />
                 </FormControl>
                 <PasswordStrength password={watchedPassword} />
                 <FormMessage />
@@ -269,7 +270,7 @@ export default function BootstrapPage() {
               <FormItem>
                 <FormLabel>Confirm Password</FormLabel>
                 <FormControl>
-                  <Input {...field} type="password" autoComplete="new-password" data-testid="input-admin-password-confirm" />
+                  <PasswordInput {...field} autoComplete="new-password" data-testid="input-admin-password-confirm" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
