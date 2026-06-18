@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { AppLayout } from "@/components/layout/app-layout";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -110,7 +111,7 @@ export default function AdminDegreesPage() {
     <AppLayout>
       <div className="p-4 sm:p-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <h1 className="text-2xl font-serif font-semibold text-primary flex items-center gap-2">
             <GraduationCap className="h-6 w-6" /> Degree Records
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
@@ -129,7 +130,7 @@ export default function AdminDegreesPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <div className="border rounded-lg overflow-hidden max-h-[60vh] overflow-y-auto">
+            <div className="border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md overflow-hidden max-h-[60vh] overflow-y-auto bg-card">
               {usersLoading ? (
                 <div className="p-3 space-y-2">
                   {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-12" />)}
@@ -155,14 +156,14 @@ export default function AdminDegreesPage() {
 
           <div className="md:col-span-2">
             {!selectedUserId ? (
-              <div className="border rounded-lg flex items-center justify-center h-64 text-muted-foreground">
+              <div className="border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md bg-card flex items-center justify-center h-64 text-muted-foreground">
                 <div className="text-center space-y-2">
                   <GraduationCap className="h-10 w-10 mx-auto opacity-30" />
                   <p className="text-sm">Select a member to view their degree records.</p>
                 </div>
               </div>
             ) : (
-              <div className="border rounded-lg overflow-hidden">
+              <div className="border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md overflow-hidden bg-card">
                 <div className="flex items-center justify-between px-4 py-3 bg-muted/30 border-b">
                   <div>
                     <p className="font-medium text-sm">{selectedUser?.firstName} {selectedUser?.lastName}</p>

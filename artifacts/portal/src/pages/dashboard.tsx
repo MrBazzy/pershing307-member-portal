@@ -460,7 +460,7 @@ export default function DashboardPage() {
     <AppLayout>
       <div className="p-6 max-w-5xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-serif font-semibold text-foreground">
+          <h1 className="text-2xl font-serif font-semibold text-primary">
             Welcome, {user?.firstName}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">{roleLabel}</p>

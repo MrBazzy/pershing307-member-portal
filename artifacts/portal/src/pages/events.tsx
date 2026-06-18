@@ -227,7 +227,7 @@ export default function EventsPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <CalendarDays className="h-5 w-5 text-muted-foreground" />
-              <h1 className="text-2xl font-serif font-bold text-foreground">Events</h1>
+              <h1 className="text-2xl font-serif font-bold text-primary">Events</h1>
             </div>
             <p className="text-sm text-muted-foreground">Lodge activities and events</p>
           </div>
@@ -262,7 +262,11 @@ export default function EventsPage() {
         ) : view === "agenda" ? (
           <AgendaView events={events} />
         ) : (
-          <CalendarView events={events} />
+          <Card className="border-card-border">
+            <CardContent className="p-5">
+              <CalendarView events={events} />
+            </CardContent>
+          </Card>
         )}
       </div>
     </AppLayout>

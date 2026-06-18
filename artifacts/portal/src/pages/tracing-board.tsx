@@ -90,7 +90,7 @@ export default function TracingBoardPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <BookOpen className="h-5 w-5 text-muted-foreground" />
-              <h1 className="text-2xl font-serif font-bold text-foreground">Tracing Board</h1>
+              <h1 className="text-2xl font-serif font-bold text-primary">Tracing Board</h1>
             </div>
             <p className="text-sm text-muted-foreground">Official lodge year programme</p>
           </div>

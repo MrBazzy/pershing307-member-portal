@@ -1,0 +1,94 @@
+UI-SPRINT-001F — Complete Theme Rollout
+
+The dashboard styling looks excellent.
+
+However, the theme has only been partially applied.
+
+Current situation:
+
+* Dashboard cards have rounded corners and shadows.
+* Only some dashboard cards have the gold accent line.
+* Tracing Board, Events, History, Historical Documents, Timeline, Members, Invitations, Configuration, Audit Log and other modules still largely use the old visual style.
+
+Goal:
+
+Apply the approved Pershing Portal visual system consistently across the entire portal.
+
+Requirements:
+
+1. Create a reusable card component or card style.
+
+The standard Pershing card should include:
+
+* White background
+* 12px border radius
+* Soft shadow
+* Thin Masonic Gold accent line at the top
+* Midnight Blue title
+* Warm Ivory page background around the card
+
+2. Use this standard card everywhere appropriate:
+
+Member-facing pages:
+
+* Tracing Board entries
+* Events entries
+* Birthday Calendar cards
+* History page panels
+* Historical Timeline entries
+* Historical Documents entries
+
+Management pages:
+
+* Members
+* Invitations
+* Configuration
+* Roadmap Management
+* Tracing Board Management
+* Events Management
+* History Management
+* Audit Log
+
+3. Dashboard consistency
+
+Currently only some cards have the gold accent line.
+
+Please ensure ALL major dashboard cards use the same styling:
+
+* Tracing Board
+* Upcoming Events
+* Upcoming Birthdays
+* Planned Portal Features
+* This Day in Lodge History
+* Any other major dashboard widgets
+
+4. Tables
+
+Do not force tables into cards.
+
+Instead:
+
+* Place tables inside a styled panel/card container.
+* Preserve readability.
+
+5. Forms
+
+Apply the visual style to form containers, not individual input fields.
+
+Forms should remain clean and easy to use.
+
+6. Preserve
+
+* Functionality
+* Permissions
+* Routes
+* Database
+* Business logic
+
+No functional changes.
+
+Acceptance criteria:
+
+When navigating from Dashboard to Tracing Board, Events, History, Birthdays or Management pages, the user should feel they are in one coherent application with a single visual identity.
+
+No page should still look like the old portal.

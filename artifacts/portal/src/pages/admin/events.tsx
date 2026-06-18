@@ -141,7 +141,7 @@ export default function AdminEventsPage() {
         <div className="flex items-center gap-3">
           <CalendarDays className="h-5 w-5 text-muted-foreground" />
           <div>
-            <h1 className="text-2xl font-serif font-bold text-foreground">Events</h1>
+            <h1 className="text-2xl font-serif font-bold text-primary">Events</h1>
             <p className="text-sm text-muted-foreground">Manage lodge events</p>
           </div>
         </div>

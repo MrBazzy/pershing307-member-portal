@@ -26,7 +26,7 @@ export function AdminHistoryLayout({ children }: AdminHistoryLayoutProps) {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold text-foreground">History Management</h1>
+              <h1 className="text-xl font-semibold text-primary">History Management</h1>
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-200">
                 <Settings className="h-2.5 w-2.5 mr-1" />
                 Admin

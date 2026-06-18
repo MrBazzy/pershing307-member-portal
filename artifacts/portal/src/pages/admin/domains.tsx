@@ -60,7 +60,7 @@ export default function AdminDomainsPage() {
     <AppLayout>
       <div className="p-4 sm:p-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <h1 className="text-2xl font-serif font-semibold text-primary flex items-center gap-2">
             <Globe className="h-6 w-6" /> Protected Domains
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
@@ -166,7 +166,7 @@ function DomainRow({
   };
 
   return (
-    <div className="border rounded-lg bg-card overflow-hidden">
+    <div className="border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md bg-card overflow-hidden">
       <div
         className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/30 transition-colors"
         onClick={() => setExpanded(!expanded)}

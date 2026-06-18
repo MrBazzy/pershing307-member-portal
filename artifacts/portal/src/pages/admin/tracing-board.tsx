@@ -206,7 +206,7 @@ export default function AdminTracingBoardPage() {
         <div className="flex items-center gap-3">
           <BookOpen className="h-5 w-5 text-muted-foreground" />
           <div>
-            <h1 className="text-2xl font-serif font-bold text-foreground">Tracing Board</h1>
+            <h1 className="text-2xl font-serif font-bold text-primary">Tracing Board</h1>
             <p className="text-sm text-muted-foreground">Manage the lodge year programme</p>
           </div>
         </div>

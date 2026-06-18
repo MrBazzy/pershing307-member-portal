@@ -37,7 +37,7 @@ export default function OurHistoryPage() {
               <div className="flex items-center justify-center w-8 h-8 rounded-sm bg-primary/10 shrink-0">
                 <Landmark className="h-4 w-4 text-primary" />
               </div>
-              <h2 className="text-xl font-semibold text-foreground">
+              <h2 className="text-xl font-semibold text-primary">
                 {page?.title ?? "Our History"}
               </h2>
             </div>
