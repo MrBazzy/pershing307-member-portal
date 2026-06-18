@@ -31,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
@@ -121,21 +121,17 @@ function DomainCard({
   onDelete: (d: DocumentDomainItem) => void;
 }) {
   const needsDegree = domain.accessLogic === "degree_only" || domain.accessLogic === "role_or_degree" || domain.accessLogic === "role_and_degree";
+  const hasRules = domain.allowedRoleSlugs.length > 0 || (needsDegree && domain.minDegree != null);
 
   return (
-    <Card className="border-card-border">
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="rounded-md bg-primary/10 p-2 shrink-0">
-              <Shield className="h-4 w-4 text-primary" />
-            </div>
-            <div className="min-w-0">
-              <CardTitle className="text-sm font-semibold leading-tight">{domain.name}</CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5 font-mono">{domain.slug}</p>
-            </div>
+    <Card className="border-card-border h-full">
+      <CardContent className="p-5 flex flex-col gap-3 h-full">
+        {/* Top row: icon left, access logic badge + menu right */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="rounded-md bg-primary/10 p-2.5 shrink-0">
+            <Shield className="h-5 w-5 text-primary" />
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <AccessLogicBadge logic={domain.accessLogic} />
             {isPmSuper && (
               <DropdownMenu>
@@ -166,34 +162,33 @@ function DomainCard({
             )}
           </div>
         </div>
-        {domain.description && (
-          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{domain.description}</p>
-        )}
-      </CardHeader>
-      <CardContent className="pt-0 pb-4">
-        <div className="space-y-2">
+
+        {/* Title + description */}
+        <div className="flex-1 min-h-0">
+          <h3 className="font-semibold text-sm text-foreground leading-snug">{domain.name}</h3>
+          {domain.description && (
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{domain.description}</p>
+          )}
+        </div>
+
+        {/* Bottom: roles + degree info */}
+        <div className="mt-auto space-y-1.5">
           {domain.allowedRoleSlugs.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">Allowed Roles</p>
-              <div className="flex flex-wrap gap-1">
-                {domain.allowedRoleSlugs.map((slug) => (
-                  <Badge key={slug} variant="secondary" className="text-[10px] h-5 px-1.5 font-normal">
-                    {formatRoleSlug(slug)}
-                  </Badge>
-                ))}
-              </div>
+            <div className="flex flex-wrap gap-1">
+              {domain.allowedRoleSlugs.map((slug) => (
+                <Badge key={slug} variant="secondary" className="text-[10px] h-5 px-1.5 font-normal">
+                  {formatRoleSlug(slug)}
+                </Badge>
+              ))}
             </div>
           )}
           {needsDegree && domain.minDegree != null && (
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1">Minimum Degree</p>
-              <Badge variant="outline" className="text-[10px] h-5 px-1.5">
-                {DEGREE_OPTIONS.find((d) => d.value === domain.minDegree)?.label ?? `Degree ${domain.minDegree}`}
-              </Badge>
-            </div>
+            <Badge variant="outline" className="text-[10px] h-5 px-1.5">
+              {DEGREE_OPTIONS.find((d) => d.value === domain.minDegree)?.label ?? `Degree ${domain.minDegree}`}
+            </Badge>
           )}
-          {domain.allowedRoleSlugs.length === 0 && (!needsDegree || domain.minDegree == null) && (
-            <p className="text-xs text-muted-foreground italic">No access rules configured.</p>
+          {!hasRules && (
+            <p className="text-xs text-muted-foreground/60 italic">No access rules configured.</p>
           )}
         </div>
       </CardContent>
@@ -355,7 +350,7 @@ export default function AdminDomainsPage() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-4xl mx-auto">
+      <div className="p-6 max-w-6xl mx-auto">
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-semibold text-foreground">Domains & Access Control</h1>
@@ -379,8 +374,8 @@ export default function AdminDomainsPage() {
         )}
 
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton key={i} className="h-40 rounded-lg" />
             ))}
           </div>
@@ -392,7 +387,7 @@ export default function AdminDomainsPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {domains.map((d) => (
               <DomainCard
                 key={d.id}
