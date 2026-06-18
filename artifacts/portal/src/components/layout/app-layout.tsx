@@ -159,33 +159,34 @@ export function AppLayout({ children }: AppLayoutProps) {
             <NavLink item={{ href: "/settings/passkeys", label: "Passkeys", icon: Fingerprint }} onNav={onNav} />
           </>
         )}
-      </nav>
 
-      <Separator className="bg-sidebar-border" />
-      <div className="p-3">
-        <div className="px-3 py-2 mb-1">
-          <p className="text-xs font-medium text-sidebar-foreground truncate">
-            {user?.firstName} {user?.lastName}
-          </p>
-          <p className="text-[11px] text-sidebar-muted truncate">{user?.email}</p>
+        {/* Sign Out — always just below Settings */}
+        <div className="pt-2">
+          <Separator className="bg-sidebar-border mb-2" />
+          <div className="px-3 py-1.5">
+            <p className="text-xs font-medium text-sidebar-foreground truncate">
+              {user?.firstName} {user?.lastName}
+            </p>
+            <p className="text-[11px] text-sidebar-muted truncate">{user?.email}</p>
+          </div>
+          <Button
+            variant="ghost" size="sm"
+            className="w-full justify-start text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent text-xs"
+            onClick={handleLogout}
+            disabled={logout.isPending}
+            data-testid="button-logout"
+          >
+            <LogOut className="h-3.5 w-3.5 mr-2" />
+            Sign Out
+          </Button>
         </div>
-        <Button
-          variant="ghost" size="sm"
-          className="w-full justify-start text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent text-xs"
-          onClick={handleLogout}
-          disabled={logout.isPending}
-          data-testid="button-logout"
-        >
-          <LogOut className="h-3.5 w-3.5 mr-2" />
-          Sign Out
-        </Button>
-      </div>
+      </nav>
     </>
   );
 
   return (
     <div className="min-h-screen bg-background flex">
-      <aside className="hidden md:flex w-60 shrink-0 border-r border-sidebar-border bg-sidebar flex-col">
+      <aside className="hidden md:flex w-60 shrink-0 border-r border-sidebar-border bg-sidebar flex-col sticky top-0 h-screen">
         <SidebarContent />
       </aside>
 
