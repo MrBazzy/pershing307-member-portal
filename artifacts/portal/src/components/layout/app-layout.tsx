@@ -1,6 +1,7 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import pershingPortrait from "@assets/JohnJPershing_1781792629576.jpg";
 import { useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -94,9 +95,16 @@ export function AppLayout({ children }: AppLayoutProps) {
     <>
       <div className="px-5 pt-5 pb-3 border-b border-sidebar-border">
         <div className="flex items-center gap-2.5">
-          <div className="flex items-center justify-center w-8 h-8 rounded-sm bg-sidebar-active shrink-0">
-            <span className="text-sidebar-active-foreground font-serif font-bold text-sm">G</span>
-          </div>
+          <img
+            src={pershingPortrait}
+            alt="General John J. Pershing"
+            className="w-9 h-9 rounded-full object-cover shrink-0"
+            style={{
+              objectPosition: "center 12%",
+              border: "1.5px solid hsl(var(--sidebar-active))",
+              filter: "grayscale(100%) contrast(1.2) brightness(1.05)",
+            }}
+          />
           <div className="min-w-0">
             <p className="text-xs font-semibold text-sidebar-foreground truncate leading-tight">Pershing No. 307</p>
             <p className="text-[10px] text-sidebar-muted truncate leading-tight">Member Portal</p>
@@ -201,9 +209,16 @@ export function AppLayout({ children }: AppLayoutProps) {
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-6 h-6 rounded-sm bg-sidebar-active">
-              <span className="text-sidebar-active-foreground font-serif font-bold text-xs">G</span>
-            </div>
+            <img
+              src={pershingPortrait}
+              alt="General John J. Pershing"
+              className="w-7 h-7 rounded-full object-cover shrink-0"
+              style={{
+                objectPosition: "center 12%",
+                border: "1.5px solid hsl(var(--sidebar-active))",
+                filter: "grayscale(100%) contrast(1.2) brightness(1.05)",
+              }}
+            />
             <span className="text-sm font-semibold text-foreground">Pershing No. 307</span>
           </div>
           <EnvBannerMobilePill />
