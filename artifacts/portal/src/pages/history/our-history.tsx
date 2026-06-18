@@ -23,10 +23,40 @@ function chapterBlock(year: string, title: string, isFirst: boolean): string {
   return `<div class="chapter-block">${divider}${header}</div>`;
 }
 
+/** Returns true if a <p> inner HTML is entirely bold+underlined (any nesting order). */
+function isBoldUnderlinedParagraph(inner: string): boolean {
+  const s = inner.trim();
+  return (
+    /^<strong[^>]*>\s*<u[^>]*>[\s\S]*<\/u>\s*<\/strong>$/i.test(s) ||
+    /^<u[^>]*>\s*<strong[^>]*>[\s\S]*<\/strong>\s*<\/u>$/i.test(s)
+  );
+}
+
+/** Extract year from patterns like "Title (1959)", "(1959) Title", or "1959 — Title". */
+function extractYear(text: string): { year: string; title: string } {
+  // "Title (1959)" or "(1959) Title"
+  const bracketed = text.match(/^(.*?)\s*\((\d{4})\)\s*(.*?)$/);
+  if (bracketed) {
+    const year = bracketed[2];
+    const title = (bracketed[1] + " " + bracketed[3]).trim().replace(/\s{2,}/g, " ");
+    return { year, title };
+  }
+  // "1959 — Title" or "1959: Title"
+  const yearFirst = text.match(YEAR_WITH_TITLE);
+  if (yearFirst) return { year: yearFirst[1], title: yearFirst[2].trim() };
+  // Bare year
+  const yearOnly = text.match(YEAR_ONLY);
+  if (yearOnly) return { year: yearOnly[1], title: "" };
+
+  return { year: "", title: text };
+}
+
 function enhanceContent(html: string): string {
-  type TokType = "h2" | "h3" | "h4" | "text";
+  type TokType = "h2" | "h3" | "h4" | "chapter-p" | "text";
   const tokens: Array<{ type: TokType; text: string; raw: string }> = [];
-  const re = /<(h[234])[^>]*>([\s\S]*?)<\/h[234]>/gi;
+
+  // Match both headings and paragraphs
+  const re = /<(h[234]|p)([^>]*?)>([\s\S]*?)<\/(?:h[234]|p)>/gi;
   let last = 0;
   let match: RegExpExecArray | null;
 
@@ -34,8 +64,17 @@ function enhanceContent(html: string): string {
     if (match.index > last) {
       tokens.push({ type: "text", text: "", raw: html.slice(last, match.index) });
     }
-    const tag = match[1].toLowerCase() as TokType;
-    tokens.push({ type: tag, text: stripAnchors(match[2]), raw: match[0] });
+    const tag = match[1].toLowerCase();
+    const inner = match[3];
+    const plainText = stripAnchors(inner);
+
+    if (tag === "p" && isBoldUnderlinedParagraph(inner)) {
+      tokens.push({ type: "chapter-p", text: plainText, raw: match[0] });
+    } else if (tag === "h2" || tag === "h3" || tag === "h4") {
+      tokens.push({ type: tag as TokType, text: plainText, raw: match[0] });
+    } else {
+      tokens.push({ type: "text", text: "", raw: match[0] });
+    }
     last = match.index + match[0].length;
   }
   if (last < html.length) {
@@ -49,10 +88,13 @@ function enhanceContent(html: string): string {
   while (i < tokens.length) {
     const tok = tokens[i];
 
-    if (tok.type === "h2") {
+    if (tok.type === "chapter-p") {
+      const { year, title } = extractYear(tok.text);
+      output.push(chapterBlock(year, title, chapterCount === 0));
+      chapterCount++;
+    } else if (tok.type === "h2") {
       const yearOnly = tok.text.match(YEAR_ONLY);
       const yearWithTitle = tok.text.match(YEAR_WITH_TITLE);
-
       if (yearOnly) {
         const year = yearOnly[1];
         const next = tokens[i + 1];
