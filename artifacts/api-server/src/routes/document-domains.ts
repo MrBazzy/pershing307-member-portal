@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
-import { protectedDomainsTable, usersTable, documentFoldersTable } from "@workspace/db/schema";
+import { protectedDomainsTable, usersTable, userDomainAccessTable } from "@workspace/db/schema";
 import type { DomainAccessLogic } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
@@ -268,12 +268,12 @@ router.delete("/:id", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, re
     .then((r) => r[0] ?? null);
   const actorName = actor ? `${actor.firstName} ${actor.lastName}`.trim() : "Admin";
 
-  // Unlink any folders referencing this domain before deleting (FK constraint)
+  // Remove explicit user grants for this domain (FK, no cascade)
   await db
-    .update(documentFoldersTable)
-    .set({ domainId: null })
-    .where(eq(documentFoldersTable.domainId, domain.id));
+    .delete(userDomainAccessTable)
+    .where(eq(userDomainAccessTable.domainId, domain.id));
 
+  // document_folders.domainId has onDelete:"set null" — handled by Postgres automatically
   await db.delete(protectedDomainsTable).where(eq(protectedDomainsTable.id, domain.id));
 
   await writeAuditLog({
