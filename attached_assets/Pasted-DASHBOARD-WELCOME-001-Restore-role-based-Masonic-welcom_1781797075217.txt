@@ -1,0 +1,103 @@
+DASHBOARD-WELCOME-001 — Restore role-based Masonic welcome address
+
+STEP 0 — Safety
+
+Before making changes:
+- Create Replit checkpoint/snapshot.
+- Create git tag if possible:
+
+v3.x-before-welcome-address-fix
+
+- Confirm build passes before implementation.
+
+Issue:
+The dashboard welcome message previously addressed a Brother based on his role, but this behavior has disappeared.
+
+Required behavior:
+Restore role-based welcome wording on the Dashboard.
+
+Rules:
+
+1. Visitor
+Display:
+Welcome, Visitor [First Name]
+
+2. Member
+Display:
+Welcome, Brother [First Name]
+
+3. Secretary
+Display:
+Welcome, Brother Secretary [First Name]
+
+4. Treasurer
+Display:
+Welcome, Brother Treasurer [First Name]
+
+5. Junior Warden
+Display:
+Welcome, Brother Junior Warden [First Name]
+
+6. Senior Warden
+Display:
+Welcome, Brother Senior Warden [First Name]
+
+7. Worshipful Master
+Display:
+Welcome, Worshipful Master [First Name]
+
+8. Past Master
+Display:
+Welcome, Worshipful Brother [First Name]
+
+9. Site Administrator only
+If user has no lodge officer role but has Site Administrator:
+Display:
+Welcome, Brother [First Name]
+
+10. PM Super Administrator only
+If user has no Past Master or Worshipful Master role:
+Display:
+Welcome, Brother [First Name]
+
+Priority order:
+If a user has multiple roles, use this precedence:
+
+1. Worshipful Master
+2. Past Master
+3. Senior Warden
+4. Junior Warden
+5. Treasurer
+6. Secretary
+7. Member
+8. Visitor
+9. Site Administrator
+10. PM Super Administrator
+
+Important:
+Technical roles should not override lodge roles.
+
+Examples:
+
+- Member + Site Administrator:
+  Welcome, Brother John
+
+- Past Master + Site Administrator:
+  Welcome, Worshipful Brother John
+
+- PM Super Administrator + Past Master:
+  Welcome, Worshipful Brother John
+
+- Worshipful Master + PM Super Administrator:
+  Welcome, Worshipful Master John
+
+- Secretary + Site Administrator:
+  Welcome, Brother Secretary John
+
+Implementation:
+- Use first name.
+- Keep existing dashboard layout and styling.
+- Do not change permissions, roles, database schema, or authentication logic.
+
+Acceptance criteria:
+Dashboard welcome message correctly reflects the user's highest relevant lodge role.

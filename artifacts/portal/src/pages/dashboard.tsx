@@ -21,6 +21,31 @@ import { formatDistanceToNow, format } from "date-fns";
 import { Link } from "wouter";
 import { VISITOR_LEVEL, MEMBER_LEVEL, ADMIN_LEVEL } from "@/lib/roles";
 
+/** Returns the role-appropriate greeting prefix, e.g. "Welcome, Worshipful Master". */
+function getWelcomeGreeting(
+  roles: Array<{ name: string; permissionLevel: number }> | undefined
+): string {
+  if (!roles || roles.length === 0) return "Welcome,";
+
+  const names = roles.map((r) => r.name.toLowerCase());
+  const has = (pattern: string) => names.some((n) => n.includes(pattern));
+  const maxLevel = roles.reduce((m, r) => Math.max(m, r.permissionLevel), 0);
+
+  // Lodge officer roles — checked in precedence order
+  if (has("worshipful master")) return "Welcome, Worshipful Master";
+  if (has("past master"))       return "Welcome, Worshipful Brother";
+  if (has("senior warden"))     return "Welcome, Brother Senior Warden";
+  if (has("junior warden"))     return "Welcome, Brother Junior Warden";
+  if (has("treasurer"))         return "Welcome, Brother Treasurer";
+  if (has("secretary"))         return "Welcome, Brother Secretary";
+
+  // Generic levels — covers Member, Site Admin, PM Super Admin
+  if (maxLevel >= MEMBER_LEVEL)  return "Welcome, Brother";
+  if (maxLevel >= VISITOR_LEVEL) return "Welcome, Visitor";
+
+  return "Welcome,";
+}
+
 const MONTH_ABBR = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
@@ -475,7 +500,7 @@ export default function DashboardPage() {
       <div className="relative p-6 max-w-5xl mx-auto space-y-6" style={{ zIndex: 1 }}>
         <div>
           <h1 className="text-2xl font-serif font-semibold text-primary">
-            Welcome, {user?.firstName}
+            {getWelcomeGreeting(user?.roles)} {user?.firstName}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">{roleLabel}</p>
         </div>
