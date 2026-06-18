@@ -4,6 +4,92 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Landmark } from "lucide-react";
 import { format } from "date-fns";
 
+const YEAR_ONLY = /^\s*(\d{4})\s*$/;
+const YEAR_WITH_TITLE = /^\s*(\d{4})\s*[-–—:]\s*(.+?)\s*$/;
+
+function stripAnchors(html: string): string {
+  return html.replace(/<a[^>]*>([\s\S]*?)<\/a>/gi, "$1").replace(/<[^>]+>/g, "").trim();
+}
+
+function dividerHtml(): string {
+  return `<div class="chapter-divider"><div class="chapter-divider-line"></div><div class="chapter-divider-diamond"></div><div class="chapter-divider-line"></div></div>`;
+}
+
+function chapterBlock(year: string, title: string, isFirst: boolean): string {
+  const divider = isFirst ? "" : dividerHtml();
+  const header = year
+    ? `<div class="chapter-header"><span class="chapter-year">${year}</span><span class="chapter-title">${title}</span></div>`
+    : `<div class="chapter-header"><span class="chapter-title-only">${title}</span></div>`;
+  return `<div class="chapter-block">${divider}${header}</div>`;
+}
+
+function enhanceContent(html: string): string {
+  type TokType = "h2" | "h3" | "h4" | "text";
+  const tokens: Array<{ type: TokType; text: string; raw: string }> = [];
+  const re = /<(h[234])[^>]*>([\s\S]*?)<\/h[234]>/gi;
+  let last = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = re.exec(html)) !== null) {
+    if (match.index > last) {
+      tokens.push({ type: "text", text: "", raw: html.slice(last, match.index) });
+    }
+    const tag = match[1].toLowerCase() as TokType;
+    tokens.push({ type: tag, text: stripAnchors(match[2]), raw: match[0] });
+    last = match.index + match[0].length;
+  }
+  if (last < html.length) {
+    tokens.push({ type: "text", text: "", raw: html.slice(last) });
+  }
+
+  const output: string[] = [];
+  let chapterCount = 0;
+  let i = 0;
+
+  while (i < tokens.length) {
+    const tok = tokens[i];
+
+    if (tok.type === "h2") {
+      const yearOnly = tok.text.match(YEAR_ONLY);
+      const yearWithTitle = tok.text.match(YEAR_WITH_TITLE);
+
+      if (yearOnly) {
+        const year = yearOnly[1];
+        const next = tokens[i + 1];
+        if (next && next.type === "h3") {
+          output.push(chapterBlock(year, next.text, chapterCount === 0));
+          chapterCount++;
+          i += 2;
+          continue;
+        } else {
+          output.push(chapterBlock(year, "", chapterCount === 0));
+          chapterCount++;
+        }
+      } else if (yearWithTitle) {
+        output.push(chapterBlock(yearWithTitle[1], yearWithTitle[2], chapterCount === 0));
+        chapterCount++;
+      } else {
+        output.push(chapterBlock("", tok.text, chapterCount === 0));
+        chapterCount++;
+      }
+    } else if (tok.type === "h3") {
+      output.push(chapterBlock("", tok.text, chapterCount === 0));
+      chapterCount++;
+    } else if (tok.type === "h4") {
+      const isFirst = chapterCount === 0;
+      const divider = isFirst ? "" : dividerHtml();
+      output.push(`<div class="chapter-block">${divider}<div class="chapter-header"><span class="chapter-title-only">${tok.text}</span></div></div>`);
+      chapterCount++;
+    } else {
+      output.push(tok.raw);
+    }
+
+    i++;
+  }
+
+  return output.join("");
+}
+
 function prepareContent(content: string): string {
   if (!content.trim()) return "";
   if (/<[a-z][\s\S]*>/i.test(content)) return content;
@@ -50,17 +136,14 @@ export default function OurHistoryPage() {
 
           {/* Hero */}
           <div className="relative px-8 py-10 text-center border-b border-border bg-primary/[0.015] overflow-hidden">
-            {/* Watermark — Masonic G, 3% opacity */}
             <div
               className="absolute inset-0 flex items-center justify-center pointer-events-none select-none"
               aria-hidden="true"
             >
-              <span className="text-[220px] font-serif font-bold text-primary opacity-[0.03] leading-none tracking-tighter">
+              <span className="text-[220px] font-serif font-bold text-primary opacity-[0.03] leading-none">
                 G
               </span>
             </div>
-
-            {/* Hero content */}
             <div className="relative">
               <div className="inline-flex items-center gap-3 mb-5">
                 <span className="h-px w-8 bg-sidebar-active/50" />
@@ -98,23 +181,10 @@ export default function OurHistoryPage() {
               {/* Prose */}
               {page?.content ? (
                 <div
-                  className={[
-                    "max-w-none leading-7 text-[15px] text-foreground/90",
-                    "[&_p]:mb-5 [&_p]:leading-7",
-                    "[&_h2]:font-serif [&_h2]:text-[10px] [&_h2]:font-bold [&_h2]:tracking-[0.2em]",
-                    "[&_h2]:uppercase [&_h2]:text-sidebar-active [&_h2]:mt-12 [&_h2]:mb-0.5",
-                    "[&_h2_a]:no-underline [&_h2_a]:text-sidebar-active [&_h2_a]:cursor-text [&_h2_a]:pointer-events-none",
-                    "[&_h3]:font-serif [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-primary [&_h3]:mt-1 [&_h3]:mb-4",
-                    "[&_h3_a]:no-underline [&_h3_a]:text-primary [&_h3_a]:cursor-text [&_h3_a]:pointer-events-none",
-                    "[&_h4]:font-serif [&_h4]:text-base [&_h4]:font-semibold [&_h4]:text-primary [&_h4]:mt-8 [&_h4]:mb-3",
-                    "[&_a]:text-primary [&_a]:underline",
-                    "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-5",
-                    "[&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-5",
-                    "[&_li]:mb-1.5",
-                    "[&_strong]:font-semibold [&_strong]:text-foreground",
-                    "[&_blockquote]:border-l-2 [&_blockquote]:border-sidebar-active/40 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground [&_blockquote]:my-6",
-                  ].join(" ")}
-                  dangerouslySetInnerHTML={{ __html: prepareContent(page.content) }}
+                  className="history-article"
+                  dangerouslySetInnerHTML={{
+                    __html: enhanceContent(prepareContent(page.content)),
+                  }}
                 />
               ) : (
                 <div className="text-center py-12">
