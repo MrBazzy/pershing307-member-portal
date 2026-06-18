@@ -1,0 +1,99 @@
+AUDIT-LOG-002 — Show full user names instead of email/System in audit descriptions
+
+STEP 0 — Safety
+
+Before making changes:
+- Create Replit checkpoint/snapshot.
+- Create git tag if possible:
+
+v3.6-before-audit-name-display
+
+- Confirm build passes before implementation.
+
+Issue:
+Audit log descriptions sometimes show:
+- email addresses
+- "System"
+
+Example:
+"System revoked role Past Master"
+
+This is unclear for Site Administrators and PM Super Administrators.
+
+Required behavior:
+Audit log descriptions should show the actor’s first and last name wherever possible.
+
+Preferred format:
+Brother John Smith revoked role "Past Master" from Brother Peter Jones.
+
+Not:
+john.smith@example.com revoked role "Past Master"
+System revoked role "Past Master"
+
+Requirements:
+
+1. Actor display
+When an action is performed by a logged-in user, display:
+- First Name + Last Name
+
+Example:
+John Smith
+
+2. Target display
+When an action affects another user, display:
+- Target First Name + Last Name
+
+Example:
+Peter Jones
+
+3. Email fallback
+Only use email address as fallback when first name and last name are unavailable.
+
+4. System fallback
+Use "System" only for genuine automated system actions where no authenticated user exists.
+
+5. Role and degree changes
+Update audit descriptions for:
+- Role granted
+- Role revoked
+- Degree assigned
+- Degree removed
+- Membership status changed
+- User activated/deactivated
+
+6. Invitations
+When an administrator creates, revokes or manages invitations, show the administrator’s first and last name.
+
+7. Configuration and management changes
+For configuration, roadmap, tracing board, events, history and future documents:
+- show actor first name + last name
+
+8. Preserve technical metadata
+Do not remove technical audit metadata.
+It is acceptable to keep:
+- actor user ID
+- target user ID
+- email
+inside metadata/details if already stored.
+
+But the visible description should use names.
+
+9. Existing audit records
+If possible:
+- improve display for existing records by resolving user IDs to names.
+
+If not possible:
+- apply the new behavior to all future audit records.
+
+10. Acceptance criteria
+Audit log entries clearly show:
+- who did the action
+- who or what was affected
+- what happened
+- when it happened
+
+Examples:
+- John Smith granted role "Past Master" to Peter Jones.
+- John Smith revoked role "Secretary" from Peter Jones.
+- John Smith changed membership status for Peter Jones from Pending to Active.
+- John Smith updated History page content.

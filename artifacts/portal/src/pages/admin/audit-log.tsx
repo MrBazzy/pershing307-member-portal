@@ -1,9 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
-import { useListAuditLogs, getListAuditLogsQueryKey } from "@workspace/api-client-react";
+import {
+  useListAuditLogs,
+  useListUsers,
+  getListAuditLogsQueryKey,
+  getListUsersQueryKey,
+} from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -40,31 +44,43 @@ interface InterpretedLog {
 }
 
 // ─── Interpretation layer ──────────────────────────────────────────────────────
+//
+// actorLabel  – resolved full name (e.g. "John Smith"), email fallback, or "System"
+// targetLabel – resolved full name for the affected user, or null when not applicable
+//
 
 function interpret(
   action: string,
   detail: AuditDetail,
-  actorEmail: string | null,
-  _targetId: string | null
+  actorLabel: string,
+  targetLabel: string | null
 ): InterpretedLog {
-  const actor = actorEmail ?? "System";
   const s = (k: string) => (detail[k] as string | undefined) ?? "";
   const n = (k: string) => detail[k] as number | undefined;
+  const targetStr = targetLabel ?? "a user";
 
   switch (action) {
     // ── Authentication ────────────────────────────────────────────────
     case "LOGIN":
-      return { category: "Authentication", result: "success", summary: `${actor} signed in successfully.` };
+      return {
+        category: "Authentication",
+        result: "success",
+        summary: `${actorLabel} signed in successfully.`,
+      };
 
     case "LOGIN_2FA":
       return {
         category: "Authentication",
         result: "success",
-        summary: `${actor} completed two-factor authentication and signed in.`,
+        summary: `${actorLabel} completed two-factor authentication and signed in.`,
       };
 
     case "LOGOUT":
-      return { category: "Authentication", result: "info", summary: `${actor} signed out.` };
+      return {
+        category: "Authentication",
+        result: "info",
+        summary: `${actorLabel} signed out.`,
+      };
 
     case "LOGIN_FAILED": {
       const reason = s("reason");
@@ -100,7 +116,7 @@ function interpret(
       return {
         category: "Authentication",
         result: "failure",
-        summary: `Failed login attempt for ${actor}.`,
+        summary: `Failed login attempt for ${actorLabel}.`,
         details,
         recommendation,
       };
@@ -110,7 +126,7 @@ function interpret(
       return {
         category: "Authentication",
         result: "failure",
-        summary: `Account temporarily locked for ${actor} after too many failed attempts.`,
+        summary: `Account temporarily locked for ${actorLabel} after too many failed attempts.`,
         details: "Automatically locked due to excessive failed login attempts.",
         recommendation:
           "The lock clears after the timeout. An administrator can also reactivate the account manually to clear it early.",
@@ -120,9 +136,10 @@ function interpret(
       return {
         category: "Authentication",
         result: "warning",
-        summary: `Rate limit triggered for ${actor}.`,
+        summary: `Rate limit triggered for ${actorLabel}.`,
         details: "Too many requests were made in a short period.",
-        recommendation: "If unexpected, investigate for automated or brute-force activity from this IP.",
+        recommendation:
+          "If unexpected, investigate for automated or brute-force activity from this IP.",
       };
 
     // ── TOTP / 2FA ────────────────────────────────────────────────────
@@ -132,10 +149,12 @@ function interpret(
       return {
         category: "2FA / TOTP",
         result: "failure",
-        summary: `Two-factor authentication code rejected for ${actor}.`,
+        summary: `Two-factor authentication code rejected for ${actorLabel}.`,
         details: `Incorrect TOTP code entered.${
           attempts !== undefined
-            ? ` Attempt ${attempts}${remaining !== undefined ? `, ${remaining} attempt(s) remaining before lockout.` : "."}`
+            ? ` Attempt ${attempts}${
+                remaining !== undefined ? `, ${remaining} attempt(s) remaining before lockout.` : "."
+              }`
             : ""
         }`,
         recommendation:
@@ -147,7 +166,7 @@ function interpret(
       return {
         category: "2FA / TOTP",
         result: "failure",
-        summary: `Account locked after too many failed 2FA attempts for ${actor}.`,
+        summary: `Account locked after too many failed 2FA attempts for ${actorLabel}.`,
         details: "Account locked following repeated incorrect TOTP codes.",
         recommendation:
           "An administrator can unlock the account and disable 2FA so the user can re-enrol with a working authenticator.",
@@ -157,14 +176,16 @@ function interpret(
       return {
         category: "2FA / TOTP",
         result: "success",
-        summary: `${actor} enrolled two-factor authentication.`,
+        summary: `${actorLabel} enrolled two-factor authentication.`,
       };
 
     case "2FA_DISABLED":
       return {
         category: "2FA / TOTP",
         result: "info",
-        summary: `Two-factor authentication was disabled for ${actor}.`,
+        summary: targetLabel
+          ? `${actorLabel} disabled two-factor authentication for ${targetLabel}.`
+          : `${actorLabel} disabled two-factor authentication.`,
         recommendation: "Encourage the user to re-enrol 2FA for improved account security.",
       };
 
@@ -174,7 +195,7 @@ function interpret(
       return {
         category: "Passkeys",
         result: "success",
-        summary: `${actor} registered a new passkey${label ? ` labelled "${label}"` : ""}.`,
+        summary: `${actorLabel} registered a new passkey${label ? ` labelled "${label}"` : ""}.`,
       };
     }
 
@@ -183,7 +204,7 @@ function interpret(
       return {
         category: "Passkeys",
         result: "info",
-        summary: `${actor} removed their passkey${label ? ` "${label}"` : ""}.`,
+        summary: `${actorLabel} removed their passkey${label ? ` "${label}"` : ""}.`,
       };
     }
 
@@ -191,7 +212,7 @@ function interpret(
       return {
         category: "Passkeys",
         result: "success",
-        summary: `${actor} signed in successfully using a passkey.`,
+        summary: `${actorLabel} signed in successfully using a passkey.`,
       };
 
     case "PASSKEY_LOGIN_FAILED": {
@@ -223,7 +244,7 @@ function interpret(
       return {
         category: "Passkeys",
         result: "failure",
-        summary: `Passkey login failed for ${actor}.`,
+        summary: `Passkey login failed for ${actorLabel}.`,
         details,
         recommendation,
       };
@@ -233,7 +254,9 @@ function interpret(
       return {
         category: "Passkeys",
         result: "info",
-        summary: `An administrator revoked a passkey for ${actor}.`,
+        summary: targetLabel
+          ? `${actorLabel} revoked a passkey for ${targetLabel}.`
+          : `${actorLabel} revoked a passkey.`,
         recommendation:
           "If the user needs passkey login, they should register a new one from Settings → Passkeys.",
       };
@@ -243,7 +266,7 @@ function interpret(
       return {
         category: "Password",
         result: "info",
-        summary: `${actor} requested a password reset link.`,
+        summary: `${actorLabel} requested a password reset link.`,
         details: "A reset link was sent to the account email address if it exists.",
       };
 
@@ -251,21 +274,21 @@ function interpret(
       return {
         category: "Password",
         result: "success",
-        summary: `${actor} completed a password reset.`,
+        summary: `${actorLabel} completed a password reset.`,
       };
 
     case "PASSWORD_CHANGED":
       return {
         category: "Password",
         result: "success",
-        summary: `${actor} changed their password.`,
+        summary: `${actorLabel} changed their password.`,
       };
 
     case "PASSWORD_CHANGED_AFTER_RESET":
       return {
         category: "Password",
         result: "success",
-        summary: `${actor} set a new password after using an administrator-issued temporary password.`,
+        summary: `${actorLabel} set a new password after using an administrator-issued temporary password.`,
       };
 
     case "PASSWORD_RESET_BY_ADMIN": {
@@ -273,11 +296,14 @@ function interpret(
       return {
         category: "Password",
         result: "info",
-        summary: `An administrator issued a temporary password to ${actor}.`,
+        summary: targetLabel
+          ? `${actorLabel} issued a temporary password to ${targetLabel}.`
+          : `${actorLabel} issued a temporary password.`,
         details: expiresAt
           ? `Temporary password expires: ${format(new Date(expiresAt), "d MMM yyyy, HH:mm")}.`
           : undefined,
-        recommendation: "Deliver the temporary password securely. The user must change it on next login.",
+        recommendation:
+          "Deliver the temporary password securely. The user must change it on next login.",
       };
     }
 
@@ -285,32 +311,38 @@ function interpret(
       return {
         category: "Password",
         result: "failure",
-        summary: `${actor} attempted to reuse a recent password.`,
+        summary: `${actorLabel} attempted to reuse a recent password.`,
         details: "Password change rejected — the new password matches a previously used one.",
         recommendation: "Ask the user to choose a password they have not used before.",
       };
 
     // ── Users ─────────────────────────────────────────────────────────
-    case "USER_ACTIVATED": {
-      const sessions = n("sessionsInvalidated");
+    case "USER_ACTIVATED":
       return {
         category: "Users",
         result: "success",
-        summary: `User account activated.${actor !== "System" ? ` Performed by ${actor}.` : ""}`,
-        details: sessions ? `${sessions} existing session(s) were refreshed.` : undefined,
+        summary: targetLabel
+          ? `${actorLabel} activated account for ${targetLabel}.`
+          : `${actorLabel} activated a user account.`,
+        details:
+          (n("sessionsInvalidated") ?? 0) > 0
+            ? `${n("sessionsInvalidated")} existing session(s) were refreshed.`
+            : undefined,
       };
-    }
 
-    case "USER_DEACTIVATED": {
-      const sessions = n("sessionsInvalidated");
+    case "USER_DEACTIVATED":
       return {
         category: "Users",
         result: "info",
-        summary: `User account deactivated.${actor !== "System" ? ` Performed by ${actor}.` : ""}`,
-        details: sessions ? `${sessions} active session(s) were terminated.` : undefined,
+        summary: targetLabel
+          ? `${actorLabel} deactivated account for ${targetLabel}.`
+          : `${actorLabel} deactivated a user account.`,
+        details:
+          (n("sessionsInvalidated") ?? 0) > 0
+            ? `${n("sessionsInvalidated")} active session(s) were terminated.`
+            : undefined,
         recommendation: "The user cannot log in until the account is reactivated.",
       };
-    }
 
     case "USER_NAME_UPDATED": {
       const from = s("from");
@@ -318,7 +350,9 @@ function interpret(
       return {
         category: "Users",
         result: "success",
-        summary: `${actor} updated a member's name.`,
+        summary: targetLabel
+          ? `${actorLabel} updated name for ${targetLabel}.`
+          : `${actorLabel} updated a member's name.`,
         details: from && to ? `Changed from "${from}" to "${to}".` : undefined,
       };
     }
@@ -327,7 +361,9 @@ function interpret(
       return {
         category: "Users",
         result: "success",
-        summary: `Date of birth updated by ${actor}.`,
+        summary: targetLabel
+          ? `${actorLabel} updated date of birth for ${targetLabel}.`
+          : `${actorLabel} updated a date of birth.`,
       };
 
     case "BIRTHDAY_VISIBILITY_CHANGED": {
@@ -335,7 +371,7 @@ function interpret(
       return {
         category: "Users",
         result: "info",
-        summary: `Birthday visibility preference changed by ${actor}.`,
+        summary: `${actorLabel} changed birthday visibility preference.`,
         details: visibility ? `Visibility set to: ${visibility}.` : undefined,
       };
     }
@@ -346,8 +382,15 @@ function interpret(
       return {
         category: "Users",
         result: "info",
-        summary: `Membership status changed.${actor !== "System" ? ` Performed by ${actor}.` : ""}`,
-        details: from && to ? `Changed from "${from}" to "${to}".` : to ? `Set to "${to}".` : undefined,
+        summary: targetLabel
+          ? `${actorLabel} changed membership status for ${targetLabel}.`
+          : `${actorLabel} changed a membership status.`,
+        details:
+          from && to
+            ? `Changed from "${from}" to "${to}".`
+            : to
+              ? `Set to "${to}".`
+              : undefined,
       };
     }
 
@@ -358,7 +401,9 @@ function interpret(
       return {
         category: "Roles",
         result: "success",
-        summary: `${actor} granted role "${roleName || "unknown"}".`,
+        summary: targetLabel
+          ? `${actorLabel} granted role "${roleName || "unknown"}" to ${targetLabel}.`
+          : `${actorLabel} granted role "${roleName || "unknown"}".`,
         details: sessions ? `${sessions} session(s) refreshed to apply new permissions.` : undefined,
       };
     }
@@ -369,8 +414,12 @@ function interpret(
       return {
         category: "Roles",
         result: "info",
-        summary: `${actor} revoked role "${roleName || "unknown"}".`,
-        details: sessions ? `${sessions} session(s) refreshed to apply permission changes.` : undefined,
+        summary: targetLabel
+          ? `${actorLabel} revoked role "${roleName || "unknown"}" from ${targetLabel}.`
+          : `${actorLabel} revoked role "${roleName || "unknown"}".`,
+        details: sessions
+          ? `${sessions} session(s) refreshed to apply permission changes.`
+          : undefined,
       };
     }
 
@@ -383,7 +432,7 @@ function interpret(
       return {
         category: "Invitations",
         result: "success",
-        summary: `${actor} created an invitation for ${name ? `${name} (${email})` : email || "a new member"}.`,
+        summary: `${actorLabel} created an invitation for ${name ? `${name} (${email})` : email || "a new member"}.`,
         details: "An invitation email was sent if SMTP is configured.",
       };
     }
@@ -393,8 +442,7 @@ function interpret(
       return {
         category: "Invitations",
         result: "success",
-        summary: `Invitation accepted${email ? ` by ${email}` : ""}.`,
-        details: "The user's account has been activated.",
+        summary: `Invitation accepted${email ? ` by ${email}` : ""}. Account activated.`,
       };
     }
 
@@ -403,7 +451,7 @@ function interpret(
       return {
         category: "Invitations",
         result: "info",
-        summary: `Invitation revoked${email ? ` for ${email}` : ""} by ${actor}.`,
+        summary: `${actorLabel} revoked invitation${email ? ` for ${email}` : ""}.`,
         details: "The invitation link is no longer valid.",
       };
     }
@@ -424,7 +472,9 @@ function interpret(
       return {
         category: "Degrees",
         result: "success",
-        summary: `${actor} recorded degree: ${degreeName || `Degree ${n("degree") ?? ""}`}.`,
+        summary: targetLabel
+          ? `${actorLabel} recorded ${degreeName || `Degree ${n("degree") ?? ""}`} for ${targetLabel}.`
+          : `${actorLabel} recorded degree: ${degreeName || `Degree ${n("degree") ?? ""}`}.`,
         details: conferredOn
           ? `Conferred on ${format(new Date(conferredOn), "d MMM yyyy")}.`
           : undefined,
@@ -436,7 +486,9 @@ function interpret(
       return {
         category: "Degrees",
         result: "info",
-        summary: `${actor} removed a degree record${degree ? ` (Degree ${degree})` : ""}.`,
+        summary: targetLabel
+          ? `${actorLabel} removed degree record${degree ? ` (Degree ${degree})` : ""} for ${targetLabel}.`
+          : `${actorLabel} removed a degree record${degree ? ` (Degree ${degree})` : ""}.`,
       };
     }
 
@@ -446,7 +498,9 @@ function interpret(
       return {
         category: "Access",
         result: "success",
-        summary: `${actor} granted domain access: ${domainName || "unknown domain"}.`,
+        summary: targetLabel
+          ? `${actorLabel} granted domain access "${domainName || "unknown"}" to ${targetLabel}.`
+          : `${actorLabel} granted domain access: ${domainName || "unknown"}.`,
       };
     }
 
@@ -455,101 +509,103 @@ function interpret(
       return {
         category: "Access",
         result: "info",
-        summary: `${actor} revoked domain access: ${domainName || "unknown domain"}.`,
+        summary: targetLabel
+          ? `${actorLabel} revoked domain access "${domainName || "unknown"}" from ${targetLabel}.`
+          : `${actorLabel} revoked domain access: ${domainName || "unknown"}.`,
       };
     }
 
     // ── Roadmap / Lodge Years ─────────────────────────────────────────
     case "ROADMAP_ITEM_CREATED":
-      return { category: "Roadmap", result: "success", summary: `${actor} created a new roadmap item.` };
+      return { category: "Roadmap", result: "success", summary: `${actorLabel} created a new roadmap item.` };
     case "ROADMAP_ITEM_UPDATED":
-      return { category: "Roadmap", result: "info", summary: `${actor} updated a roadmap item.` };
+      return { category: "Roadmap", result: "info", summary: `${actorLabel} updated a roadmap item.` };
     case "ROADMAP_ITEM_DELETED":
-      return { category: "Roadmap", result: "info", summary: `${actor} deleted a roadmap item.` };
+      return { category: "Roadmap", result: "info", summary: `${actorLabel} deleted a roadmap item.` };
     case "LODGE_YEAR_CREATED":
-      return { category: "Roadmap", result: "success", summary: `${actor} created a new lodge year.` };
+      return { category: "Roadmap", result: "success", summary: `${actorLabel} created a new lodge year.` };
     case "LODGE_YEAR_ACTIVATED": {
       const year = s("year");
-      return { category: "Roadmap", result: "success", summary: `${actor} activated lodge year${year ? ` ${year}` : ""}.` };
+      return { category: "Roadmap", result: "success", summary: `${actorLabel} activated lodge year${year ? ` ${year}` : ""}.` };
     }
     case "LODGE_YEAR_ARCHIVED": {
       const year = s("year");
-      return { category: "Roadmap", result: "info", summary: `${actor} archived lodge year${year ? ` ${year}` : ""}.` };
+      return { category: "Roadmap", result: "info", summary: `${actorLabel} archived lodge year${year ? ` ${year}` : ""}.` };
     }
     case "LODGE_YEAR_RESTORED": {
       const year = s("year");
-      return { category: "Roadmap", result: "info", summary: `${actor} restored lodge year${year ? ` ${year}` : ""}.` };
+      return { category: "Roadmap", result: "info", summary: `${actorLabel} restored lodge year${year ? ` ${year}` : ""}.` };
     }
     case "LODGE_YEAR_UPDATED":
-      return { category: "Roadmap", result: "info", summary: `${actor} updated a lodge year.` };
+      return { category: "Roadmap", result: "info", summary: `${actorLabel} updated a lodge year.` };
     case "LODGE_YEAR_DELETED":
-      return { category: "Roadmap", result: "info", summary: `${actor} deleted a lodge year.` };
+      return { category: "Roadmap", result: "info", summary: `${actorLabel} deleted a lodge year.` };
 
     // ── Tracing Board ─────────────────────────────────────────────────
     case "TB_ENTRY_CREATED":
-      return { category: "Tracing Board", result: "success", summary: `${actor} created a tracing board entry.` };
+      return { category: "Tracing Board", result: "success", summary: `${actorLabel} created a tracing board entry.` };
     case "TB_ENTRY_UPDATED":
-      return { category: "Tracing Board", result: "info", summary: `${actor} updated a tracing board entry.` };
+      return { category: "Tracing Board", result: "info", summary: `${actorLabel} updated a tracing board entry.` };
     case "TB_ENTRY_DELETED":
-      return { category: "Tracing Board", result: "info", summary: `${actor} deleted a tracing board entry.` };
+      return { category: "Tracing Board", result: "info", summary: `${actorLabel} deleted a tracing board entry.` };
     case "TB_CATEGORY_CREATED":
-      return { category: "Tracing Board", result: "success", summary: `${actor} created a tracing board category.` };
+      return { category: "Tracing Board", result: "success", summary: `${actorLabel} created a tracing board category.` };
     case "TB_CATEGORY_UPDATED":
-      return { category: "Tracing Board", result: "info", summary: `${actor} updated a tracing board category.` };
+      return { category: "Tracing Board", result: "info", summary: `${actorLabel} updated a tracing board category.` };
     case "TB_CATEGORY_DISABLED":
-      return { category: "Tracing Board", result: "info", summary: `${actor} disabled a tracing board category.` };
+      return { category: "Tracing Board", result: "info", summary: `${actorLabel} disabled a tracing board category.` };
     case "TB_CATEGORY_REORDERED":
-      return { category: "Tracing Board", result: "info", summary: `${actor} reordered tracing board categories.` };
+      return { category: "Tracing Board", result: "info", summary: `${actorLabel} reordered tracing board categories.` };
     case "TB_CATEGORY_DELETED":
-      return { category: "Tracing Board", result: "info", summary: `${actor} deleted a tracing board category.` };
+      return { category: "Tracing Board", result: "info", summary: `${actorLabel} deleted a tracing board category.` };
 
     // ── Events ────────────────────────────────────────────────────────
     case "EVENT_CREATED": {
       const title = s("title");
-      return { category: "Events", result: "success", summary: `${actor} created event${title ? ` "${title}"` : ""}.` };
+      return { category: "Events", result: "success", summary: `${actorLabel} created event${title ? ` "${title}"` : ""}.` };
     }
     case "EVENT_UPDATED": {
       const title = s("title");
-      return { category: "Events", result: "info", summary: `${actor} updated event${title ? ` "${title}"` : ""}.` };
+      return { category: "Events", result: "info", summary: `${actorLabel} updated event${title ? ` "${title}"` : ""}.` };
     }
     case "EVENT_DELETED":
-      return { category: "Events", result: "info", summary: `${actor} deleted an event.` };
+      return { category: "Events", result: "info", summary: `${actorLabel} deleted an event.` };
     case "EVENT_CATEGORY_CREATED":
-      return { category: "Events", result: "success", summary: `${actor} created an event category.` };
+      return { category: "Events", result: "success", summary: `${actorLabel} created an event category.` };
     case "EVENT_CATEGORY_UPDATED":
-      return { category: "Events", result: "info", summary: `${actor} updated an event category.` };
+      return { category: "Events", result: "info", summary: `${actorLabel} updated an event category.` };
     case "EVENT_CATEGORY_DISABLED":
-      return { category: "Events", result: "info", summary: `${actor} disabled an event category.` };
+      return { category: "Events", result: "info", summary: `${actorLabel} disabled an event category.` };
     case "EVENT_CATEGORY_REORDERED":
-      return { category: "Events", result: "info", summary: `${actor} reordered event categories.` };
+      return { category: "Events", result: "info", summary: `${actorLabel} reordered event categories.` };
     case "EVENT_CATEGORY_DELETED":
-      return { category: "Events", result: "info", summary: `${actor} deleted an event category.` };
+      return { category: "Events", result: "info", summary: `${actorLabel} deleted an event category.` };
 
     // ── History ───────────────────────────────────────────────────────
     case "HISTORY_SECTION_CREATED":
-      return { category: "History", result: "success", summary: `${actor} created a history section.` };
+      return { category: "History", result: "success", summary: `${actorLabel} created a history section.` };
     case "HISTORY_SECTIONS_REORDERED":
-      return { category: "History", result: "info", summary: `${actor} reordered history sections.` };
+      return { category: "History", result: "info", summary: `${actorLabel} reordered history sections.` };
     case "HISTORY_SECTION_UPDATED":
-      return { category: "History", result: "info", summary: `${actor} updated a history section.` };
+      return { category: "History", result: "info", summary: `${actorLabel} updated a history section.` };
     case "HISTORY_SECTION_DELETED":
-      return { category: "History", result: "info", summary: `${actor} deleted a history section.` };
+      return { category: "History", result: "info", summary: `${actorLabel} deleted a history section.` };
     case "HISTORY_TIMELINE_CREATED":
-      return { category: "History", result: "success", summary: `${actor} added a history timeline entry.` };
+      return { category: "History", result: "success", summary: `${actorLabel} added a history timeline entry.` };
     case "HISTORY_TIMELINE_UPDATED":
-      return { category: "History", result: "info", summary: `${actor} updated a history timeline entry.` };
+      return { category: "History", result: "info", summary: `${actorLabel} updated a history timeline entry.` };
     case "HISTORY_TIMELINE_DELETED":
-      return { category: "History", result: "info", summary: `${actor} deleted a history timeline entry.` };
+      return { category: "History", result: "info", summary: `${actorLabel} deleted a history timeline entry.` };
     case "HISTORY_DOCUMENT_CREATED":
-      return { category: "History", result: "success", summary: `${actor} uploaded a history document.` };
+      return { category: "History", result: "success", summary: `${actorLabel} uploaded a history document.` };
     case "HISTORY_DOCUMENT_UPDATED":
-      return { category: "History", result: "info", summary: `${actor} updated a history document.` };
+      return { category: "History", result: "info", summary: `${actorLabel} updated a history document.` };
     case "HISTORY_DOCUMENT_DELETED":
-      return { category: "History", result: "info", summary: `${actor} deleted a history document.` };
+      return { category: "History", result: "info", summary: `${actorLabel} deleted a history document.` };
     case "HISTORY_PAGE_UPDATED":
-      return { category: "History", result: "info", summary: `${actor} updated the history page content.` };
+      return { category: "History", result: "info", summary: `${actorLabel} updated the history page content.` };
     case "PERSHING_BIO_UPDATED":
-      return { category: "History", result: "info", summary: `${actor} updated the General Pershing biography.` };
+      return { category: "History", result: "info", summary: `${actorLabel} updated the General Pershing biography.` };
 
     // ── System / Config ───────────────────────────────────────────────
     case "BOOTSTRAP_COMPLETED":
@@ -565,7 +621,7 @@ function interpret(
       return {
         category: "System",
         result: "info",
-        summary: `${actor} changed configuration setting${key ? ` "${key}"` : ""}.`,
+        summary: `${actorLabel} changed configuration setting${key ? ` "${key}"` : ""}.`,
       };
     }
 
@@ -573,7 +629,7 @@ function interpret(
       return {
         category: "System",
         result: "info",
-        summary: `${actor} sent a test email to verify SMTP configuration.`,
+        summary: `${actorLabel} sent a test email to verify SMTP configuration.`,
       };
 
     case "TEST_USER_RESET": {
@@ -582,7 +638,7 @@ function interpret(
       return {
         category: "System",
         result: "info",
-        summary: `Test user${name ? ` ${name}` : email ? ` (${email})` : ""} was removed for re-testing purposes.`,
+        summary: `${actorLabel} removed test user${name ? ` ${name}` : email ? ` (${email})` : ""} for re-testing.`,
         details: "Only available in development environments.",
       };
     }
@@ -599,21 +655,21 @@ function interpret(
 // ─── Category colours ─────────────────────────────────────────────────────────
 
 const CATEGORY_BADGE: Record<string, string> = {
-  Authentication:   "bg-blue-50 text-blue-700 border-blue-200",
-  "Passkeys":       "bg-indigo-50 text-indigo-700 border-indigo-200",
-  "2FA / TOTP":     "bg-violet-50 text-violet-700 border-violet-200",
-  Password:         "bg-amber-50 text-amber-700 border-amber-200",
-  Users:            "bg-teal-50 text-teal-700 border-teal-200",
-  Roles:            "bg-purple-50 text-purple-700 border-purple-200",
-  Invitations:      "bg-sky-50 text-sky-700 border-sky-200",
-  Degrees:          "bg-orange-50 text-orange-700 border-orange-200",
-  Access:           "bg-rose-50 text-rose-700 border-rose-200",
-  Roadmap:          "bg-lime-50 text-lime-700 border-lime-200",
-  "Tracing Board":  "bg-cyan-50 text-cyan-700 border-cyan-200",
-  Events:           "bg-pink-50 text-pink-700 border-pink-200",
-  History:          "bg-yellow-50 text-yellow-700 border-yellow-200",
-  System:           "bg-gray-50 text-gray-600 border-gray-200",
-  Other:            "bg-muted text-muted-foreground border-border",
+  Authentication:  "bg-blue-50 text-blue-700 border-blue-200",
+  Passkeys:        "bg-indigo-50 text-indigo-700 border-indigo-200",
+  "2FA / TOTP":    "bg-violet-50 text-violet-700 border-violet-200",
+  Password:        "bg-amber-50 text-amber-700 border-amber-200",
+  Users:           "bg-teal-50 text-teal-700 border-teal-200",
+  Roles:           "bg-purple-50 text-purple-700 border-purple-200",
+  Invitations:     "bg-sky-50 text-sky-700 border-sky-200",
+  Degrees:         "bg-orange-50 text-orange-700 border-orange-200",
+  Access:          "bg-rose-50 text-rose-700 border-rose-200",
+  Roadmap:         "bg-lime-50 text-lime-700 border-lime-200",
+  "Tracing Board": "bg-cyan-50 text-cyan-700 border-cyan-200",
+  Events:          "bg-pink-50 text-pink-700 border-pink-200",
+  History:         "bg-yellow-50 text-yellow-700 border-yellow-200",
+  System:          "bg-gray-50 text-gray-600 border-gray-200",
+  Other:           "bg-muted text-muted-foreground border-border",
 };
 
 const CATEGORIES = [
@@ -627,15 +683,16 @@ const CATEGORIES = [
 function ResultIcon({ result }: { result: ResultKind }) {
   switch (result) {
     case "success": return <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />;
-    case "failure": return <XCircle className="h-4 w-4 text-red-600 flex-shrink-0" />;
+    case "failure": return <XCircle       className="h-4 w-4 text-red-600 flex-shrink-0" />;
     case "warning": return <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0" />;
-    default:        return <Info className="h-4 w-4 text-blue-400 flex-shrink-0" />;
+    default:        return <Info          className="h-4 w-4 text-blue-400 flex-shrink-0" />;
   }
 }
 
 interface LogEntry {
   id: string;
   action: string;
+  actorId?: string | null;
   actorEmail?: string | null;
   targetType?: string | null;
   targetId?: string | null;
@@ -644,14 +701,49 @@ interface LogEntry {
   createdAt: string;
 }
 
-function AuditRow({ log, expanded, onToggle }: {
+interface NameMaps {
+  byId: Map<string, string>;
+  byEmail: Map<string, string>;
+}
+
+function AuditRow({
+  log,
+  nameMaps,
+  expanded,
+  onToggle,
+}: {
   log: LogEntry;
+  nameMaps: NameMaps;
   expanded: boolean;
   onToggle: () => void;
 }) {
+  const { actorLabel, targetLabel } = useMemo(() => {
+    // Resolve actor: id first → email lookup → raw email → "System"
+    let actor = "System";
+    if (log.actorId) {
+      const name = nameMaps.byId.get(log.actorId);
+      if (name) actor = name;
+      else if (log.actorEmail) {
+        const byEmail = nameMaps.byEmail.get(log.actorEmail.toLowerCase());
+        actor = byEmail ?? log.actorEmail;
+      }
+    } else if (log.actorEmail) {
+      const byEmail = nameMaps.byEmail.get(log.actorEmail.toLowerCase());
+      actor = byEmail ?? log.actorEmail;
+    }
+
+    // Resolve target: only when targetType === "user" and targetId is set
+    let target: string | null = null;
+    if (log.targetType === "user" && log.targetId) {
+      target = nameMaps.byId.get(log.targetId) ?? null;
+    }
+
+    return { actorLabel: actor, targetLabel: target };
+  }, [log, nameMaps]);
+
   const interp = useMemo(
-    () => interpret(log.action, (log.detail ?? {}) as AuditDetail, log.actorEmail ?? null, log.targetId ?? null),
-    [log.action, log.detail, log.actorEmail, log.targetId]
+    () => interpret(log.action, (log.detail ?? {}) as AuditDetail, actorLabel, targetLabel),
+    [log.action, log.detail, actorLabel, targetLabel]
   );
 
   const hasExpanded = !!(interp.details || interp.recommendation || log.ipAddress);
@@ -668,7 +760,7 @@ function AuditRow({ log, expanded, onToggle }: {
         <td className="pl-3 pr-1 py-2.5 w-6">
           {hasExpanded ? (
             expanded
-              ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+              ? <ChevronDown  className="h-3.5 w-3.5 text-muted-foreground" />
               : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
           ) : (
             <span className="w-3.5 h-3.5 block" />
@@ -683,7 +775,6 @@ function AuditRow({ log, expanded, onToggle }: {
         {/* Summary */}
         <td className="px-2 py-2.5">
           <p className="text-sm text-foreground leading-snug">{interp.summary}</p>
-          {/* On mobile, show timestamp below summary */}
           <p className="text-[10px] text-muted-foreground font-mono mt-0.5 md:hidden">
             {format(new Date(log.createdAt), "d MMM yyyy, HH:mm:ss")}
           </p>
@@ -706,7 +797,7 @@ function AuditRow({ log, expanded, onToggle }: {
         </td>
       </tr>
 
-      {/* Expanded detail row */}
+      {/* Expanded detail panel */}
       {expanded && hasExpanded && (
         <tr className="bg-muted/30 border-t border-border/40">
           <td colSpan={5} className="px-10 py-3">
@@ -720,19 +811,18 @@ function AuditRow({ log, expanded, onToggle }: {
               {interp.recommendation && (
                 <div className="flex gap-2 text-sm text-amber-800">
                   <Lightbulb className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                  <p><span className="font-medium">Recommended action:</span> {interp.recommendation}</p>
+                  <p>
+                    <span className="font-medium">Recommended action:</span>{" "}
+                    {interp.recommendation}
+                  </p>
                 </div>
               )}
               <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-[10px] text-muted-foreground font-mono">
-                {log.targetId && (
-                  <span>Target ID: {log.targetId}</span>
-                )}
-                {log.targetType && (
-                  <span>Target type: {log.targetType}</span>
-                )}
-                {log.ipAddress && (
-                  <span>IP: {log.ipAddress}</span>
-                )}
+                {log.actorId   && <span>Actor ID: {log.actorId}</span>}
+                {log.actorEmail && <span>Actor email: {log.actorEmail}</span>}
+                {log.targetId  && <span>Target ID: {log.targetId}</span>}
+                {log.targetType && <span>Target type: {log.targetType}</span>}
+                {log.ipAddress  && <span>IP: {log.ipAddress}</span>}
                 <span>Action code: {log.action}</span>
               </div>
             </div>
@@ -749,64 +839,86 @@ const FETCH_LIMIT = 500;
 const DISPLAY_PAGE = 50;
 
 export default function AdminAuditLogPage() {
-  const [actorInput, setActorInput] = useState("");
+  const [actorInput,    setActorInput]    = useState("");
   const [actorDebounced, setActorDebounced] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [resultFilter, setResultFilter] = useState("all");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [displayCount, setDisplayCount] = useState(DISPLAY_PAGE);
+  const [resultFilter,   setResultFilter]   = useState("all");
+  const [fromDate,       setFromDate]       = useState("");
+  const [toDate,         setToDate]         = useState("");
+  const [expandedId,     setExpandedId]     = useState<string | null>(null);
+  const [displayCount,   setDisplayCount]   = useState(DISPLAY_PAGE);
 
-  // Debounce actor email
+  // Debounce actor email input (450 ms)
   useEffect(() => {
     const t = setTimeout(() => setActorDebounced(actorInput), 450);
     return () => clearTimeout(t);
   }, [actorInput]);
 
-  // Reset display count when filters change
+  // Reset display count + expanded row when any filter changes
   useEffect(() => {
     setDisplayCount(DISPLAY_PAGE);
     setExpandedId(null);
   }, [actorDebounced, categoryFilter, resultFilter, fromDate, toDate]);
 
-  const apiParams = {
+  // ── Data fetching ──────────────────────────────────────────────────
+
+  const auditParams = {
     limit: FETCH_LIMIT,
     offset: 0,
     ...(actorDebounced ? { actorEmail: actorDebounced } : {}),
     ...(fromDate ? { from: fromDate } : {}),
-    ...(toDate ? { to: `${toDate}T23:59:59` } : {}),
+    ...(toDate   ? { to: `${toDate}T23:59:59` } : {}),
   };
 
-  const { data, isLoading } = useListAuditLogs(apiParams, {
-    query: { queryKey: getListAuditLogsQueryKey(apiParams), staleTime: 30_000 },
+  const { data: auditData, isLoading: auditLoading } = useListAuditLogs(auditParams, {
+    query: { queryKey: getListAuditLogsQueryKey(auditParams), staleTime: 30_000 },
   });
 
-  const allLogs = data?.logs ?? [];
+  // Fetch all users to resolve names (max 200 — more than enough for a lodge)
+  const { data: usersData } = useListUsers({ limit: 200 }, {
+    query: { queryKey: getListUsersQueryKey({ limit: 200 }), staleTime: 5 * 60_000 },
+  });
+
+  // Build lookup maps: id → "First Last" and email → "First Last"
+  const nameMaps = useMemo<NameMaps>(() => {
+    const byId    = new Map<string, string>();
+    const byEmail = new Map<string, string>();
+    for (const u of usersData?.users ?? []) {
+      const name = `${u.firstName} ${u.lastName}`.trim();
+      if (u.id)    byId.set(u.id, name);
+      if (u.email) byEmail.set(u.email.toLowerCase(), name);
+    }
+    return { byId, byEmail };
+  }, [usersData?.users]);
+
+  const allLogs = auditData?.logs ?? [];
 
   // Client-side filter by category + result
   const filteredLogs = useMemo(() => {
+    if (categoryFilter === "all" && resultFilter === "all") return allLogs;
     return allLogs.filter((log) => {
-      if (categoryFilter !== "all" || resultFilter !== "all") {
-        const interp = interpret(
-          log.action,
-          (log.detail ?? {}) as AuditDetail,
-          log.actorEmail ?? null,
-          log.targetId ?? null
-        );
-        if (categoryFilter !== "all" && interp.category !== categoryFilter) return false;
-        if (resultFilter === "success" && interp.result !== "success") return false;
-        if (resultFilter === "failure" && interp.result !== "failure") return false;
-      }
+      const interp = interpret(
+        log.action,
+        (log.detail ?? {}) as AuditDetail,
+        /* actorLabel — lightweight placeholder for filter purposes */
+        log.actorEmail ?? "System",
+        null
+      );
+      if (categoryFilter !== "all" && interp.category !== categoryFilter) return false;
+      if (resultFilter === "success" && interp.result !== "success") return false;
+      if (resultFilter === "failure" && interp.result !== "failure") return false;
       return true;
     });
   }, [allLogs, categoryFilter, resultFilter]);
 
   const displayedLogs = filteredLogs.slice(0, displayCount);
   const hasMore = filteredLogs.length > displayCount;
-
   const hasActiveFilters =
-    actorInput !== "" || categoryFilter !== "all" || resultFilter !== "all" || fromDate !== "" || toDate !== "";
+    actorInput !== "" ||
+    categoryFilter !== "all" ||
+    resultFilter !== "all" ||
+    fromDate !== "" ||
+    toDate !== "";
 
   function clearFilters() {
     setActorInput("");
@@ -829,7 +941,12 @@ export default function AdminAuditLogPage() {
             </p>
           </div>
           {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="text-muted-foreground"
+            >
               <X className="h-3.5 w-3.5 mr-1.5" />
               Clear filters
             </Button>
@@ -839,7 +956,7 @@ export default function AdminAuditLogPage() {
         {/* Filter bar */}
         <div className="bg-card border border-card-border rounded-xl shadow-sm p-3 mb-4">
           <div className="flex flex-wrap gap-2">
-            {/* Actor email search */}
+            {/* Actor email / name search */}
             <div className="relative min-w-[200px] flex-1">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
               <Input
@@ -900,13 +1017,15 @@ export default function AdminAuditLogPage() {
           </div>
 
           {/* Results summary */}
-          {!isLoading && (
+          {!auditLoading && (
             <p className="text-[11px] text-muted-foreground mt-2 pl-0.5">
               {filteredLogs.length === 0
                 ? "No entries match the current filters."
                 : `Showing ${Math.min(displayCount, filteredLogs.length)} of ${filteredLogs.length} matching entries`}
               {allLogs.length === FETCH_LIMIT && (
-                <span className="ml-1">(server limit reached — narrow date range or actor filter to see older entries)</span>
+                <span className="ml-1">
+                  (server limit reached — narrow date range or actor filter to see older entries)
+                </span>
               )}
             </p>
           )}
@@ -931,7 +1050,7 @@ export default function AdminAuditLogPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {isLoading
+              {auditLoading
                 ? Array.from({ length: 8 }).map((_, i) => (
                     <tr key={i}>
                       <td className="pl-3 py-3 w-6" />
@@ -953,23 +1072,28 @@ export default function AdminAuditLogPage() {
                     <AuditRow
                       key={log.id}
                       log={log as LogEntry}
+                      nameMaps={nameMaps}
                       expanded={expandedId === log.id}
-                      onToggle={() => setExpandedId(expandedId === log.id ? null : log.id)}
+                      onToggle={() =>
+                        setExpandedId(expandedId === log.id ? null : log.id)
+                      }
                     />
                   ))}
             </tbody>
           </table>
 
-          {!isLoading && filteredLogs.length === 0 && (
+          {!auditLoading && filteredLogs.length === 0 && (
             <div className="px-4 py-12 text-center">
               <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">
-                {hasActiveFilters ? "No entries match the current filters." : "No audit log entries yet."}
+                {hasActiveFilters
+                  ? "No entries match the current filters."
+                  : "No audit log entries yet."}
               </p>
             </div>
           )}
 
-          {!isLoading && hasMore && (
+          {!auditLoading && hasMore && (
             <div className="px-4 py-3 border-t border-border">
               <Button
                 variant="ghost"
