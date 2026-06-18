@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
-import { protectedDomainsTable, usersTable } from "@workspace/db/schema";
+import { protectedDomainsTable, usersTable, documentFoldersTable } from "@workspace/db/schema";
 import type { DomainAccessLogic } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
@@ -267,6 +267,12 @@ router.delete("/:id", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, re
     .where(eq(usersTable.id, userId))
     .then((r) => r[0] ?? null);
   const actorName = actor ? `${actor.firstName} ${actor.lastName}`.trim() : "Admin";
+
+  // Unlink any folders referencing this domain before deleting (FK constraint)
+  await db
+    .update(documentFoldersTable)
+    .set({ domainId: null })
+    .where(eq(documentFoldersTable.domainId, domain.id));
 
   await db.delete(protectedDomainsTable).where(eq(protectedDomainsTable.id, domain.id));
 
