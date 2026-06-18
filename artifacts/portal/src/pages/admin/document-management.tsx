@@ -333,7 +333,7 @@ export default function AdminDocumentManagementPage() {
 
   function openLinkDomain(target: { id: string; title: string; domainId: string | null; frame: string }) {
     setLinkTarget(target);
-    setSelectedDomainId(target.domainId ?? "");
+    setSelectedDomainId(target.domainId ?? "__none__");
     setSelectedFrame(target.frame === "ritual" ? "ritual" : "general");
   }
 
@@ -343,7 +343,7 @@ export default function AdminDocumentManagementPage() {
       {
         id: linkTarget.id,
         data: {
-          domainId: selectedDomainId || null,
+          domainId: selectedDomainId === "__none__" ? null : selectedDomainId,
           frame: selectedFrame,
         },
       },
@@ -554,7 +554,7 @@ export default function AdminDocumentManagementPage() {
                   <SelectValue placeholder="No domain (unlinked)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No domain</SelectItem>
+                  <SelectItem value="__none__">No domain</SelectItem>
                   {domains.map((d) => (
                     <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                   ))}
