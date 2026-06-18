@@ -2196,3 +2196,119 @@ export const RevokeUserPasskeyResponse = zod.object({
 })
 
 
+/**
+ * @summary List accessible document folders
+ */
+export const ListDocumentFoldersResponse = zod.object({
+  "folders": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "isSystemRoot": zod.boolean(),
+  "sortOrder": zod.number(),
+  "subfolderCount": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Get folder with subfolders
+ */
+export const GetDocumentFolderParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetDocumentFolderResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "isSystemRoot": zod.boolean(),
+  "sortOrder": zod.number(),
+  "subfolders": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "isSystemRoot": zod.boolean(),
+  "sortOrder": zod.number(),
+  "subfolderCount": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update folder title or description
+ */
+export const UpdateDocumentFolderParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateDocumentFolderBodyTitleMax = 200;
+
+export const updateDocumentFolderBodyDescriptionMax = 1000;
+
+
+
+export const UpdateDocumentFolderBody = zod.object({
+  "title": zod.string().min(1).max(updateDocumentFolderBodyTitleMax).optional(),
+  "description": zod.string().max(updateDocumentFolderBodyDescriptionMax).nullish()
+})
+
+export const UpdateDocumentFolderResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "isSystemRoot": zod.boolean(),
+  "sortOrder": zod.number(),
+  "subfolders": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "isSystemRoot": zod.boolean(),
+  "sortOrder": zod.number(),
+  "subfolderCount": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete an empty subfolder
+ */
+export const DeleteDocumentFolderParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteDocumentFolderResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary Create a subfolder inside a folder
+ */
+export const CreateDocumentSubfolderParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const createDocumentSubfolderBodyTitleMax = 200;
+
+export const createDocumentSubfolderBodyDescriptionMax = 1000;
+
+
+
+export const CreateDocumentSubfolderBody = zod.object({
+  "title": zod.string().min(1).max(createDocumentSubfolderBodyTitleMax),
+  "description": zod.string().max(createDocumentSubfolderBodyDescriptionMax).nullish()
+})
+
+

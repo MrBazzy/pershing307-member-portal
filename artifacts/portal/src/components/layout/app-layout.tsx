@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Users, Mail, FileText, LogOut, ChevronRight,
   Shield, Globe, GraduationCap, Settings, Menu, X, Cake, Map, UserCircle,
-  BookOpen, CalendarDays, Landmark, Fingerprint,
+  BookOpen, CalendarDays, Landmark, Fingerprint, FolderOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -28,6 +28,7 @@ const MEMBER_NAV_ITEMS: NavItem[] = [
   { href: "/history", label: "History", icon: Landmark },
   { href: "/events", label: "Events", icon: CalendarDays },
   { href: "/birthdays", label: "Birthdays", icon: Cake },
+  { href: "/documents", label: "Documents", icon: FolderOpen },
 ];
 
 const MANAGEMENT_ITEMS: NavItem[] = [

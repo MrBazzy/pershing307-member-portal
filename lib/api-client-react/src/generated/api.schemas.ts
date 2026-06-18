@@ -1350,6 +1350,52 @@ export interface PasskeyLoginResult {
   user: PasskeyLoginResultUser;
 }
 
+export interface DocumentFolderItem {
+  id: string;
+  title: string;
+  description?: string | null;
+  isSystemRoot: boolean;
+  sortOrder: number;
+  subfolderCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DocumentFolderListResult {
+  folders: DocumentFolderItem[];
+}
+
+export interface DocumentFolderDetail {
+  id: string;
+  title: string;
+  description?: string | null;
+  isSystemRoot: boolean;
+  sortOrder: number;
+  subfolders: DocumentFolderItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DocumentFolderUpdateInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  title?: string;
+  /** @maxLength 1000 */
+  description?: string | null;
+}
+
+export interface DocumentSubfolderCreateInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  title: string;
+  /** @maxLength 1000 */
+  description?: string | null;
+}
+
 export type ListUsersParams = {
 /**
  * @minimum 1

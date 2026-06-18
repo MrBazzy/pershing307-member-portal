@@ -36,6 +36,8 @@ import TwoFactorPage from "@/pages/settings/two-factor";
 import ProfileSettingsPage from "@/pages/settings/profile";
 import PasskeysPage from "@/pages/settings/passkeys";
 import BirthdaysPage from "@/pages/birthdays";
+import DocumentsPage from "@/pages/documents";
+import DocumentsFolderPage from "@/pages/documents-folder";
 import { useEffect } from "react";
 import { VISITOR_LEVEL, MEMBER_LEVEL, ADMIN_LEVEL } from "@/lib/roles";
 
@@ -192,6 +194,15 @@ function AppRoutes() {
         <Route path="/history/pershing" component={() => <ProtectedRoute component={PershingBiographyPage} minLevel={VISITOR_LEVEL} />} />
         <Route path="/events" component={() => <ProtectedRoute component={EventsPage} minLevel={MEMBER_LEVEL} />} />
         <Route path="/birthdays" component={() => <ProtectedRoute component={BirthdaysPage} minLevel={MEMBER_LEVEL} />} />
+        <Route path="/documents" component={() => <ProtectedRoute component={DocumentsPage} minLevel={MEMBER_LEVEL} />} />
+        <Route path="/documents/:id">
+          {(params: { id: string } | null) => (
+            <ProtectedRoute
+              component={() => <DocumentsFolderPage id={params?.id ?? ""} />}
+              minLevel={MEMBER_LEVEL}
+            />
+          )}
+        </Route>
 
         <Route path="/settings/profile" component={() => <ProtectedRoute component={ProfileSettingsPage} minLevel={MEMBER_LEVEL} />} />
         <Route path="/settings/2fa" component={() => <ProtectedRoute component={TwoFactorPage} minLevel={VISITOR_LEVEL} />} />

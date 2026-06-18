@@ -2533,6 +2533,141 @@ paths:
         "404":
           description: Not found
 
+  /document-folders:
+    get:
+      operationId: listDocumentFolders
+      summary: List accessible document folders
+      tags: [Documents]
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Accessible document folders
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentFolderListResult"
+        "401":
+          description: Not authenticated
+
+  /document-folders/{id}:
+    get:
+      operationId: getDocumentFolder
+      summary: Get folder with subfolders
+      tags: [Documents]
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Folder detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentFolderDetail"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Access denied
+        "404":
+          description: Not found
+    patch:
+      operationId: updateDocumentFolder
+      summary: Update folder title or description
+      tags: [Documents]
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentFolderUpdateInput"
+      responses:
+        "200":
+          description: Updated folder
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentFolderDetail"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteDocumentFolder
+      summary: Delete an empty subfolder
+      tags: [Documents]
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "400":
+          description: Folder not empty or is a system root
+        "401":
+          description: Not authenticated
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: Not found
+
+  /document-folders/{id}/subfolders:
+    post:
+      operationId: createDocumentSubfolder
+      summary: Create a subfolder inside a folder
+      tags: [Documents]
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentSubfolderCreateInput"
+      responses:
+        "201":
+          description: Subfolder created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentFolderItem"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: Parent folder not found
+
 components:
   schemas:
     HealthStatus:
@@ -4288,3 +4423,87 @@ components:
               type: array
               items:
                 type: object
+
+    DocumentFolderItem:
+      type: object
+      required: [id, title, isSystemRoot, sortOrder, subfolderCount, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        isSystemRoot:
+          type: boolean
+        sortOrder:
+          type: integer
+        subfolderCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DocumentFolderListResult:
+      type: object
+      required: [folders]
+      properties:
+        folders:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentFolderItem"
+
+    DocumentFolderDetail:
+      type: object
+      required: [id, title, isSystemRoot, sortOrder, subfolders, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        isSystemRoot:
+          type: boolean
+        sortOrder:
+          type: integer
+        subfolders:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentFolderItem"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DocumentFolderUpdateInput:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+
+    DocumentSubfolderCreateInput:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true

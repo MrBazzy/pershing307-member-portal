@@ -607,6 +607,47 @@ function interpret(
     case "PERSHING_BIO_UPDATED":
       return { category: "History", result: "info", summary: `${actorLabel} updated the General Pershing biography.` };
 
+    // ── Documents ─────────────────────────────────────────────────────
+    case "FOLDER_CREATED":
+      return { category: "Documents", result: "success", summary: `${actorLabel} created a document folder.` };
+    case "FOLDER_RENAMED": {
+      const oldTitle = s("oldTitle");
+      const newTitle = s("newTitle");
+      return {
+        category: "Documents",
+        result: "info",
+        summary: `${actorLabel} renamed folder${oldTitle ? ` "${oldTitle}"` : ""}${newTitle && newTitle !== oldTitle ? ` to "${newTitle}"` : ""}.`,
+      };
+    }
+    case "FOLDER_DELETED":
+      return { category: "Documents", result: "warning", summary: `${actorLabel} deleted a document folder.` };
+    case "SUBFOLDER_CREATED": {
+      const folderTitle = s("folderTitle");
+      const parentTitle = s("parentFolderTitle");
+      return {
+        category: "Documents",
+        result: "success",
+        summary: `${actorLabel} created subfolder${folderTitle ? ` "${folderTitle}"` : ""}${parentTitle ? ` in ${parentTitle}` : ""}.`,
+      };
+    }
+    case "SUBFOLDER_RENAMED": {
+      const oldTitle = s("oldTitle");
+      const newTitle = s("newTitle");
+      return {
+        category: "Documents",
+        result: "info",
+        summary: `${actorLabel} renamed subfolder${oldTitle ? ` "${oldTitle}"` : ""}${newTitle && newTitle !== oldTitle ? ` to "${newTitle}"` : ""}.`,
+      };
+    }
+    case "SUBFOLDER_DELETED": {
+      const folderTitle = s("folderTitle");
+      return {
+        category: "Documents",
+        result: "warning",
+        summary: `${actorLabel} deleted subfolder${folderTitle ? ` "${folderTitle}"` : ""}.`,
+      };
+    }
+
     // ── System / Config ───────────────────────────────────────────────
     case "BOOTSTRAP_COMPLETED":
       return {

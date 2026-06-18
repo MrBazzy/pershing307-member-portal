@@ -1,0 +1,316 @@
+DOCUMENT-LIBRARY-001 — Sprint 4A: Document Library Foundation
+
+STEP 0 — SAFETY FIRST
+
+Before making any changes:
+
+1. Create Replit checkpoint/snapshot.
+2. Create git tag:
+
+v3.7-before-document-library
+
+3. Confirm:
+
+* Build passes
+* Existing permissions still work
+* Existing History module still works
+* Existing Tracing Board still works
+
+Only then start implementation.
+
+---
+
+## GOAL
+
+Create the foundation of the Document Library.
+
+This sprint focuses ONLY on:
+
+* Folder structure
+* Access control
+* Folder visibility
+* Subfolders
+* Folder administration
+* Audit logging
+
+DO NOT implement:
+
+* File uploads
+* Downloads
+* Search
+* Versioning
+* Drag & Drop
+* Document preview
+
+These will be implemented in a later sprint.
+
+---
+
+## DOCUMENTS MODULE
+
+Add a new sidebar item:
+
+Documents
+
+Visible to:
+
+* Members
+* Officers
+* Past Masters
+* Site Administrators
+* PM Super Administrators
+
+NOT visible to:
+
+* Visitors
+
+---
+
+## MAIN FOLDERS
+
+Create the following root folders:
+
+1. General Documents
+2. Meeting Minutes
+3. Secretary Documents
+4. Treasury Documents
+5. Worshipful Master Documents
+
+Ritual Folders:
+
+6. Entered Apprentice Ritual
+7. Fellowcraft Ritual
+8. Master Mason Ritual
+9. Past Master Ritual
+
+---
+
+## ACCESS RULES
+
+GENERAL DOCUMENTS
+
+Access:
+
+* All members
+* All officers
+* All Past Masters
+* Site Administrators
+* PM Super Administrators
+
+Not Visitors.
+
+---
+
+MEETING MINUTES
+
+Access:
+
+* All members
+* All officers
+* All Past Masters
+* Site Administrators
+* PM Super Administrators
+
+Not Visitors.
+
+---
+
+SECRETARY DOCUMENTS
+
+Access:
+
+* Worshipful Master
+* Secretary
+* Site Administrator
+* PM Super Administrator
+
+---
+
+TREASURY DOCUMENTS
+
+Access:
+
+* Worshipful Master
+* Treasurer
+* Site Administrator
+* PM Super Administrator
+
+---
+
+WORSHIPFUL MASTER DOCUMENTS
+
+Access:
+
+* Worshipful Master
+* Site Administrator
+* PM Super Administrator
+
+---
+
+ENTERED APPRENTICE RITUAL
+
+Access:
+
+* Entered Apprentice
+* Fellowcraft
+* Master Mason
+* Past Master
+* Worshipful Master
+* Site Administrator
+* PM Super Administrator
+
+Not Visitors.
+
+---
+
+FELLOWCRAFT RITUAL
+
+Access:
+
+* Fellowcraft
+* Master Mason
+* Past Master
+* Worshipful Master
+* Site Administrator
+* PM Super Administrator
+
+Not:
+
+* Visitors
+* Entered Apprentices
+
+---
+
+MASTER MASON RITUAL
+
+Access:
+
+* Master Mason
+* Past Master
+* Worshipful Master
+* Site Administrator
+* PM Super Administrator
+
+Not:
+
+* Visitors
+* Entered Apprentices
+* Fellowcrafts
+
+---
+
+PAST MASTER RITUAL
+
+Access:
+
+* Past Master
+* Worshipful Master
+* PM Super Administrator
+
+Site Administrator should NOT automatically receive access unless he is also a Past Master.
+
+---
+
+## FOLDER VISIBILITY
+
+Important:
+
+If a user has no access:
+
+The folder must be completely hidden.
+
+Do NOT show the folder and display "Access Denied".
+
+Users should only see folders they are allowed to access.
+
+---
+
+## SUBFOLDERS
+
+Site Administrator and PM Super Administrator must be able to:
+
+* Create subfolder
+* Rename subfolder
+* Delete empty subfolder
+
+Subfolders inherit the permissions of the parent folder.
+
+Example:
+
+Treasury Documents
+├ Budgets
+├ Annual Accounts
+├ Bank Statements
+
+All inherit Treasury permissions.
+
+No custom subfolder permissions in this sprint.
+
+---
+
+## FOLDER DESCRIPTION
+
+Each folder may have:
+
+* Title
+* Description
+
+Example:
+
+Meeting Minutes
+
+Description:
+Official approved minutes of Lodge meetings.
+
+Show description when opening folder.
+
+---
+
+## AUDIT LOGGING
+
+Log:
+
+* Folder created
+* Folder renamed
+* Folder deleted
+* Subfolder created
+* Subfolder renamed
+* Subfolder deleted
+
+Use full names.
+
+Example:
+
+John Smith created subfolder "2026" in Meeting Minutes.
+
+---
+
+## PRESERVE
+
+Do not modify:
+
+* Authentication
+* Passkeys
+* Dashboard
+* History
+* Events
+* Birthdays
+* Tracing Board
+
+---
+
+## ACCEPTANCE TESTS
+
+1. Visitor cannot see Documents.
+2. Member sees only allowed folders.
+3. Entered Apprentice cannot see FC/MM/PM Ritual folders.
+4. Fellowcraft cannot see MM/PM Ritual folders.
+5. Master Mason cannot see PM Ritual folder.
+6. Past Master can see PM Ritual folder.
+7. Secretary can see Secretary Documents.
+8. Treasurer can see Treasury Documents.
+9. WM can see all WM-related folders.
+10. Unauthorized folders remain completely hidden.
+11. Subfolders inherit permissions correctly.
+12. Audit log records folder actions using first and last names.
+13. Build passes successfully.

@@ -53,6 +53,11 @@ import type {
   DeleteHistorySection200,
   DocumentAttachmentUploadRequest,
   DocumentAttachmentUploadResponse,
+  DocumentFolderDetail,
+  DocumentFolderItem,
+  DocumentFolderListResult,
+  DocumentFolderUpdateInput,
+  DocumentSubfolderCreateInput,
   DomainGrantInput,
   DomainListResult,
   DomainMembersResult,
@@ -8644,5 +8649,373 @@ export const useRevokeUserPasskey = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRevokeUserPasskeyMutationOptions(options));
+    }
+
+export const getListDocumentFoldersUrl = () => {
+
+
+
+
+  return `/api/document-folders`
+}
+
+/**
+ * @summary List accessible document folders
+ */
+export const listDocumentFolders = async ( options?: RequestInit): Promise<DocumentFolderListResult> => {
+
+  return customFetch<DocumentFolderListResult>(getListDocumentFoldersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListDocumentFoldersQueryKey = () => {
+    return [
+    `/api/document-folders`
+    ] as const;
+    }
+
+
+export const getListDocumentFoldersQueryOptions = <TData = Awaited<ReturnType<typeof listDocumentFolders>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDocumentFolders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDocumentFoldersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDocumentFolders>>> = ({ signal }) => listDocumentFolders({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDocumentFolders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListDocumentFoldersQueryResult = NonNullable<Awaited<ReturnType<typeof listDocumentFolders>>>
+export type ListDocumentFoldersQueryError = ErrorType<void>
+
+
+/**
+ * @summary List accessible document folders
+ */
+
+export function useListDocumentFolders<TData = Awaited<ReturnType<typeof listDocumentFolders>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDocumentFolders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListDocumentFoldersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetDocumentFolderUrl = (id: string,) => {
+
+
+
+
+  return `/api/document-folders/${id}`
+}
+
+/**
+ * @summary Get folder with subfolders
+ */
+export const getDocumentFolder = async (id: string, options?: RequestInit): Promise<DocumentFolderDetail> => {
+
+  return customFetch<DocumentFolderDetail>(getGetDocumentFolderUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDocumentFolderQueryKey = (id: string,) => {
+    return [
+    `/api/document-folders/${id}`
+    ] as const;
+    }
+
+
+export const getGetDocumentFolderQueryOptions = <TData = Awaited<ReturnType<typeof getDocumentFolder>>, TError = ErrorType<void>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDocumentFolder>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDocumentFolderQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDocumentFolder>>> = ({ signal }) => getDocumentFolder(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDocumentFolder>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDocumentFolderQueryResult = NonNullable<Awaited<ReturnType<typeof getDocumentFolder>>>
+export type GetDocumentFolderQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get folder with subfolders
+ */
+
+export function useGetDocumentFolder<TData = Awaited<ReturnType<typeof getDocumentFolder>>, TError = ErrorType<void>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDocumentFolder>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDocumentFolderQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateDocumentFolderUrl = (id: string,) => {
+
+
+
+
+  return `/api/document-folders/${id}`
+}
+
+/**
+ * @summary Update folder title or description
+ */
+export const updateDocumentFolder = async (id: string,
+    documentFolderUpdateInput: DocumentFolderUpdateInput, options?: RequestInit): Promise<DocumentFolderDetail> => {
+
+  return customFetch<DocumentFolderDetail>(getUpdateDocumentFolderUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      documentFolderUpdateInput,)
+  }
+);}
+
+
+
+
+export const getUpdateDocumentFolderMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDocumentFolder>>, TError,{id: string;data: BodyType<DocumentFolderUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDocumentFolder>>, TError,{id: string;data: BodyType<DocumentFolderUpdateInput>}, TContext> => {
+
+const mutationKey = ['updateDocumentFolder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDocumentFolder>>, {id: string;data: BodyType<DocumentFolderUpdateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateDocumentFolder(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateDocumentFolderMutationResult = NonNullable<Awaited<ReturnType<typeof updateDocumentFolder>>>
+    export type UpdateDocumentFolderMutationBody = BodyType<DocumentFolderUpdateInput>
+    export type UpdateDocumentFolderMutationError = ErrorType<void>
+
+    /**
+ * @summary Update folder title or description
+ */
+export const useUpdateDocumentFolder = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDocumentFolder>>, TError,{id: string;data: BodyType<DocumentFolderUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateDocumentFolder>>,
+        TError,
+        {id: string;data: BodyType<DocumentFolderUpdateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateDocumentFolderMutationOptions(options));
+    }
+
+export const getDeleteDocumentFolderUrl = (id: string,) => {
+
+
+
+
+  return `/api/document-folders/${id}`
+}
+
+/**
+ * @summary Delete an empty subfolder
+ */
+export const deleteDocumentFolder = async (id: string, options?: RequestInit): Promise<SuccessResult> => {
+
+  return customFetch<SuccessResult>(getDeleteDocumentFolderUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteDocumentFolderMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDocumentFolder>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteDocumentFolder>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteDocumentFolder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteDocumentFolder>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteDocumentFolder(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteDocumentFolderMutationResult = NonNullable<Awaited<ReturnType<typeof deleteDocumentFolder>>>
+
+    export type DeleteDocumentFolderMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete an empty subfolder
+ */
+export const useDeleteDocumentFolder = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDocumentFolder>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteDocumentFolder>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDeleteDocumentFolderMutationOptions(options));
+    }
+
+export const getCreateDocumentSubfolderUrl = (id: string,) => {
+
+
+
+
+  return `/api/document-folders/${id}/subfolders`
+}
+
+/**
+ * @summary Create a subfolder inside a folder
+ */
+export const createDocumentSubfolder = async (id: string,
+    documentSubfolderCreateInput: DocumentSubfolderCreateInput, options?: RequestInit): Promise<DocumentFolderItem> => {
+
+  return customFetch<DocumentFolderItem>(getCreateDocumentSubfolderUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      documentSubfolderCreateInput,)
+  }
+);}
+
+
+
+
+export const getCreateDocumentSubfolderMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDocumentSubfolder>>, TError,{id: string;data: BodyType<DocumentSubfolderCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createDocumentSubfolder>>, TError,{id: string;data: BodyType<DocumentSubfolderCreateInput>}, TContext> => {
+
+const mutationKey = ['createDocumentSubfolder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDocumentSubfolder>>, {id: string;data: BodyType<DocumentSubfolderCreateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createDocumentSubfolder(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateDocumentSubfolderMutationResult = NonNullable<Awaited<ReturnType<typeof createDocumentSubfolder>>>
+    export type CreateDocumentSubfolderMutationBody = BodyType<DocumentSubfolderCreateInput>
+    export type CreateDocumentSubfolderMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a subfolder inside a folder
+ */
+export const useCreateDocumentSubfolder = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDocumentSubfolder>>, TError,{id: string;data: BodyType<DocumentSubfolderCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createDocumentSubfolder>>,
+        TError,
+        {id: string;data: BodyType<DocumentSubfolderCreateInput>},
+        TContext
+      > => {
+      return useMutation(getCreateDocumentSubfolderMutationOptions(options));
     }
 
