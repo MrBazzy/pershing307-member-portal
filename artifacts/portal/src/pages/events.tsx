@@ -105,7 +105,7 @@ function EventCard({ event }: { event: EventItem }) {
     <div className="border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md bg-card overflow-hidden hover:border-primary/30 transition-colors">
       <div className="py-3 px-4">
         <div className="flex items-start gap-3">
-          <DateBadge date={event.date} size="md" />
+          <DateBadge date={event.date} size="md" variant="amber" />
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <p className="text-sm font-medium text-foreground leading-snug">{event.title}</p>
