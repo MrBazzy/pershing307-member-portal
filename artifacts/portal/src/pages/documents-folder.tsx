@@ -79,7 +79,7 @@ export default function DocumentsFolderPage({ id }: Props) {
   const [editFolderTitle, setEditFolderTitle] = useState("");
   const [editFolderDesc, setEditFolderDesc] = useState("");
 
-  const [editSubfolder, setEditSubfolder] = useState<{ id: string; title: string; description: string | null } | null>(null);
+  const [editSubfolder, setEditSubfolder] = useState<{ id: string; title: string; description?: string | null } | null>(null);
   const [editSubTitle, setEditSubTitle] = useState("");
   const [editSubDesc, setEditSubDesc] = useState("");
 
@@ -128,7 +128,7 @@ export default function DocumentsFolderPage({ id }: Props) {
     );
   }
 
-  function openEditSubfolder(sub: { id: string; title: string; description: string | null }) {
+  function openEditSubfolder(sub: { id: string; title: string; description?: string | null }) {
     setEditSubfolder(sub);
     setEditSubTitle(sub.title);
     setEditSubDesc(sub.description ?? "");

@@ -1,6 +1,7 @@
 import { pgTable, text, integer, boolean, timestamp, jsonb, index } from "drizzle-orm/pg-core";
 import { lodgesTable } from "./lodges";
 import { usersTable } from "./users";
+import { protectedDomainsTable } from "./protected-domains";
 
 export type FolderAccessPolicy =
   | { type: "member" }
@@ -14,6 +15,8 @@ export const documentFoldersTable = pgTable("document_folders", {
   title: text("title").notNull(),
   description: text("description"),
   accessPolicy: jsonb("access_policy").$type<FolderAccessPolicy>(),
+  domainId: text("domain_id").references(() => protectedDomainsTable.id, { onDelete: "set null" }),
+  frame: text("frame").notNull().default("general"),
   isSystemRoot: boolean("is_system_root").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
   createdBy: text("created_by").references(() => usersTable.id),

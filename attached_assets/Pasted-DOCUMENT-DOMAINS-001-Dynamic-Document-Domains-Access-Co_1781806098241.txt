@@ -1,0 +1,502 @@
+DOCUMENT-DOMAINS-001 — Dynamic Document Domains & Access Control
+
+STEP 0 — SAFETY FIRST
+
+Before making any changes:
+
+1. Create Replit checkpoint/snapshot.
+2. Create git tag if possible:
+
+v3.7-before-dynamic-document-domains
+
+3. Confirm build passes.
+4. Confirm current Documents, Domains, Roles, Degrees, Dashboard and History still work.
+
+Only then start implementation.
+
+--------------------------------------------------
+GOAL
+--------------------------------------------------
+
+Redesign document access so it is configurable, dynamic, and reusable for other lodges.
+
+Do not hardcode document access rules in application logic.
+
+Access must be based on configurable domain rules using:
+- Roles
+- Degrees
+- Role/Degree logic
+
+The system must automatically adapt when a user's role or degree changes.
+
+--------------------------------------------------
+CORE PRINCIPLE
+--------------------------------------------------
+
+Access must be calculated dynamically at runtime.
+
+Do NOT permanently copy folder access onto individual users.
+
+Examples:
+
+If a user receives Treasurer role:
+- Treasury Documents immediately become visible.
+
+If Treasurer role is removed:
+- Treasury Documents immediately disappear.
+
+If an Entered Apprentice becomes Fellowcraft:
+- Fellowcraft Ritual immediately becomes visible.
+
+If a Fellowcraft becomes Master Mason:
+- Master Mason Ritual immediately becomes visible.
+
+No manual folder grants should be required.
+
+--------------------------------------------------
+DOMAINS REDESIGN
+--------------------------------------------------
+
+Rename or evolve:
+
+Management → Domains
+
+into:
+
+Management → Domains & Access Control
+
+The Domains module should manage access rules for protected areas.
+
+Each domain must support:
+
+1. Domain name
+2. Domain key
+3. Description
+4. Allowed roles
+5. Allowed degrees
+6. Access logic
+
+Access logic options:
+
+- Role Only
+- Degree Only
+- Role OR Degree
+- Role AND Degree
+
+Optional later:
+- Explicit user overrides
+- Temporary grants
+- Expiry dates
+
+Do not implement overrides in this sprint unless already simple.
+
+--------------------------------------------------
+DOCUMENT STRUCTURE
+--------------------------------------------------
+
+The user-facing Documents page should contain two visual frames:
+
+1. General Documents
+2. Ritual Documents
+
+Documents page visible to:
+- Member
+- Secretary
+- Treasurer
+- Junior Warden
+- Senior Warden
+- Worshipful Master
+- Past Master
+- Site Administrator
+- PM Super Administrator
+
+Documents page NOT visible to:
+- Visitor
+- users with no role
+
+--------------------------------------------------
+GENERAL DOCUMENTS FRAME
+--------------------------------------------------
+
+Contains these main folders:
+
+1. General Documents
+2. Meeting Minutes
+3. Secretary Documents
+4. Treasury Documents
+5. Worshipful Master Documents
+
+Access is controlled by linked domains.
+
+Suggested default domains:
+
+GENERAL DOCUMENTS
+
+Access logic:
+Role Only
+
+Allowed roles:
+- Member
+- Secretary
+- Treasurer
+- Junior Warden
+- Senior Warden
+- Worshipful Master
+- Past Master
+- Site Administrator
+- PM Super Administrator
+
+Not:
+- Visitor
+
+MEETING MINUTES
+
+Access logic:
+Role Only
+
+Allowed roles:
+- Member
+- Secretary
+- Treasurer
+- Junior Warden
+- Senior Warden
+- Worshipful Master
+- Past Master
+- Site Administrator
+- PM Super Administrator
+
+Not:
+- Visitor
+
+SECRETARY DOCUMENTS
+
+Access logic:
+Role Only
+
+Allowed roles:
+- Secretary
+- Worshipful Master
+- PM Super Administrator
+
+Not by default:
+- Site Administrator
+
+TREASURY DOCUMENTS
+
+Access logic:
+Role Only
+
+Allowed roles:
+- Treasurer
+- Worshipful Master
+- PM Super Administrator
+
+Not by default:
+- Site Administrator
+
+WORSHIPFUL MASTER DOCUMENTS
+
+Access logic:
+Role Only
+
+Allowed roles:
+- Worshipful Master
+- PM Super Administrator
+
+Not by default:
+- Site Administrator
+
+--------------------------------------------------
+RITUAL DOCUMENTS FRAME
+--------------------------------------------------
+
+Contains these main folders:
+
+1. Entered Apprentice Ritual
+2. Fellowcraft Ritual
+3. Master Mason Ritual
+4. Past Master Ritual
+
+Access is controlled by linked domains.
+
+Suggested default domains:
+
+ENTERED APPRENTICE RITUAL
+
+Access logic:
+Degree Only
+
+Allowed degrees:
+- Entered Apprentice
+- Fellowcraft
+- Master Mason
+
+Additional allowed role:
+- Past Master
+- Worshipful Master
+- PM Super Administrator
+
+Implementation note:
+If Access Logic does not allow mixing roles and degrees for this use case, use Role OR Degree.
+
+Expected:
+- EA, FC, MM can see it.
+- Visitor cannot see it.
+
+FELLOWCRAFT RITUAL
+
+Access logic:
+Role OR Degree
+
+Allowed degrees:
+- Fellowcraft
+- Master Mason
+
+Allowed roles:
+- Past Master
+- Worshipful Master
+- PM Super Administrator
+
+Not:
+- Visitor
+- Entered Apprentice
+
+MASTER MASON RITUAL
+
+Access logic:
+Role OR Degree
+
+Allowed degrees:
+- Master Mason
+
+Allowed roles:
+- Past Master
+- Worshipful Master
+- PM Super Administrator
+
+Not:
+- Visitor
+- Entered Apprentice
+- Fellowcraft
+
+PAST MASTER RITUAL
+
+Access logic:
+Role Only
+
+Allowed roles:
+- Past Master
+- Worshipful Master
+- PM Super Administrator
+
+Not by default:
+- Site Administrator
+
+--------------------------------------------------
+DOCUMENT MANAGEMENT
+--------------------------------------------------
+
+Normal Documents page is for viewing allowed folders only.
+
+All management must be under:
+
+Management → Document Management
+
+Visible only to:
+- Site Administrator
+- PM Super Administrator
+
+Document Management allows:
+- Create main folder if permitted
+- Create subfolder
+- Rename folder
+- Delete empty folder
+- Edit folder description
+- Link folder to a Domain
+- Move folder between General Documents and Ritual Documents frame if needed
+
+Subfolders inherit parent folder domain/access by default.
+
+No custom subfolder permissions in this sprint unless already easy.
+
+--------------------------------------------------
+SITE ADMIN RULE
+--------------------------------------------------
+
+Site Administrator is a technical administration role.
+
+Site Administrator may manage structure through Document Management.
+
+Site Administrator does NOT automatically get read access to restricted content.
+
+Specifically, Site Administrator should not automatically see:
+- Secretary Documents
+- Treasury Documents
+- Worshipful Master Documents
+- Past Master Ritual
+
+unless that same user also has the required lodge role or degree.
+
+--------------------------------------------------
+PM SUPER ADMIN RULE
+--------------------------------------------------
+
+PM Super Administrator may be included in sensitive domains as emergency governance access.
+
+Default:
+- PM Super Administrator can access restricted administrative folders.
+- PM Super Administrator can access ritual folders only where included by the domain rule.
+
+For Pershing default setup, include PM Super Administrator in all default restricted domains.
+
+--------------------------------------------------
+FOLDER VISIBILITY
+--------------------------------------------------
+
+If a user has no access to a folder:
+- Hide the folder completely.
+
+Do not show:
+- disabled folder
+- locked folder
+- access denied message
+
+Backend must also deny access.
+
+Frontend hiding is not enough.
+
+--------------------------------------------------
+DATABASE / MODEL
+--------------------------------------------------
+
+Implement or extend data model so domains can store:
+
+- allowedRoleIds
+- allowedDegreeIds
+- accessLogic
+- description
+- domainKey
+
+Folders should reference a domain/access rule.
+
+Avoid hardcoding access decisions in React components.
+
+Access should be checked server-side.
+
+--------------------------------------------------
+AUDIT LOGGING
+--------------------------------------------------
+
+Audit the following using first and last names:
+
+- Domain created
+- Domain updated
+- Domain access rule changed
+- Folder created
+- Folder renamed
+- Folder deleted
+- Folder linked to domain
+- Subfolder created
+- Subfolder renamed
+- Subfolder deleted
+
+Examples:
+
+John Smith changed domain "Treasury Documents" to allow Treasurer, Worshipful Master and PM Super Administrator.
+
+John Smith created subfolder "2026" in Meeting Minutes.
+
+--------------------------------------------------
+PRESERVE
+--------------------------------------------------
+
+Do not implement yet:
+- File upload
+- File download
+- Search
+- Versioning
+- Document preview
+- Drag and drop
+
+Do not change:
+- Authentication
+- Passkeys
+- Dashboard
+- History
+- Tracing Board
+- Events
+- Birthdays
+- Existing role and degree names
+
+--------------------------------------------------
+ACCEPTANCE TESTS
+--------------------------------------------------
+
+1. Visitor cannot see Documents.
+2. User with no role cannot see Documents.
+3. Member sees:
+- General Documents
+- Meeting Minutes
+- Entered Apprentice Ritual if degree is EA or higher
+
+4. Entered Apprentice sees:
+- Entered Apprentice Ritual
+but not:
+- Fellowcraft Ritual
+- Master Mason Ritual
+- Past Master Ritual
+
+5. Fellowcraft sees:
+- Entered Apprentice Ritual
+- Fellowcraft Ritual
+but not:
+- Master Mason Ritual
+- Past Master Ritual
+
+6. Master Mason sees:
+- Entered Apprentice Ritual
+- Fellowcraft Ritual
+- Master Mason Ritual
+but not:
+- Past Master Ritual unless also Past Master or Worshipful Master
+
+7. Past Master sees:
+- Past Master Ritual
+
+8. Secretary sees:
+- Secretary Documents
+
+9. Treasurer sees:
+- Treasury Documents
+
+10. Worshipful Master sees:
+- Secretary Documents
+- Treasury Documents
+- Worshipful Master Documents
+- Past Master Ritual
+
+11. Site Administrator can manage folder structure but does not automatically see restricted folders unless his role/degree allows it.
+
+12. Changing a user's role immediately changes visible folders.
+
+13. Changing a user's degree immediately changes visible ritual folders.
+
+14. Restricted folders are hidden.
+
+15. Backend denies unauthorized access.
+
+16. Audit log records changes clearly using first and last names.
+
+--------------------------------------------------
+FINAL DELIVERABLE
+--------------------------------------------------
+
+After implementation provide:
+
+- Files changed
+- Database tables/fields added or changed
+- Default domains created
+- Default folders created
+- Test procedure
+- Known limitations
+- What should be tested before adding uploads

@@ -19,6 +19,7 @@ import historyRouter from "./history";
 import storageRouter from "./storage";
 import passkeysRouter from "./passkeys";
 import documentFoldersRouter from "./document-folders";
+import documentDomainsRouter from "./document-domains";
 
 const router: IRouter = Router();
 
@@ -42,5 +43,6 @@ router.use("/history", historyRouter);
 router.use(storageRouter);
 router.use("/passkeys", passkeysRouter);
 router.use("/document-folders", documentFoldersRouter);
+router.use("/document-domains", documentDomainsRouter);
 
 export default router;

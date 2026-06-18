@@ -3,225 +3,633 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import {
-  useListDomains,
-  useListUsers,
-  useGetUserDomains,
-  useGrantUserDomain,
-  useRevokeUserDomain,
-  getGetUserDomainsQueryKey,
-} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Globe, Users, Plus, XCircle, Info, Loader2, ShieldAlert } from "lucide-react";
+import {
+  useListDocumentDomains,
+  useCreateDocumentDomain,
+  useUpdateDocumentDomain,
+  useUpdateDocumentDomainAccess,
+  useDeleteDocumentDomain,
+  getListDocumentDomainsQueryKey,
+  type DocumentDomainItem,
+  type DocumentDomainAccessUpdateInputAccessLogic,
+} from "@workspace/api-client-react";
+import { Shield, Plus, MoreHorizontal, Pencil, Trash2, Settings2, AlertCircle } from "lucide-react";
+import { ADMIN_LEVEL, PM_SUPER_LEVEL } from "@/lib/roles";
+import { cn } from "@/lib/utils";
+
+const ACCESS_LOGIC_OPTIONS = [
+  { value: "role_only", label: "Role Only" },
+  { value: "degree_only", label: "Degree Only" },
+  { value: "role_or_degree", label: "Role or Degree" },
+  { value: "role_and_degree", label: "Role and Degree" },
+] as const;
+
+const ALL_ROLES = [
+  { slug: "member", label: "Member" },
+  { slug: "secretary", label: "Secretary" },
+  { slug: "treasurer", label: "Treasurer" },
+  { slug: "junior-warden", label: "Junior Warden" },
+  { slug: "senior-warden", label: "Senior Warden" },
+  { slug: "worshipful-master", label: "Worshipful Master" },
+  { slug: "past-master", label: "Past Master" },
+  { slug: "site-administrator", label: "Site Administrator" },
+  { slug: "pm-super-administrator", label: "PM Super Administrator" },
+];
+
+const DEGREE_OPTIONS = [
+  { value: 1, label: "Entered Apprentice (1)" },
+  { value: 2, label: "Fellowcraft (2)" },
+  { value: 3, label: "Master Mason (3)" },
+];
+
+function formatRoleSlug(slug: string): string {
+  return ALL_ROLES.find((r) => r.slug === slug)?.label
+    ?? slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function AccessLogicBadge({ logic }: { logic: string }) {
+  const colors: Record<string, string> = {
+    role_only: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+    degree_only: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    role_or_degree: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+    role_and_degree: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+  };
+  const labels: Record<string, string> = {
+    role_only: "Role Only",
+    degree_only: "Degree Only",
+    role_or_degree: "Role or Degree",
+    role_and_degree: "Role and Degree",
+  };
+  return (
+    <span className={cn("text-xs font-medium px-2 py-0.5 rounded-md border", colors[logic] ?? "bg-muted text-muted-foreground")}>
+      {labels[logic] ?? logic}
+    </span>
+  );
+}
+
+function DomainCard({
+  domain,
+  isPmSuper,
+  onEdit,
+  onEditAccess,
+  onDelete,
+}: {
+  domain: DocumentDomainItem;
+  isPmSuper: boolean;
+  onEdit: (d: DocumentDomainItem) => void;
+  onEditAccess: (d: DocumentDomainItem) => void;
+  onDelete: (d: DocumentDomainItem) => void;
+}) {
+  const needsDegree = domain.accessLogic === "degree_only" || domain.accessLogic === "role_or_degree" || domain.accessLogic === "role_and_degree";
+
+  return (
+    <Card className="border-card-border">
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="rounded-md bg-primary/10 p-2 shrink-0">
+              <Shield className="h-4 w-4 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <CardTitle className="text-sm font-semibold leading-tight">{domain.name}</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5 font-mono">{domain.slug}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <AccessLogicBadge logic={domain.accessLogic} />
+            {isPmSuper && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onEdit(domain)}>
+                    <Pencil className="h-3.5 w-3.5 mr-2" />
+                    Edit Details
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onEditAccess(domain)}>
+                    <Settings2 className="h-3.5 w-3.5 mr-2" />
+                    Edit Access Rules
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => onDelete(domain)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+        </div>
+        {domain.description && (
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{domain.description}</p>
+        )}
+      </CardHeader>
+      <CardContent className="pt-0 pb-4">
+        <div className="space-y-2">
+          {domain.allowedRoleSlugs.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1.5">Allowed Roles</p>
+              <div className="flex flex-wrap gap-1">
+                {domain.allowedRoleSlugs.map((slug) => (
+                  <Badge key={slug} variant="secondary" className="text-[10px] h-5 px-1.5 font-normal">
+                    {formatRoleSlug(slug)}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          {needsDegree && domain.minDegree != null && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Minimum Degree</p>
+              <Badge variant="outline" className="text-[10px] h-5 px-1.5">
+                {DEGREE_OPTIONS.find((d) => d.value === domain.minDegree)?.label ?? `Degree ${domain.minDegree}`}
+              </Badge>
+            </div>
+          )}
+          {domain.allowedRoleSlugs.length === 0 && (!needsDegree || domain.minDegree == null) && (
+            <p className="text-xs text-muted-foreground italic">No access rules configured.</p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function AdminDomainsPage() {
-  const { user: currentUser } = useAuth();
-  const { data: domainsData, isLoading: domainsLoading } = useListDomains();
-  const { data: usersData } = useListUsers({ limit: 200, offset: 0 });
-  const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const [selectedDomain, setSelectedDomain] = useState<{ id: string; name: string; slug: string } | null>(null);
-  const [showGrant, setShowGrant] = useState(false);
-  const [grantUserId, setGrantUserId] = useState<string>("");
+  const level = user?.roles?.reduce((max, r) => Math.max(max, r.permissionLevel), 0) ?? 0;
+  const isPmSuper = level >= PM_SUPER_LEVEL;
 
-  const isPmSuperAdmin = currentUser?.roles?.some((r) => r.permissionLevel >= 90) ?? false;
-  const isAdmin = currentUser?.roles?.some((r) => r.permissionLevel >= 70) ?? false;
-
-
-  const grantMutation = useGrantUserDomain();
-  const revokeMutation = useRevokeUserDomain();
+  const { data: domainsData, isLoading } = useListDocumentDomains();
+  const createDomain = useCreateDocumentDomain();
+  const updateDomain = useUpdateDocumentDomain();
+  const updateAccess = useUpdateDocumentDomainAccess();
+  const deleteDomain = useDeleteDocumentDomain();
 
   const domains = domainsData?.domains ?? [];
-  const users = usersData?.users ?? [];
 
-  const handleGrant = () => {
-    if (!grantUserId || !selectedDomain) return;
-    grantMutation.mutate(
-      { id: grantUserId, data: { domainId: selectedDomain.id } },
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: getListDocumentDomainsQueryKey() });
+  }
+
+  // Create domain
+  const [showCreate, setShowCreate] = useState(false);
+  const [createName, setCreateName] = useState("");
+  const [createSlug, setCreateSlug] = useState("");
+  const [createDesc, setCreateDesc] = useState("");
+  const [createLogic, setCreateLogic] = useState<"role_only" | "degree_only" | "role_or_degree" | "role_and_degree">("role_only");
+  const [createRoles, setCreateRoles] = useState<string[]>([]);
+  const [createDegree, setCreateDegree] = useState<string>("");
+
+  function autoSlug(name: string) {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  }
+
+  function handleCreate() {
+    if (!createName.trim() || !createSlug.trim()) return;
+    const minDegree = createDegree ? parseInt(createDegree) : null;
+    createDomain.mutate(
+      {
+        data: {
+          name: createName.trim(),
+          slug: createSlug.trim(),
+          description: createDesc.trim() || null,
+          accessLogic: createLogic as DocumentDomainAccessUpdateInputAccessLogic,
+          allowedRoleSlugs: createRoles,
+          minDegree,
+        },
+      },
       {
         onSuccess: () => {
-          toast({ title: "Access granted" });
-          setShowGrant(false);
-          setGrantUserId("");
+          toast({ title: "Domain created" });
+          setShowCreate(false);
+          setCreateName(""); setCreateSlug(""); setCreateDesc("");
+          setCreateLogic("role_only"); setCreateRoles([]); setCreateDegree("");
+          invalidate();
         },
-        onError: (e: any) => toast({ title: "Error", description: e?.data?.error ?? "Failed to grant access", variant: "destructive" }),
-      }
+        onError: (e: any) =>
+          toast({ title: e?.data?.error ?? "Failed to create domain", variant: "destructive" }),
+      },
     );
-  };
+  }
+
+  // Edit details
+  const [editTarget, setEditTarget] = useState<DocumentDomainItem | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+
+  function openEdit(d: DocumentDomainItem) {
+    setEditTarget(d);
+    setEditName(d.name);
+    setEditDesc(d.description ?? "");
+  }
+
+  function handleEdit() {
+    if (!editTarget || !editName.trim()) return;
+    updateDomain.mutate(
+      { id: editTarget.id, data: { name: editName.trim(), description: editDesc.trim() || null } },
+      {
+        onSuccess: () => {
+          toast({ title: "Domain updated" });
+          setEditTarget(null);
+          invalidate();
+        },
+        onError: (e: any) =>
+          toast({ title: e?.data?.error ?? "Failed to update domain", variant: "destructive" }),
+      },
+    );
+  }
+
+  // Edit access rules
+  const [accessTarget, setAccessTarget] = useState<DocumentDomainItem | null>(null);
+  const [accessLogic, setAccessLogic] = useState<"role_only" | "degree_only" | "role_or_degree" | "role_and_degree">("role_only");
+  const [accessRoles, setAccessRoles] = useState<string[]>([]);
+  const [accessDegree, setAccessDegree] = useState<string>("");
+
+  function openEditAccess(d: DocumentDomainItem) {
+    setAccessTarget(d);
+    setAccessLogic(d.accessLogic as any);
+    setAccessRoles([...d.allowedRoleSlugs]);
+    setAccessDegree(d.minDegree != null ? String(d.minDegree) : "");
+  }
+
+  function handleEditAccess() {
+    if (!accessTarget) return;
+    const minDegree = accessDegree ? parseInt(accessDegree) : null;
+    updateAccess.mutate(
+      {
+        id: accessTarget.id,
+        data: {
+          accessLogic: accessLogic as DocumentDomainAccessUpdateInputAccessLogic,
+          allowedRoleSlugs: accessRoles,
+          minDegree,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "Access rules updated" });
+          setAccessTarget(null);
+          invalidate();
+        },
+        onError: (e: any) =>
+          toast({ title: e?.data?.error ?? "Failed to update access rules", variant: "destructive" }),
+      },
+    );
+  }
+
+  function toggleRole(slug: string, current: string[], set: (v: string[]) => void) {
+    if (current.includes(slug)) set(current.filter((s) => s !== slug));
+    else set([...current, slug]);
+  }
+
+  // Delete
+  const [deleteTarget, setDeleteTarget] = useState<DocumentDomainItem | null>(null);
+
+  function handleDelete() {
+    if (!deleteTarget) return;
+    deleteDomain.mutate(
+      { id: deleteTarget.id },
+      {
+        onSuccess: () => {
+          toast({ title: "Domain deleted" });
+          setDeleteTarget(null);
+          invalidate();
+        },
+        onError: (e: any) =>
+          toast({ title: e?.data?.error ?? "Failed to delete domain", variant: "destructive" }),
+      },
+    );
+  }
+
+  const needsDegreeForCreate = createLogic === "degree_only" || createLogic === "role_or_degree" || createLogic === "role_and_degree";
+  const needsDegreeForAccess = accessLogic === "degree_only" || accessLogic === "role_or_degree" || accessLogic === "role_and_degree";
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 space-y-6">
-        <div>
-          <h1 className="text-2xl font-serif font-semibold text-primary flex items-center gap-2">
-            <Globe className="h-6 w-6" /> Protected Domains
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Manage access to restricted content areas. Only PM Super Administrators can grant or revoke access.
-          </p>
+      <div className="p-6 max-w-4xl mx-auto">
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">Domains & Access Control</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Configure access rules for document domains. Access is calculated dynamically from roles and degrees.
+            </p>
+          </div>
+          {isPmSuper && (
+            <Button size="sm" onClick={() => setShowCreate(true)} className="shrink-0">
+              <Plus className="h-4 w-4 mr-1.5" />
+              New Domain
+            </Button>
+          )}
         </div>
 
-        <Alert>
-          <ShieldAlert className="h-4 w-4" />
-          <AlertDescription>
-            Domain access is <strong>not</strong> automatically granted to any role, including Administrators and Site Administrators.
-            Access must be explicitly granted per user by a PM Super Administrator.
-          </AlertDescription>
-        </Alert>
+        {!isPmSuper && (
+          <div className="flex items-start gap-2 p-3 rounded-md bg-muted/40 border border-border text-sm text-muted-foreground mb-6">
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>You can view domain access rules. Only PM Super Administrators can create or edit domains.</span>
+          </div>
+        )}
 
-        {domainsLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-20" />)}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-40 rounded-lg" />
+            ))}
           </div>
         ) : domains.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <Globe className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">No protected domains configured.</p>
-          </div>
+          <Card className="border-card-border">
+            <CardContent className="py-12 text-center">
+              <Shield className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">No domains configured yet.</p>
+            </CardContent>
+          </Card>
         ) : (
-          <div className="space-y-3">
-            {domains.map((domain) => (
-              <DomainRow
-                key={domain.id}
-                domain={domain}
-                users={users}
-                isPmSuperAdmin={isPmSuperAdmin}
-                onGrantOpen={() => { setSelectedDomain(domain); setShowGrant(true); }}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {domains.map((d) => (
+              <DomainCard
+                key={d.id}
+                domain={d}
+                isPmSuper={isPmSuper}
+                onEdit={openEdit}
+                onEditAccess={openEditAccess}
+                onDelete={setDeleteTarget}
               />
             ))}
           </div>
         )}
+      </div>
 
-        <Dialog open={showGrant} onOpenChange={(o) => { setShowGrant(o); if (!o) setGrantUserId(""); }}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Grant Domain Access</DialogTitle>
-              <DialogDescription>
-                Select a member to grant access to <strong>{selectedDomain?.name}</strong>.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Select value={grantUserId} onValueChange={setGrantUserId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a member..." />
+      {/* Create Domain Dialog */}
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create Domain</DialogTitle>
+            <DialogDescription>Define a new access domain for document folders.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium">Name</label>
+                <Input
+                  className="mt-1.5"
+                  placeholder="Treasury Documents"
+                  value={createName}
+                  onChange={(e) => {
+                    setCreateName(e.target.value);
+                    setCreateSlug(autoSlug(e.target.value));
+                  }}
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Slug</label>
+                <Input
+                  className="mt-1.5 font-mono text-xs"
+                  placeholder="treasury-documents"
+                  value={createSlug}
+                  onChange={(e) => setCreateSlug(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Description <span className="font-normal text-muted-foreground">(optional)</span></label>
+              <Textarea
+                className="mt-1.5 resize-none"
+                rows={2}
+                value={createDesc}
+                onChange={(e) => setCreateDesc(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Access Logic</label>
+              <Select value={createLogic} onValueChange={(v) => setCreateLogic(v as any)}>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {users.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.firstName} {u.lastName} — {u.email}
-                    </SelectItem>
+                  {ACCESS_LOGIC_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setShowGrant(false)}>Cancel</Button>
-                <Button onClick={handleGrant} disabled={!grantUserId || grantMutation.isPending}>
-                  {grantMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                  Grant Access
-                </Button>
-              </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </AppLayout>
-  );
-}
-
-function DomainRow({
-  domain,
-  users,
-  isPmSuperAdmin,
-  onGrantOpen,
-}: {
-  domain: { id: string; name: string; slug: string; description?: string | null };
-  users: { id: string; firstName: string; lastName: string; email: string }[];
-  isPmSuperAdmin: boolean;
-  onGrantOpen: () => void;
-}) {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-  const [expanded, setExpanded] = useState(false);
-  const revokeMutation = useRevokeUserDomain();
-
-  const usersGrantsKey = (userId: string) => getGetUserDomainsQueryKey(userId);
-
-  const handleRevoke = (userId: string, domainId: string) => {
-    revokeMutation.mutate(
-      { id: userId, domainId },
-      {
-        onSuccess: () => {
-          toast({ title: "Access revoked" });
-        },
-        onError: (e: any) => toast({ title: "Error", description: e?.data?.error ?? "Failed to revoke", variant: "destructive" }),
-      }
-    );
-  };
-
-  return (
-    <div className="border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md bg-card overflow-hidden">
-      <div
-        className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/30 transition-colors"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <div className="space-y-0.5">
-          <div className="flex items-center gap-2">
-            <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="font-medium text-sm">{domain.name}</span>
-            <Badge variant="outline" className="text-xs font-mono">{domain.slug}</Badge>
+            {(createLogic === "role_only" || createLogic === "role_or_degree" || createLogic === "role_and_degree") && (
+              <div>
+                <label className="text-sm font-medium">Allowed Roles</label>
+                <div className="mt-2 space-y-2 max-h-40 overflow-y-auto border rounded-md p-2">
+                  {ALL_ROLES.map((r) => (
+                    <label key={r.slug} className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={createRoles.includes(r.slug)}
+                        onCheckedChange={() => toggleRole(r.slug, createRoles, setCreateRoles)}
+                      />
+                      <span className="text-sm">{r.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+            {needsDegreeForCreate && (
+              <div>
+                <label className="text-sm font-medium">Minimum Degree</label>
+                <Select value={createDegree} onValueChange={setCreateDegree}>
+                  <SelectTrigger className="mt-1.5">
+                    <SelectValue placeholder="No degree requirement" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No degree requirement</SelectItem>
+                    {DEGREE_OPTIONS.map((d) => (
+                      <SelectItem key={d.value} value={String(d.value)}>{d.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
-          {domain.description && (
-            <p className="text-xs text-muted-foreground pl-6">{domain.description}</p>
-          )}
-        </div>
-        {isPmSuperAdmin && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={(e) => { e.stopPropagation(); onGrantOpen(); }}
-            className="shrink-0"
-          >
-            <Plus className="h-3.5 w-3.5 mr-1" />
-            Grant
-          </Button>
-        )}
-      </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+            <Button
+              onClick={handleCreate}
+              disabled={!createName.trim() || !createSlug.trim() || createDomain.isPending}
+            >
+              {createDomain.isPending ? "Creating…" : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {expanded && (
-        <div className="border-t px-4 py-3 space-y-2 bg-muted/10">
-          <UserGrantsList domainId={domain.id} users={users} isPmSuperAdmin={isPmSuperAdmin} onRevoke={handleRevoke} />
-        </div>
-      )}
-    </div>
-  );
-}
+      {/* Edit Details Dialog */}
+      <Dialog open={!!editTarget} onOpenChange={(o) => { if (!o) setEditTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Domain</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-sm font-medium">Name</label>
+              <Input
+                className="mt-1.5"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Description <span className="font-normal text-muted-foreground">(optional)</span></label>
+              <Textarea
+                className="mt-1.5 resize-none"
+                rows={3}
+                value={editDesc}
+                onChange={(e) => setEditDesc(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditTarget(null)}>Cancel</Button>
+            <Button onClick={handleEdit} disabled={!editName.trim() || updateDomain.isPending}>
+              {updateDomain.isPending ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-function UserGrantsList({
-  domainId,
-  users,
-  isPmSuperAdmin,
-  onRevoke,
-}: {
-  domainId: string;
-  users: { id: string; firstName: string; lastName: string; email: string }[];
-  isPmSuperAdmin: boolean;
-  onRevoke: (userId: string, domainId: string) => void;
-}) {
-  const usersWithAccess = users.filter(() => false);
+      {/* Edit Access Rules Dialog */}
+      <Dialog open={!!accessTarget} onOpenChange={(o) => { if (!o) setAccessTarget(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Access Rules</DialogTitle>
+            {accessTarget && (
+              <DialogDescription>
+                Updating access rules for <span className="font-medium text-foreground">{accessTarget.name}</span>
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium">Access Logic</label>
+              <Select value={accessLogic} onValueChange={(v) => setAccessLogic(v as any)}>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ACCESS_LOGIC_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {(accessLogic === "role_only" || accessLogic === "role_or_degree" || accessLogic === "role_and_degree") && (
+              <div>
+                <label className="text-sm font-medium">Allowed Roles</label>
+                <div className="mt-2 space-y-2 max-h-48 overflow-y-auto border rounded-md p-2">
+                  {ALL_ROLES.map((r) => (
+                    <label key={r.slug} className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={accessRoles.includes(r.slug)}
+                        onCheckedChange={() => toggleRole(r.slug, accessRoles, setAccessRoles)}
+                      />
+                      <span className="text-sm">{r.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+            {needsDegreeForAccess && (
+              <div>
+                <label className="text-sm font-medium">Minimum Degree</label>
+                <Select value={accessDegree} onValueChange={setAccessDegree}>
+                  <SelectTrigger className="mt-1.5">
+                    <SelectValue placeholder="No degree requirement" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No degree requirement</SelectItem>
+                    {DEGREE_OPTIONS.map((d) => (
+                      <SelectItem key={d.value} value={String(d.value)}>{d.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAccessTarget(null)}>Cancel</Button>
+            <Button onClick={handleEditAccess} disabled={updateAccess.isPending}>
+              {updateAccess.isPending ? "Saving…" : "Save Rules"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-  return (
-    <div className="space-y-1">
-      <p className="text-xs text-muted-foreground flex items-center gap-1">
-        <Info className="h-3 w-3" />
-        Expand a member record to see their specific domain grants.
-      </p>
-    </div>
+      {/* Delete Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete domain?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete{" "}
+              <span className="font-medium text-foreground">"{deleteTarget?.name}"</span>.
+              Folders linked to this domain will lose their access rules.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </AppLayout>
   );
 }

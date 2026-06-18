@@ -53,7 +53,13 @@ import type {
   DeleteHistorySection200,
   DocumentAttachmentUploadRequest,
   DocumentAttachmentUploadResponse,
+  DocumentDomainAccessUpdateInput,
+  DocumentDomainCreateInput,
+  DocumentDomainListResult,
+  DocumentDomainResult,
+  DocumentDomainUpdateInput,
   DocumentFolderDetail,
+  DocumentFolderDomainLinkInput,
   DocumentFolderItem,
   DocumentFolderListResult,
   DocumentFolderUpdateInput,
@@ -9017,5 +9023,516 @@ export const useCreateDocumentSubfolder = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getCreateDocumentSubfolderMutationOptions(options));
+    }
+
+export const getLinkDocumentFolderDomainUrl = (id: string,) => {
+
+
+
+
+  return `/api/document-folders/${id}/domain`
+}
+
+/**
+ * @summary Link or unlink a folder to a domain
+ */
+export const linkDocumentFolderDomain = async (id: string,
+    documentFolderDomainLinkInput: DocumentFolderDomainLinkInput, options?: RequestInit): Promise<SuccessResult> => {
+
+  return customFetch<SuccessResult>(getLinkDocumentFolderDomainUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      documentFolderDomainLinkInput,)
+  }
+);}
+
+
+
+
+export const getLinkDocumentFolderDomainMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof linkDocumentFolderDomain>>, TError,{id: string;data: BodyType<DocumentFolderDomainLinkInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof linkDocumentFolderDomain>>, TError,{id: string;data: BodyType<DocumentFolderDomainLinkInput>}, TContext> => {
+
+const mutationKey = ['linkDocumentFolderDomain'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof linkDocumentFolderDomain>>, {id: string;data: BodyType<DocumentFolderDomainLinkInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  linkDocumentFolderDomain(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LinkDocumentFolderDomainMutationResult = NonNullable<Awaited<ReturnType<typeof linkDocumentFolderDomain>>>
+    export type LinkDocumentFolderDomainMutationBody = BodyType<DocumentFolderDomainLinkInput>
+    export type LinkDocumentFolderDomainMutationError = ErrorType<void>
+
+    /**
+ * @summary Link or unlink a folder to a domain
+ */
+export const useLinkDocumentFolderDomain = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof linkDocumentFolderDomain>>, TError,{id: string;data: BodyType<DocumentFolderDomainLinkInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof linkDocumentFolderDomain>>,
+        TError,
+        {id: string;data: BodyType<DocumentFolderDomainLinkInput>},
+        TContext
+      > => {
+      return useMutation(getLinkDocumentFolderDomainMutationOptions(options));
+    }
+
+export const getListDocumentDomainsUrl = () => {
+
+
+
+
+  return `/api/document-domains`
+}
+
+/**
+ * @summary List all document domains with access rules (admin)
+ */
+export const listDocumentDomains = async ( options?: RequestInit): Promise<DocumentDomainListResult> => {
+
+  return customFetch<DocumentDomainListResult>(getListDocumentDomainsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListDocumentDomainsQueryKey = () => {
+    return [
+    `/api/document-domains`
+    ] as const;
+    }
+
+
+export const getListDocumentDomainsQueryOptions = <TData = Awaited<ReturnType<typeof listDocumentDomains>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDocumentDomains>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDocumentDomainsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDocumentDomains>>> = ({ signal }) => listDocumentDomains({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDocumentDomains>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListDocumentDomainsQueryResult = NonNullable<Awaited<ReturnType<typeof listDocumentDomains>>>
+export type ListDocumentDomainsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List all document domains with access rules (admin)
+ */
+
+export function useListDocumentDomains<TData = Awaited<ReturnType<typeof listDocumentDomains>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDocumentDomains>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListDocumentDomainsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateDocumentDomainUrl = () => {
+
+
+
+
+  return `/api/document-domains`
+}
+
+/**
+ * @summary Create a new document domain (PM Super Admin)
+ */
+export const createDocumentDomain = async (documentDomainCreateInput: DocumentDomainCreateInput, options?: RequestInit): Promise<DocumentDomainResult> => {
+
+  return customFetch<DocumentDomainResult>(getCreateDocumentDomainUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      documentDomainCreateInput,)
+  }
+);}
+
+
+
+
+export const getCreateDocumentDomainMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDocumentDomain>>, TError,{data: BodyType<DocumentDomainCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createDocumentDomain>>, TError,{data: BodyType<DocumentDomainCreateInput>}, TContext> => {
+
+const mutationKey = ['createDocumentDomain'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDocumentDomain>>, {data: BodyType<DocumentDomainCreateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createDocumentDomain(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateDocumentDomainMutationResult = NonNullable<Awaited<ReturnType<typeof createDocumentDomain>>>
+    export type CreateDocumentDomainMutationBody = BodyType<DocumentDomainCreateInput>
+    export type CreateDocumentDomainMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a new document domain (PM Super Admin)
+ */
+export const useCreateDocumentDomain = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDocumentDomain>>, TError,{data: BodyType<DocumentDomainCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createDocumentDomain>>,
+        TError,
+        {data: BodyType<DocumentDomainCreateInput>},
+        TContext
+      > => {
+      return useMutation(getCreateDocumentDomainMutationOptions(options));
+    }
+
+export const getGetDocumentDomainUrl = (id: string,) => {
+
+
+
+
+  return `/api/document-domains/${id}`
+}
+
+/**
+ * @summary Get a document domain
+ */
+export const getDocumentDomain = async (id: string, options?: RequestInit): Promise<DocumentDomainResult> => {
+
+  return customFetch<DocumentDomainResult>(getGetDocumentDomainUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDocumentDomainQueryKey = (id: string,) => {
+    return [
+    `/api/document-domains/${id}`
+    ] as const;
+    }
+
+
+export const getGetDocumentDomainQueryOptions = <TData = Awaited<ReturnType<typeof getDocumentDomain>>, TError = ErrorType<void>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDocumentDomain>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDocumentDomainQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDocumentDomain>>> = ({ signal }) => getDocumentDomain(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDocumentDomain>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDocumentDomainQueryResult = NonNullable<Awaited<ReturnType<typeof getDocumentDomain>>>
+export type GetDocumentDomainQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get a document domain
+ */
+
+export function useGetDocumentDomain<TData = Awaited<ReturnType<typeof getDocumentDomain>>, TError = ErrorType<void>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDocumentDomain>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDocumentDomainQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateDocumentDomainUrl = (id: string,) => {
+
+
+
+
+  return `/api/document-domains/${id}`
+}
+
+/**
+ * @summary Update domain name/description (PM Super Admin)
+ */
+export const updateDocumentDomain = async (id: string,
+    documentDomainUpdateInput: DocumentDomainUpdateInput, options?: RequestInit): Promise<DocumentDomainResult> => {
+
+  return customFetch<DocumentDomainResult>(getUpdateDocumentDomainUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      documentDomainUpdateInput,)
+  }
+);}
+
+
+
+
+export const getUpdateDocumentDomainMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDocumentDomain>>, TError,{id: string;data: BodyType<DocumentDomainUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDocumentDomain>>, TError,{id: string;data: BodyType<DocumentDomainUpdateInput>}, TContext> => {
+
+const mutationKey = ['updateDocumentDomain'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDocumentDomain>>, {id: string;data: BodyType<DocumentDomainUpdateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateDocumentDomain(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateDocumentDomainMutationResult = NonNullable<Awaited<ReturnType<typeof updateDocumentDomain>>>
+    export type UpdateDocumentDomainMutationBody = BodyType<DocumentDomainUpdateInput>
+    export type UpdateDocumentDomainMutationError = ErrorType<void>
+
+    /**
+ * @summary Update domain name/description (PM Super Admin)
+ */
+export const useUpdateDocumentDomain = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDocumentDomain>>, TError,{id: string;data: BodyType<DocumentDomainUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateDocumentDomain>>,
+        TError,
+        {id: string;data: BodyType<DocumentDomainUpdateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateDocumentDomainMutationOptions(options));
+    }
+
+export const getDeleteDocumentDomainUrl = (id: string,) => {
+
+
+
+
+  return `/api/document-domains/${id}`
+}
+
+/**
+ * @summary Delete a domain (PM Super Admin)
+ */
+export const deleteDocumentDomain = async (id: string, options?: RequestInit): Promise<SuccessResult> => {
+
+  return customFetch<SuccessResult>(getDeleteDocumentDomainUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteDocumentDomainMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDocumentDomain>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteDocumentDomain>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteDocumentDomain'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteDocumentDomain>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteDocumentDomain(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteDocumentDomainMutationResult = NonNullable<Awaited<ReturnType<typeof deleteDocumentDomain>>>
+
+    export type DeleteDocumentDomainMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a domain (PM Super Admin)
+ */
+export const useDeleteDocumentDomain = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDocumentDomain>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteDocumentDomain>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDeleteDocumentDomainMutationOptions(options));
+    }
+
+export const getUpdateDocumentDomainAccessUrl = (id: string,) => {
+
+
+
+
+  return `/api/document-domains/${id}/access`
+}
+
+/**
+ * @summary Update domain access rules (PM Super Admin)
+ */
+export const updateDocumentDomainAccess = async (id: string,
+    documentDomainAccessUpdateInput: DocumentDomainAccessUpdateInput, options?: RequestInit): Promise<DocumentDomainResult> => {
+
+  return customFetch<DocumentDomainResult>(getUpdateDocumentDomainAccessUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      documentDomainAccessUpdateInput,)
+  }
+);}
+
+
+
+
+export const getUpdateDocumentDomainAccessMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDocumentDomainAccess>>, TError,{id: string;data: BodyType<DocumentDomainAccessUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDocumentDomainAccess>>, TError,{id: string;data: BodyType<DocumentDomainAccessUpdateInput>}, TContext> => {
+
+const mutationKey = ['updateDocumentDomainAccess'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDocumentDomainAccess>>, {id: string;data: BodyType<DocumentDomainAccessUpdateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateDocumentDomainAccess(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateDocumentDomainAccessMutationResult = NonNullable<Awaited<ReturnType<typeof updateDocumentDomainAccess>>>
+    export type UpdateDocumentDomainAccessMutationBody = BodyType<DocumentDomainAccessUpdateInput>
+    export type UpdateDocumentDomainAccessMutationError = ErrorType<void>
+
+    /**
+ * @summary Update domain access rules (PM Super Admin)
+ */
+export const useUpdateDocumentDomainAccess = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDocumentDomainAccess>>, TError,{id: string;data: BodyType<DocumentDomainAccessUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateDocumentDomainAccess>>,
+        TError,
+        {id: string;data: BodyType<DocumentDomainAccessUpdateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateDocumentDomainAccessMutationOptions(options));
     }
 

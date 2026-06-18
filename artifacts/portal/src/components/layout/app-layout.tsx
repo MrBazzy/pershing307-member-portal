@@ -34,7 +34,8 @@ const MEMBER_NAV_ITEMS: NavItem[] = [
 const MANAGEMENT_ITEMS: NavItem[] = [
   { href: "/admin/users", label: "Members", icon: Users },
   { href: "/admin/invitations", label: "Invitations", icon: Mail },
-  { href: "/admin/domains", label: "Domains", icon: Globe },
+  { href: "/admin/domains", label: "Domains & Access Control", icon: Globe },
+  { href: "/admin/document-management", label: "Document Management", icon: FolderOpen },
   { href: "/admin/degrees", label: "Degrees", icon: GraduationCap },
   { href: "/admin/tracing-board", label: "Tracing Board", icon: BookOpen },
   { href: "/admin/events", label: "Events", icon: CalendarDays },

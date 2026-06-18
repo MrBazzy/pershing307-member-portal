@@ -1,3 +1,4 @@
 - [Port registration in Replit](port-registration.md) — adding a port to .replit [[ports]] requires `verifyAndReplaceDotReplit`, not `verifyAndReplaceArtifactToml`
 - [Pershing307 Stack & Conventions](pershing307-stack.md) — portal stack, lib build requirement after codegen, auth patterns, key config values.
 - [Pershing307 Sprint 2A](pershing307-sprint2a.md) — Birthday Calendar + Roadmap Box: what was built, what's pending (DOB edit in admin/users).
+- [Pershing307 Document Domains](pershing307-document-domains.md) — DOCUMENT-DOMAINS-001: domain access system, seeded domains, frame split, PM_SUPER_LEVEL.

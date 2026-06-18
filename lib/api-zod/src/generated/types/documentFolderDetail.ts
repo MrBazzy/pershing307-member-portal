@@ -13,6 +13,8 @@ export interface DocumentFolderDetail {
   description?: string | null;
   isSystemRoot: boolean;
   sortOrder: number;
+  frame: string;
+  domainId?: string | null;
   subfolders: DocumentFolderItem[];
   createdAt: Date;
   updatedAt: Date;

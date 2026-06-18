@@ -12,6 +12,9 @@ export interface DocumentFolderItem {
   description?: string | null;
   isSystemRoot: boolean;
   sortOrder: number;
+  /** Which section this folder belongs to: general or ritual */
+  frame: string;
+  domainId?: string | null;
   subfolderCount: number;
   createdAt: Date;
   updatedAt: Date;

@@ -1356,6 +1356,9 @@ export interface DocumentFolderItem {
   description?: string | null;
   isSystemRoot: boolean;
   sortOrder: number;
+  /** Which section this folder belongs to: general or ritual */
+  frame: string;
+  domainId?: string | null;
   subfolderCount: number;
   createdAt: string;
   updatedAt: string;
@@ -1371,6 +1374,8 @@ export interface DocumentFolderDetail {
   description?: string | null;
   isSystemRoot: boolean;
   sortOrder: number;
+  frame: string;
+  domainId?: string | null;
   subfolders: DocumentFolderItem[];
   createdAt: string;
   updatedAt: string;
@@ -1394,6 +1399,111 @@ export interface DocumentSubfolderCreateInput {
   title: string;
   /** @maxLength 1000 */
   description?: string | null;
+}
+
+export type DocumentFolderDomainLinkInputFrame = typeof DocumentFolderDomainLinkInputFrame[keyof typeof DocumentFolderDomainLinkInputFrame];
+
+
+export const DocumentFolderDomainLinkInputFrame = {
+  general: 'general',
+  ritual: 'ritual',
+} as const;
+
+export interface DocumentFolderDomainLinkInput {
+  domainId: string | null;
+  frame?: DocumentFolderDomainLinkInputFrame;
+}
+
+export type DocumentDomainItemAccessLogic = typeof DocumentDomainItemAccessLogic[keyof typeof DocumentDomainItemAccessLogic];
+
+
+export const DocumentDomainItemAccessLogic = {
+  role_only: 'role_only',
+  degree_only: 'degree_only',
+  role_or_degree: 'role_or_degree',
+  role_and_degree: 'role_and_degree',
+} as const;
+
+export interface DocumentDomainItem {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  accessLogic: DocumentDomainItemAccessLogic;
+  allowedRoleSlugs: string[];
+  minDegree?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DocumentDomainListResult {
+  domains: DocumentDomainItem[];
+}
+
+export interface DocumentDomainResult {
+  domain: DocumentDomainItem;
+}
+
+export type DocumentDomainCreateInputAccessLogic = typeof DocumentDomainCreateInputAccessLogic[keyof typeof DocumentDomainCreateInputAccessLogic];
+
+
+export const DocumentDomainCreateInputAccessLogic = {
+  role_only: 'role_only',
+  degree_only: 'degree_only',
+  role_or_degree: 'role_or_degree',
+  role_and_degree: 'role_and_degree',
+} as const;
+
+export interface DocumentDomainCreateInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  name: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  slug: string;
+  /** @maxLength 1000 */
+  description?: string | null;
+  accessLogic: DocumentDomainCreateInputAccessLogic;
+  allowedRoleSlugs?: string[];
+  /**
+     * @minimum 1
+     * @maximum 3
+     */
+  minDegree?: number | null;
+}
+
+export interface DocumentDomainUpdateInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  name?: string;
+  /** @maxLength 1000 */
+  description?: string | null;
+}
+
+export type DocumentDomainAccessUpdateInputAccessLogic = typeof DocumentDomainAccessUpdateInputAccessLogic[keyof typeof DocumentDomainAccessUpdateInputAccessLogic];
+
+
+export const DocumentDomainAccessUpdateInputAccessLogic = {
+  role_only: 'role_only',
+  degree_only: 'degree_only',
+  role_or_degree: 'role_or_degree',
+  role_and_degree: 'role_and_degree',
+} as const;
+
+export interface DocumentDomainAccessUpdateInput {
+  accessLogic: DocumentDomainAccessUpdateInputAccessLogic;
+  allowedRoleSlugs?: string[];
+  /**
+     * @minimum 1
+     * @maximum 3
+     */
+  minDegree?: number | null;
 }
 
 export type ListUsersParams = {

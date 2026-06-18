@@ -2668,6 +2668,195 @@ paths:
         "404":
           description: Parent folder not found
 
+  /document-folders/{id}/domain:
+    patch:
+      operationId: linkDocumentFolderDomain
+      summary: Link or unlink a folder to a domain
+      tags: [Documents]
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentFolderDomainLinkInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: Not found
+
+  /document-domains:
+    get:
+      operationId: listDocumentDomains
+      summary: List all document domains with access rules (admin)
+      tags: [Documents]
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Domain list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentDomainListResult"
+        "401":
+          description: Not authenticated
+    post:
+      operationId: createDocumentDomain
+      summary: Create a new document domain (PM Super Admin)
+      tags: [Documents]
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentDomainCreateInput"
+      responses:
+        "201":
+          description: Domain created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentDomainResult"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Insufficient permissions
+        "409":
+          description: Slug already exists
+
+  /document-domains/{id}:
+    get:
+      operationId: getDocumentDomain
+      summary: Get a document domain
+      tags: [Documents]
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Domain detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentDomainResult"
+        "401":
+          description: Not authenticated
+        "404":
+          description: Not found
+    patch:
+      operationId: updateDocumentDomain
+      summary: Update domain name/description (PM Super Admin)
+      tags: [Documents]
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentDomainUpdateInput"
+      responses:
+        "200":
+          description: Updated domain
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentDomainResult"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteDocumentDomain
+      summary: Delete a domain (PM Super Admin)
+      tags: [Documents]
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: Not found
+
+  /document-domains/{id}/access:
+    patch:
+      operationId: updateDocumentDomainAccess
+      summary: Update domain access rules (PM Super Admin)
+      tags: [Documents]
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentDomainAccessUpdateInput"
+      responses:
+        "200":
+          description: Updated domain
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentDomainResult"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: Not found
+
 components:
   schemas:
     HealthStatus:
@@ -4426,7 +4615,7 @@ components:
 
     DocumentFolderItem:
       type: object
-      required: [id, title, isSystemRoot, sortOrder, subfolderCount, createdAt, updatedAt]
+      required: [id, title, isSystemRoot, sortOrder, frame, subfolderCount, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -4439,6 +4628,12 @@ components:
           type: boolean
         sortOrder:
           type: integer
+        frame:
+          type: string
+          description: "Which section this folder belongs to: general or ritual"
+        domainId:
+          type: string
+          nullable: true
         subfolderCount:
           type: integer
         createdAt:
@@ -4459,7 +4654,7 @@ components:
 
     DocumentFolderDetail:
       type: object
-      required: [id, title, isSystemRoot, sortOrder, subfolders, createdAt, updatedAt]
+      required: [id, title, isSystemRoot, sortOrder, frame, subfolders, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -4472,6 +4667,11 @@ components:
           type: boolean
         sortOrder:
           type: integer
+        frame:
+          type: string
+        domainId:
+          type: string
+          nullable: true
         subfolders:
           type: array
           items:
@@ -4506,4 +4706,119 @@ components:
         description:
           type: string
           maxLength: 1000
+          nullable: true
+
+    DocumentFolderDomainLinkInput:
+      type: object
+      required: [domainId]
+      properties:
+        domainId:
+          type: string
+          nullable: true
+        frame:
+          type: string
+          enum: [general, ritual]
+
+    DocumentDomainItem:
+      type: object
+      required: [id, name, slug, accessLogic, allowedRoleSlugs, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        accessLogic:
+          type: string
+          enum: [role_only, degree_only, role_or_degree, role_and_degree]
+        allowedRoleSlugs:
+          type: array
+          items:
+            type: string
+        minDegree:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DocumentDomainListResult:
+      type: object
+      required: [domains]
+      properties:
+        domains:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentDomainItem"
+
+    DocumentDomainResult:
+      type: object
+      required: [domain]
+      properties:
+        domain:
+          $ref: "#/components/schemas/DocumentDomainItem"
+
+    DocumentDomainCreateInput:
+      type: object
+      required: [name, slug, accessLogic]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+        accessLogic:
+          type: string
+          enum: [role_only, degree_only, role_or_degree, role_and_degree]
+        allowedRoleSlugs:
+          type: array
+          items:
+            type: string
+        minDegree:
+          type: integer
+          minimum: 1
+          maximum: 3
+          nullable: true
+
+    DocumentDomainUpdateInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+
+    DocumentDomainAccessUpdateInput:
+      type: object
+      required: [accessLogic]
+      properties:
+        accessLogic:
+          type: string
+          enum: [role_only, degree_only, role_or_degree, role_and_degree]
+        allowedRoleSlugs:
+          type: array
+          items:
+            type: string
+        minDegree:
+          type: integer
+          minimum: 1
+          maximum: 3
           nullable: true

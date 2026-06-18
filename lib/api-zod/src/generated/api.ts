@@ -2206,6 +2206,8 @@ export const ListDocumentFoldersResponse = zod.object({
   "description": zod.string().nullish(),
   "isSystemRoot": zod.boolean(),
   "sortOrder": zod.number(),
+  "frame": zod.string().describe('Which section this folder belongs to: general or ritual'),
+  "domainId": zod.string().nullish(),
   "subfolderCount": zod.number(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -2226,12 +2228,16 @@ export const GetDocumentFolderResponse = zod.object({
   "description": zod.string().nullish(),
   "isSystemRoot": zod.boolean(),
   "sortOrder": zod.number(),
+  "frame": zod.string(),
+  "domainId": zod.string().nullish(),
   "subfolders": zod.array(zod.object({
   "id": zod.string(),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "isSystemRoot": zod.boolean(),
   "sortOrder": zod.number(),
+  "frame": zod.string().describe('Which section this folder belongs to: general or ritual'),
+  "domainId": zod.string().nullish(),
   "subfolderCount": zod.number(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -2265,12 +2271,16 @@ export const UpdateDocumentFolderResponse = zod.object({
   "description": zod.string().nullish(),
   "isSystemRoot": zod.boolean(),
   "sortOrder": zod.number(),
+  "frame": zod.string(),
+  "domainId": zod.string().nullish(),
   "subfolders": zod.array(zod.object({
   "id": zod.string(),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "isSystemRoot": zod.boolean(),
   "sortOrder": zod.number(),
+  "frame": zod.string().describe('Which section this folder belongs to: general or ritual'),
+  "domainId": zod.string().nullish(),
   "subfolderCount": zod.number(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -2309,6 +2319,165 @@ export const createDocumentSubfolderBodyDescriptionMax = 1000;
 export const CreateDocumentSubfolderBody = zod.object({
   "title": zod.string().min(1).max(createDocumentSubfolderBodyTitleMax),
   "description": zod.string().max(createDocumentSubfolderBodyDescriptionMax).nullish()
+})
+
+
+/**
+ * @summary Link or unlink a folder to a domain
+ */
+export const LinkDocumentFolderDomainParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const LinkDocumentFolderDomainBody = zod.object({
+  "domainId": zod.string().nullable(),
+  "frame": zod.enum(['general', 'ritual']).optional()
+})
+
+export const LinkDocumentFolderDomainResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary List all document domains with access rules (admin)
+ */
+export const ListDocumentDomainsResponse = zod.object({
+  "domains": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "description": zod.string().nullish(),
+  "accessLogic": zod.enum(['role_only', 'degree_only', 'role_or_degree', 'role_and_degree']),
+  "allowedRoleSlugs": zod.array(zod.string()),
+  "minDegree": zod.number().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Create a new document domain (PM Super Admin)
+ */
+export const createDocumentDomainBodyNameMax = 200;
+
+export const createDocumentDomainBodySlugMax = 100;
+
+export const createDocumentDomainBodyDescriptionMax = 1000;
+
+export const createDocumentDomainBodyMinDegreeMax = 3;
+
+
+
+export const CreateDocumentDomainBody = zod.object({
+  "name": zod.string().min(1).max(createDocumentDomainBodyNameMax),
+  "slug": zod.string().min(1).max(createDocumentDomainBodySlugMax),
+  "description": zod.string().max(createDocumentDomainBodyDescriptionMax).nullish(),
+  "accessLogic": zod.enum(['role_only', 'degree_only', 'role_or_degree', 'role_and_degree']),
+  "allowedRoleSlugs": zod.array(zod.string()).optional(),
+  "minDegree": zod.number().min(1).max(createDocumentDomainBodyMinDegreeMax).nullish()
+})
+
+
+/**
+ * @summary Get a document domain
+ */
+export const GetDocumentDomainParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetDocumentDomainResponse = zod.object({
+  "domain": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "description": zod.string().nullish(),
+  "accessLogic": zod.enum(['role_only', 'degree_only', 'role_or_degree', 'role_and_degree']),
+  "allowedRoleSlugs": zod.array(zod.string()),
+  "minDegree": zod.number().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+
+
+/**
+ * @summary Update domain name/description (PM Super Admin)
+ */
+export const UpdateDocumentDomainParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateDocumentDomainBodyNameMax = 200;
+
+export const updateDocumentDomainBodyDescriptionMax = 1000;
+
+
+
+export const UpdateDocumentDomainBody = zod.object({
+  "name": zod.string().min(1).max(updateDocumentDomainBodyNameMax).optional(),
+  "description": zod.string().max(updateDocumentDomainBodyDescriptionMax).nullish()
+})
+
+export const UpdateDocumentDomainResponse = zod.object({
+  "domain": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "description": zod.string().nullish(),
+  "accessLogic": zod.enum(['role_only', 'degree_only', 'role_or_degree', 'role_and_degree']),
+  "allowedRoleSlugs": zod.array(zod.string()),
+  "minDegree": zod.number().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+
+
+/**
+ * @summary Delete a domain (PM Super Admin)
+ */
+export const DeleteDocumentDomainParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteDocumentDomainResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary Update domain access rules (PM Super Admin)
+ */
+export const UpdateDocumentDomainAccessParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateDocumentDomainAccessBodyMinDegreeMax = 3;
+
+
+
+export const UpdateDocumentDomainAccessBody = zod.object({
+  "accessLogic": zod.enum(['role_only', 'degree_only', 'role_or_degree', 'role_and_degree']),
+  "allowedRoleSlugs": zod.array(zod.string()).optional(),
+  "minDegree": zod.number().min(1).max(updateDocumentDomainAccessBodyMinDegreeMax).nullish()
+})
+
+export const UpdateDocumentDomainAccessResponse = zod.object({
+  "domain": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "description": zod.string().nullish(),
+  "accessLogic": zod.enum(['role_only', 'degree_only', 'role_or_degree', 'role_and_degree']),
+  "allowedRoleSlugs": zod.array(zod.string()),
+  "minDegree": zod.number().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
 })
 
 
