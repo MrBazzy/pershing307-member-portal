@@ -545,6 +545,14 @@ router.get("/:id", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) =>
     parentTitle = parentRow?.title ?? null;
   }
 
+  // Determine upload permission for this user in this folder
+  const domainSlug = effectiveFolder.domainSlug ?? null;
+  const allowedRoleSlugs: string[] = (effectiveFolder.domainAllowedRoleSlugs as string[] | null) ?? [];
+  const canUpload =
+    isAdmin ||
+    (domainSlug === "general-documents") ||
+    allowedRoleSlugs.some((s) => slugs.includes(s));
+
   res.json({
     id: folder.id,
     title: folder.title,
@@ -553,9 +561,10 @@ router.get("/:id", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) =>
     sortOrder: folder.sortOrder,
     frame: folder.frame,
     domainId: folder.domainId ?? null,
-    domainSlug: effectiveFolder.domainSlug ?? null,
+    domainSlug,
     parentId: folder.parentId ?? null,
     parentTitle,
+    canUpload,
     subfolders: subfolders.map((s) => formatFolder(s as FolderRow, subCountMap.get(s.id) ?? 0)),
     createdAt: folder.createdAt.toISOString(),
     updatedAt: folder.updatedAt.toISOString(),

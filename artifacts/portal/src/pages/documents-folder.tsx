@@ -107,9 +107,7 @@ export default function DocumentsFolderPage({ id }: Props) {
 
   const isAccessDenied = (error as any)?.status === 403;
 
-  const canUpload =
-    folder !== undefined &&
-    ((folder.domainSlug === "general-documents" && userLevel >= MEMBER_LEVEL) || isAdmin);
+  const canUpload = folder?.canUpload === true;
 
   const documents = docsData?.documents ?? [];
 
