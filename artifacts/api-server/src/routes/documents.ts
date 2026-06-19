@@ -173,8 +173,8 @@ router.post("/request-upload", requireAuth(), async (req, res) => {
   // Generate presigned upload URL
   const { uploadURL, objectPath } = await objectStorageService.getObjectEntityUploadURLWithPath();
 
-  // Determine initial status
-  const status = initialDocumentStatus(level);
+  // Determine initial status — if the uploader already has approve rights, publish immediately
+  const status = uploadPerms.canApprove ? "published" : initialDocumentStatus(level);
 
   // Fetch actor info for audit
   const actor = await db

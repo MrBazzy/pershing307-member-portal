@@ -684,7 +684,7 @@ function findRootAncestor(folder: FolderRow, all: FolderRow[]): FolderRow | null
 }
 
 // ── POST /document-folders/:id/subfolders ─────────────────────────────────────
-router.post("/:id/subfolders", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+router.post("/:id/subfolders", requireAuth(), async (req, res) => {
   const userId = req.session!.userId!;
   const lodgeId = await getLodgeId();
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
@@ -699,6 +699,9 @@ router.post("/:id/subfolders", requireAuth(), requireRole(SITE_ADMIN_LEVEL), asy
     .then((rows) => rows[0] ?? null);
 
   if (!parent) { res.status(404).json({ error: "Parent folder not found" }); return; }
+
+  const managePerms = await getEffectivePermissions(userId, parent.id, lodgeId);
+  if (!managePerms.canManage) { res.status(403).json({ error: "You do not have permission to manage this folder." }); return; }
 
   const actor = await db
     .select({ firstName: usersTable.firstName, lastName: usersTable.lastName, email: usersTable.email })
@@ -758,7 +761,7 @@ router.post("/:id/subfolders", requireAuth(), requireRole(SITE_ADMIN_LEVEL), asy
 });
 
 // ── PATCH /document-folders/:id ───────────────────────────────────────────────
-router.patch("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+router.patch("/:id", requireAuth(), async (req, res) => {
   const userId = req.session!.userId!;
   const lodgeId = await getLodgeId();
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
@@ -773,6 +776,9 @@ router.patch("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, r
     .then((rows) => rows[0] ?? null);
 
   if (!folder) { res.status(404).json({ error: "Not found" }); return; }
+
+  const managePerms = await getEffectivePermissions(userId, folder.id, lodgeId);
+  if (!managePerms.canManage) { res.status(403).json({ error: "You do not have permission to manage this folder." }); return; }
 
   const actor = await db
     .select({ firstName: usersTable.firstName, lastName: usersTable.lastName, email: usersTable.email })
@@ -891,7 +897,7 @@ router.patch("/:id/domain", requireAuth(), requireRole(PM_SUPER_LEVEL), async (r
 });
 
 // ── DELETE /document-folders/:id ──────────────────────────────────────────────
-router.delete("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+router.delete("/:id", requireAuth(), async (req, res) => {
   const userId = req.session!.userId!;
   const lodgeId = await getLodgeId();
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
@@ -904,6 +910,9 @@ router.delete("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, 
 
   if (!folder) { res.status(404).json({ error: "Not found" }); return; }
   if (folder.isSystemRoot) { res.status(400).json({ error: "Cannot delete a system root folder" }); return; }
+
+  const managePerms = await getEffectivePermissions(userId, folder.id, lodgeId);
+  if (!managePerms.canManage) { res.status(403).json({ error: "You do not have permission to manage this folder." }); return; }
 
   const childCount = await db
     .select({ c: count() })
