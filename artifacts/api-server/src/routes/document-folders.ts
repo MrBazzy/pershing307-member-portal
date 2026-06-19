@@ -536,13 +536,12 @@ router.get("/:id", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) =>
     if (rootFolder) effectiveFolder = rootFolder;
   }
 
-  if (!checkFolderAccess(effectiveFolder, level, slugs, maxDegree)) {
+  // Matrix-based access gate (falls back to legacy domain logic when no matrix rows exist)
+  const effectivePerms = await getEffectivePermissions(userId, folder.id, lodgeId);
+  if (!effectivePerms.canView) {
     res.status(403).json({ error: "Access denied" });
     return;
   }
-
-  // Compute effective permissions for the caller
-  const effectivePerms = await getEffectivePermissions(userId, folder.id, lodgeId);
 
   // Get subfolders
   const subfolders = await db
@@ -621,19 +620,9 @@ router.get("/:id/documents", requireAuth(), requireRole(MEMBER_LEVEL), async (re
 
   if (!folder) { res.status(404).json({ error: "Folder not found" }); return; }
 
-  // Walk ancestry to find effective access folder
-  let effectiveFolder: FolderRow = folder;
-  if (!folder.domainId && folder.accessPolicy === null) {
-    const allFolderRows = await db
-      .select(folderColumns)
-      .from(documentFoldersTable)
-      .leftJoin(protectedDomainsTable, eq(documentFoldersTable.domainId, protectedDomainsTable.id))
-      .where(eq(documentFoldersTable.lodgeId, lodgeId));
-    const rootFolder = findRootAncestor(folder, allFolderRows as FolderRow[]);
-    if (rootFolder) effectiveFolder = rootFolder;
-  }
-
-  if (!checkFolderAccess(effectiveFolder, level, slugs, maxDegree)) {
+  // Matrix-based access gate (falls back to legacy domain logic when no matrix rows exist)
+  const viewPerms = await getEffectivePermissions(userId, folder.id, lodgeId);
+  if (!viewPerms.canView) {
     res.status(403).json({ error: "Access denied" }); return;
   }
 

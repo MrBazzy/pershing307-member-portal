@@ -317,6 +317,12 @@ export async function getEffectivePermissions(
     return computeFromMatrix(matrixRows, level, roleSlugs, maxDegree);
   }
 
+  // System root folders are always managed by the matrix.
+  // An empty matrix means "deny all" — no legacy fallback.
+  // Non-system folders (e.g. test-created folders) fall back to legacy domain logic.
+  if (rootFolder.isSystemRoot) {
+    return { canView: false, canUpload: false, canApprove: false, canManage: false };
+  }
   return computeFromLegacy(rootFolder, level, roleSlugs, maxDegree);
 }
 
@@ -355,6 +361,9 @@ export async function getEffectivePermissionsWithContext(
   const matrixRows = allMatrixRows.filter((r) => r.folderId === rootFolder.id);
   if (matrixRows.length > 0) {
     return computeFromMatrix(matrixRows, level, roleSlugs, maxDegree);
+  }
+  if (rootFolder.isSystemRoot) {
+    return { canView: false, canUpload: false, canApprove: false, canManage: false };
   }
   return computeFromLegacy(rootFolder, level, roleSlugs, maxDegree);
 }

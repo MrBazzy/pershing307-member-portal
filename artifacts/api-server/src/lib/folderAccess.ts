@@ -11,6 +11,7 @@ export type FolderAccessRow = {
   frame: string;
   lodgeId: string;
   parentId: string | null;
+  isSystemRoot: boolean;
   accessPolicy: unknown;
   domainId: string | null;
   domainSlug: string | null;
@@ -25,6 +26,7 @@ export const folderAccessColumns = {
   frame: documentFoldersTable.frame,
   lodgeId: documentFoldersTable.lodgeId,
   parentId: documentFoldersTable.parentId,
+  isSystemRoot: documentFoldersTable.isSystemRoot,
   accessPolicy: documentFoldersTable.accessPolicy,
   domainId: documentFoldersTable.domainId,
   domainSlug: protectedDomainsTable.slug,

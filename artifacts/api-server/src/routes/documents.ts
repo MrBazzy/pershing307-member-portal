@@ -602,20 +602,23 @@ router.patch("/:id/status", requireAuth(), async (req, res) => {
   if (!doc) { res.status(404).json({ error: "Not found" }); return; }
 
   const { maxPermLevel: level } = await getUserVisibilityContext(userId);
-
-  // Admins can perform all status transitions.
-  // Uploaders can only withdraw their own pending_review submissions.
-  const isAdmin = level >= SITE_ADMIN_LEVEL;
   const isUploader = doc.uploaderId === userId;
 
-  if (!isAdmin) {
-    if (isUploader && doc.status === "pending_review" && parsed.data.status === "withdrawn") {
-      // allowed — uploader withdrawing their own pending submission
-    } else {
+  // Uploaders may always withdraw their own pending submissions (no approve needed).
+  const isWithdrawByUploader =
+    isUploader && doc.status === "pending_review" && parsed.data.status === "withdrawn";
+
+  if (!isWithdrawByUploader) {
+    // All other transitions require matrix canApprove (falls back to level ≥ 80 for non-matrix folders)
+    const statusPerms = await getEffectivePermissions(userId, doc.folderId, lodgeId);
+    if (!statusPerms.canApprove) {
       res.status(403).json({ error: "Admin only" });
       return;
     }
   }
+
+  // isAdmin used for reviewedBy/reviewedAt — treat anyone with approve perms the same
+  const isAdmin = !isWithdrawByUploader;
 
   const actor = await db
     .select({ firstName: usersTable.firstName, lastName: usersTable.lastName, email: usersTable.email })
