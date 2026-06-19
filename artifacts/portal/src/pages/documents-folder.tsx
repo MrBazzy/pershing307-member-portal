@@ -1,5 +1,14 @@
 import { useState } from "react";
+import { Document, Page, pdfjs } from "react-pdf";
+import "react-pdf/dist/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/TextLayer.css";
 import { Link } from "wouter";
+
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url,
+).toString();
+
 import {
   useGetDocumentFolder,
   useListFolderDocuments,
@@ -93,6 +102,8 @@ export default function DocumentsFolderPage({ id }: Props) {
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
   const [viewingIds, setViewingIds] = useState<Set<string>>(new Set());
   const [viewer, setViewer] = useState<{ objectUrl: string; fileName: string; mimeType: string } | null>(null);
+  const [pdfNumPages, setPdfNumPages] = useState<number>(0);
+  const [pdfPage, setPdfPage] = useState<number>(1);
   const [withdrawTarget, setWithdrawTarget] = useState<{ id: string; title: string } | null>(null);
 
   const isAccessDenied = (error as any)?.status === 403;
@@ -117,6 +128,8 @@ export default function DocumentsFolderPage({ id }: Props) {
     try {
       const blob = await viewDocument(docId);
       const objectUrl = URL.createObjectURL(blob);
+      setPdfPage(1);
+      setPdfNumPages(0);
       setViewer({ objectUrl, fileName, mimeType });
     } catch {
       toast({ title: "Could not load document", variant: "destructive" });
@@ -128,6 +141,8 @@ export default function DocumentsFolderPage({ id }: Props) {
   function closeViewer() {
     if (viewer) URL.revokeObjectURL(viewer.objectUrl);
     setViewer(null);
+    setPdfPage(1);
+    setPdfNumPages(0);
   }
 
   async function handleDownload(docId: string, fileName: string) {
@@ -463,19 +478,64 @@ export default function DocumentsFolderPage({ id }: Props) {
               {viewer?.fileName ?? ""}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-auto flex flex-col items-center">
             {viewer?.mimeType.startsWith("image/") ? (
-              <div className="w-full h-full flex items-center justify-center p-4 overflow-auto">
+              <div className="w-full h-full flex items-center justify-center p-4">
                 <img
                   src={viewer.objectUrl}
                   alt={viewer.fileName}
                   className="max-w-full max-h-full object-contain"
                 />
               </div>
+            ) : viewer?.mimeType === "application/pdf" ? (
+              <div className="w-full flex flex-col items-center py-4 gap-2">
+                <Document
+                  file={viewer.objectUrl}
+                  onLoadSuccess={({ numPages }) => setPdfNumPages(numPages)}
+                  loading={
+                    <div className="flex items-center gap-2 py-8 text-muted-foreground text-sm">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Loading PDF…
+                    </div>
+                  }
+                  error={
+                    <p className="py-8 text-sm text-destructive">Failed to load PDF.</p>
+                  }
+                >
+                  <Page
+                    pageNumber={pdfPage}
+                    width={Math.min(880, window.innerWidth - 80)}
+                    renderAnnotationLayer={false}
+                    renderTextLayer={false}
+                  />
+                </Document>
+                {pdfNumPages > 1 && (
+                  <div className="flex items-center gap-3 pb-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={pdfPage <= 1}
+                      onClick={() => setPdfPage((p) => Math.max(1, p - 1))}
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Page {pdfPage} of {pdfNumPages}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={pdfPage >= pdfNumPages}
+                      onClick={() => setPdfPage((p) => Math.min(pdfNumPages, p + 1))}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+              </div>
             ) : (
-              <embed
+              <iframe
                 src={viewer?.objectUrl}
-                type={viewer?.mimeType ?? "application/pdf"}
+                title={viewer?.fileName ?? "Document"}
                 className="w-full h-full border-0"
               />
             )}
