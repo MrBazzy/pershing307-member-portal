@@ -1,0 +1,159 @@
+DOCUMENT-PERMISSIONS-REVIEW-001
+
+STEP 0 — SAFETY FIRST
+
+Before making changes:
+
+1. Create Replit checkpoint/snapshot.
+2. Create git tag:
+
+v3.8-before-document-permission-review
+
+3. Confirm build passes.
+
+---
+
+## PART 1 — TERMINOLOGY CLEANUP
+
+Rename document grouping frames:
+
+OLD:
+
+* General Documents
+* Ritual Documents
+
+NEW:
+
+* General Information
+* Ritual Information
+
+Important:
+
+These are grouping frames only.
+
+Do NOT rename actual folders.
+
+Keep folders:
+
+* General Documents
+* Meeting Minutes
+* Secretary Documents
+* Treasury Documents
+* Worshipful Master Documents
+
+and
+
+* Entered Apprentice Ritual
+* Fellowcraft Ritual
+* Master Mason Ritual
+* Past Master Ritual
+
+unchanged.
+
+---
+
+## PART 2 — PERMISSION REVIEW
+
+After renaming, review ALL read/write permissions.
+
+Important distinction:
+
+FRAME/GROUP ≠ FOLDER
+
+General Information is a frame.
+
+General Documents is a folder.
+
+Write permissions must be evaluated on folders, not on frames.
+
+---
+
+## READ PERMISSIONS
+
+Review all current document folder read permissions.
+
+Verify:
+
+* Visitor
+* Member
+* Secretary
+* Treasurer
+* Junior Warden
+* Senior Warden
+* Worshipful Master
+* Past Master
+* Site Administrator
+* PM Super Administrator
+
+Verify role-based and degree-based rules.
+
+---
+
+## WRITE PERMISSIONS
+
+Members may upload ONLY to:
+
+General Documents folder
+
+and
+
+subfolders beneath General Documents.
+
+Members may NOT upload to:
+
+* Meeting Minutes
+* Secretary Documents
+* Treasury Documents
+* Worshipful Master Documents
+* Entered Apprentice Ritual
+* Fellowcraft Ritual
+* Master Mason Ritual
+* Past Master Ritual
+
+unless explicitly granted by future access rules.
+
+---
+
+## ADMINISTRATIVE WRITE PERMISSIONS
+
+Review upload/edit/delete rights for:
+
+* Site Administrator
+* PM Super Administrator
+* Secretary
+* Treasurer
+* Worshipful Master
+
+Ensure restricted folders remain restricted.
+
+---
+
+## VALIDATION REPORT
+
+Provide a matrix showing:
+
+Folder Name
+Read Access
+Upload Access
+Approve Access
+Delete Access
+
+for every folder.
+
+Identify any inconsistencies.
+
+Do not implement uploads yet.
+
+Only validate and correct the permission model.
+
+---
+
+## ACCEPTANCE CRITERIA
+
+1. Frames renamed correctly.
+2. Folder names unchanged.
+3. Permissions evaluated per folder.
+4. General Documents upload rights limited to that folder only.
+5. No inherited write rights from a frame/group.
+6. Validation report produced.
+7. Build passes.
