@@ -15,6 +15,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -91,6 +92,7 @@ export default function DocumentsFolderPage({ id }: Props) {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
   const [viewingIds, setViewingIds] = useState<Set<string>>(new Set());
+  const [viewer, setViewer] = useState<{ objectUrl: string; fileName: string; mimeType: string } | null>(null);
   const [withdrawTarget, setWithdrawTarget] = useState<{ id: string; title: string } | null>(null);
 
   const isAccessDenied = (error as any)?.status === 403;
@@ -109,31 +111,14 @@ export default function DocumentsFolderPage({ id }: Props) {
     );
   }
 
-  async function handleView(docId: string, fileName: string) {
+  async function handleView(docId: string, fileName: string, mimeType: string) {
     if (viewingIds.has(docId)) return;
     setViewingIds((prev) => new Set(prev).add(docId));
-    // Open the tab immediately (synchronous, inside the click handler) to avoid
-    // the browser's pop-up blocker, then navigate it once the blob is ready.
-    const tab = window.open("", "_blank");
     try {
       const blob = await viewDocument(docId);
-      const url = URL.createObjectURL(blob);
-      if (tab) {
-        tab.location.href = url;
-        setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      } else {
-        // Fallback: open a normal link if the tab reference was lost
-        const a = document.createElement("a");
-        a.href = url;
-        a.target = "_blank";
-        a.rel = "noopener noreferrer";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      }
+      const objectUrl = URL.createObjectURL(blob);
+      setViewer({ objectUrl, fileName, mimeType });
     } catch {
-      tab?.close();
       toast({ title: "Could not open document", variant: "destructive" });
     } finally {
       setViewingIds((prev) => {
@@ -142,6 +127,11 @@ export default function DocumentsFolderPage({ id }: Props) {
         return next;
       });
     }
+  }
+
+  function closeViewer() {
+    if (viewer) URL.revokeObjectURL(viewer.objectUrl);
+    setViewer(null);
   }
 
   async function handleDownload(docId: string, fileName: string) {
@@ -418,7 +408,7 @@ export default function DocumentsFolderPage({ id }: Props) {
                                   variant="outline"
                                   className="gap-1.5"
                                   disabled={viewingIds.has(doc.id)}
-                                  onClick={() => handleView(doc.id, doc.originalFileName)}
+                                  onClick={() => handleView(doc.id, doc.originalFileName, doc.mimeType)}
                                 >
                                   {viewingIds.has(doc.id) ? (
                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -470,6 +460,34 @@ export default function DocumentsFolderPage({ id }: Props) {
           folderTitle={folder.title}
         />
       )}
+
+      {/* Inline document viewer */}
+      <Dialog open={!!viewer} onOpenChange={(o) => { if (!o) closeViewer(); }}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-4 py-3 border-b shrink-0">
+            <DialogTitle className="text-sm font-medium truncate pr-8">
+              {viewer?.fileName ?? ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {viewer?.mimeType.startsWith("image/") ? (
+              <div className="w-full h-full flex items-center justify-center p-4 overflow-auto">
+                <img
+                  src={viewer.objectUrl}
+                  alt={viewer.fileName}
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
+            ) : (
+              <iframe
+                src={viewer?.objectUrl}
+                title={viewer?.fileName ?? "Document"}
+                className="w-full h-full border-0"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Withdraw submission confirmation */}
       <AlertDialog
