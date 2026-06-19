@@ -268,17 +268,9 @@ router.get("/", requireAuth(), async (req, res) => {
     ))
     .orderBy(asc(documentsTable.createdAt));
 
-  // Filter by visibility
+  // Filter by visibility — members see only published; admins see all statuses
   const isAdmin = level >= SITE_ADMIN_LEVEL;
-  const visible = docs.filter((d) => {
-    if (d.status === "deleted") return isAdmin;
-    if (d.status === "archived") return isAdmin;
-    if (d.status === "published") return true;
-    if (d.status === "pending_review" || d.status === "rejected" || d.status === "withdrawn") {
-      return isAdmin || d.uploaderId === userId;
-    }
-    return false;
-  });
+  const visible = docs.filter((d) => isAdmin || d.status === "published");
 
   // Fetch uploaders in bulk
   const uploaderIds = [...new Set(visible.map((d) => d.uploaderId).filter(Boolean) as string[])];
