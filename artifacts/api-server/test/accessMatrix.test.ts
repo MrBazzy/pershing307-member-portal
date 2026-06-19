@@ -283,9 +283,12 @@ describe("Matrix enforcement — GET /api/document-folders", () => {
   beforeAll(async () => { fx = await seedMatrixFixtures(); });
   afterAll(async () => { await teardownMatrixFixtures(fx); });
 
-  it("hides general-documents from member when all view rows are revoked", async () => {
-    // Clear general-documents matrix so member can no longer view
-    await replaceMatrixForFolder(fx.generalFolderId, fx.lodgeId, []);
+  it("hides general-documents from member when view access is restricted to a role they lack", async () => {
+    // Replace with secretary-only view; the test member has no secretary role
+    await replaceMatrixForFolder(fx.generalFolderId, fx.lodgeId, [
+      { subjectType: "role", subjectKey: "secretary", permission: "view" },
+      { subjectType: "role", subjectKey: "secretary", permission: "upload" },
+    ]);
 
     const agent = await loginAgent(app, fx.memberEmail, fx.password);
     const res = await agent.get("/api/document-folders");

@@ -167,6 +167,7 @@ export async function seedFolderAccessMatrix(lodgeId: string): Promise<void> {
     .select({
       id: documentFoldersTable.id,
       domainSlug: protectedDomainsTable.slug,
+      matrixInitialized: documentFoldersTable.matrixInitialized,
     })
     .from(documentFoldersTable)
     .leftJoin(protectedDomainsTable, eq(documentFoldersTable.domainId, protectedDomainsTable.id))
@@ -181,13 +182,9 @@ export async function seedFolderAccessMatrix(lodgeId: string): Promise<void> {
     const slug = root.domainSlug;
     if (!slug || !DEFAULT_DOMAIN_MATRIX[slug]) continue;
 
-    const existing = await db
-      .select({ id: folderAccessMatrixTable.id })
-      .from(folderAccessMatrixTable)
-      .where(eq(folderAccessMatrixTable.folderId, root.id))
-      .limit(1);
-
-    if (existing.length > 0) continue;
+    // Skip if already initialized — once set, admins own the matrix contents.
+    // Re-seeding after an admin intentionally clears permissions would defeat the purpose.
+    if (root.matrixInitialized) continue;
 
     const entries = DEFAULT_DOMAIN_MATRIX[slug].map((e) => ({
       lodgeId,
@@ -198,6 +195,10 @@ export async function seedFolderAccessMatrix(lodgeId: string): Promise<void> {
     }));
 
     await db.insert(folderAccessMatrixTable).values(entries).onConflictDoNothing();
+    await db
+      .update(documentFoldersTable)
+      .set({ matrixInitialized: true })
+      .where(eq(documentFoldersTable.id, root.id));
   }
 }
 

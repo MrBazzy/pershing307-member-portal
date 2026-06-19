@@ -18,6 +18,7 @@ export const documentFoldersTable = pgTable("document_folders", {
   domainId: text("domain_id").references(() => protectedDomainsTable.id, { onDelete: "set null" }),
   frame: text("frame").notNull().default("general"),
   isSystemRoot: boolean("is_system_root").notNull().default(false),
+  matrixInitialized: boolean("matrix_initialized").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
   createdBy: text("created_by").references(() => usersTable.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
