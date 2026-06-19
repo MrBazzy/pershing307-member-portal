@@ -236,7 +236,7 @@ export default function DocumentsFolderPage({ id }: Props) {
 
         {/* Other error */}
         {folderError && !isAccessDenied && (
-          <Card className="border-amber-200">
+          <Card className="border-card-border">
             <CardContent className="py-12 text-center text-sm text-muted-foreground">
               Failed to load folder. Please try again.
             </CardContent>
@@ -332,7 +332,7 @@ export default function DocumentsFolderPage({ id }: Props) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {folder.subfolders.map((sub) => (
                     <Link key={sub.id} href={`/documents/${sub.id}`}>
-                      <Card className="border-amber-200 cursor-pointer hover:border-amber-400 hover:shadow-sm transition-all">
+                      <Card className="border border-card-border border-t-2 border-t-sidebar-active overflow-hidden cursor-pointer hover:border-primary/30 hover:shadow-md transition-all">
                         <CardContent className="p-4 flex items-center gap-3">
                           <div className="rounded-md bg-muted p-2 shrink-0">
                             <Folder className="h-4 w-4 text-muted-foreground" />
@@ -424,7 +424,7 @@ export default function DocumentsFolderPage({ id }: Props) {
 
               {/* Empty state */}
               {!docsLoading && filteredDocuments.length === 0 && (
-                <Card className={cn("border-amber-200", canUpload && "border-dashed")}>
+                <Card className={cn("border-card-border", canUpload && "border-dashed")}>
                   <CardContent className="py-10 text-center">
                     <FileX className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2.5" />
                     <p className="text-sm text-muted-foreground">No documents yet.</p>
@@ -453,7 +453,7 @@ export default function DocumentsFolderPage({ id }: Props) {
                     const isDownloading = downloadingIds.has(doc.id);
 
                     return (
-                      <Card key={doc.id} className="border-amber-200">
+                      <Card key={doc.id} className="border border-card-border border-t-2 border-t-sidebar-active overflow-hidden">
                         <CardContent className="p-4">
                           <div className="flex items-start gap-3">
                             <div className="rounded-md bg-muted p-2 shrink-0 mt-0.5">
