@@ -1,0 +1,244 @@
+DOCUMENT-UPLOAD-002 — Correct Upload Workflow and Fix Subfolder Upload Permissions
+
+STEP 0 — SAFETY FIRST
+
+Before making changes:
+
+1. Create Replit checkpoint/snapshot.
+2. Create git tag:
+
+v3.8-before-upload-workflow-fix
+
+3. Confirm build passes.
+
+---
+
+## ISSUE 1
+
+The intended workflow for General Documents uploads is not correctly implemented.
+
+---
+
+## REQUIRED WORKFLOW
+
+General Information
+└── General Documents
+└── Subfolders
+
+All authenticated members (except Visitors) may upload documents to:
+
+* General Documents
+* Any subfolder beneath General Documents
+
+This includes:
+
+* Member
+* Secretary
+* Treasurer
+* Junior Warden
+* Senior Warden
+* Worshipful Master
+* Past Master
+* Site Administrator
+* PM Super Administrator
+
+Visitors may not upload.
+
+---
+
+## PENDING STATUS
+
+When a document is uploaded by a user:
+
+Status = Pending
+
+The document is NOT yet considered published.
+
+Pending documents:
+
+Visible to:
+
+* uploader
+* Site Administrator
+* PM Super Administrator
+
+Not visible to other members.
+
+---
+
+## UPLOADER RIGHTS
+
+While status = Pending
+
+Uploader may:
+
+* delete own pending document
+* replace own pending document if feasible
+* edit description if feasible
+
+Uploader may NOT:
+
+* approve
+* publish
+* move to another folder
+* change access rules
+
+---
+
+## APPROVAL RIGHTS
+
+Only:
+
+* Site Administrator
+* PM Super Administrator
+
+may:
+
+* Approve
+* Reject
+* Archive
+* Delete
+
+pending documents.
+
+---
+
+## PUBLISHED STATUS
+
+When approved:
+
+Status = Published
+
+Published document becomes visible according to folder permissions.
+
+Once Published:
+
+Uploader may no longer delete the document.
+
+Published document may only be:
+
+* Archived
+* Deleted
+
+by:
+
+* Site Administrator
+* PM Super Administrator
+
+---
+
+## ISSUE 2
+
+Currently uploading to subfolders beneath:
+
+General Information
+└── General Documents
+
+results in:
+
+"Access Denied"
+
+even for administrators.
+
+---
+
+## REQUIRED FIX
+
+Subfolders must inherit upload permissions from the parent folder.
+
+Example:
+
+General Documents
+├── 2026
+├── Lodge Guidelines
+└── Historical Articles
+
+If a user may upload to General Documents,
+
+then the same user may upload to:
+
+* 2026
+* Lodge Guidelines
+* Historical Articles
+
+unless explicit restrictions are implemented later.
+
+---
+
+## SUBFOLDER INHERITANCE
+
+Default rule:
+
+Parent folder permissions are inherited by all subfolders.
+
+For this sprint:
+
+No separate upload permissions at subfolder level.
+
+Do not require manual permission assignment for each subfolder.
+
+---
+
+## ADMINISTRATOR TEST
+
+Verify:
+
+Site Administrator can upload to:
+
+* General Documents
+* every General Documents subfolder
+
+PM Super Administrator can upload to:
+
+* General Documents
+* every General Documents subfolder
+
+---
+
+## MEMBER TEST
+
+Verify:
+
+Member can upload to:
+
+* General Documents
+* every General Documents subfolder
+
+Member cannot upload to:
+
+* Meeting Minutes
+* Secretary Documents
+* Treasury Documents
+* Worshipful Master Documents
+* Ritual folders
+
+---
+
+## AUDIT LOGGING
+
+Log:
+
+John Smith uploaded "Guidelines.pdf" to General Documents/2026.
+Status: Pending.
+
+John Smith deleted pending document "Guidelines.pdf".
+
+Peter Jones approved document "Guidelines.pdf".
+
+Peter Jones archived document "Guidelines.pdf".
+
+---
+
+## ACCEPTANCE CRITERIA
+
+1. Members can upload to General Documents.
+2. Members can upload to subfolders under General Documents.
+3. Administrators can upload to subfolders under General Documents.
+4. Uploaded files receive Pending status.
+5. Uploader may delete own Pending file.
+6. Uploader cannot delete Published file.
+7. Only Site Administrator and PM Super Administrator may approve.
+8. Only Site Administrator and PM Super Administrator may archive/delete Published files.
+9. Subfolders inherit upload permissions from General Documents.
+10. No Access Denied error occurs for valid uploads.
+11. Build passes.
