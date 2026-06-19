@@ -13,6 +13,7 @@ export type FolderAccessRow = {
   parentId: string | null;
   accessPolicy: unknown;
   domainId: string | null;
+  domainSlug: string | null;
   domainAccessLogic: DomainAccessLogic | null;
   domainAllowedRoleSlugs: string[] | null;
   domainMinDegree: number | null;
@@ -26,6 +27,7 @@ export const folderAccessColumns = {
   parentId: documentFoldersTable.parentId,
   accessPolicy: documentFoldersTable.accessPolicy,
   domainId: documentFoldersTable.domainId,
+  domainSlug: protectedDomainsTable.slug,
   domainAccessLogic: protectedDomainsTable.accessLogic,
   domainAllowedRoleSlugs: protectedDomainsTable.allowedRoleSlugs,
   domainMinDegree: protectedDomainsTable.minDegree,
@@ -90,14 +92,15 @@ export function checkFolderAccess(
 /**
  * Determines if the user can upload to a folder.
  * Admins (≥ 80) can upload to any folder.
- * Members (≥ 20) can only upload to "general" frame folders.
+ * Members (≥ 20) can only upload to the "General Documents" domain
+ * (domainSlug === "general-documents") or its subfolders.
  */
 export function canUploadToFolder(
   folder: FolderAccessRow,
   userLevel: number,
 ): boolean {
   if (userLevel >= 80) return true;
-  if (userLevel >= MEMBER_LEVEL && folder.frame === "general") return true;
+  if (userLevel >= MEMBER_LEVEL && folder.domainSlug === "general-documents") return true;
   return false;
 }
 

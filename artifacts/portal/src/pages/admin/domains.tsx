@@ -404,7 +404,7 @@ export default function AdminDomainsPage() {
               {generalDomains.length > 0 && (
                 <div>
                   <div className="mb-4">
-                    <h2 className="text-base font-semibold text-foreground">General Documents</h2>
+                    <h2 className="text-base font-semibold text-foreground">General Information</h2>
                     <p className="text-sm text-muted-foreground mt-0.5">Access rules for administrative and member-facing domains.</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -418,7 +418,7 @@ export default function AdminDomainsPage() {
               {ritualDomains.length > 0 && (
                 <div>
                   <div className="mb-4">
-                    <h2 className="text-base font-semibold text-foreground">Ritual Documents</h2>
+                    <h2 className="text-base font-semibold text-foreground">Ritual Information</h2>
                     <p className="text-sm text-muted-foreground mt-0.5">Access rules for degree ritual materials and ceremonial resources.</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -75,7 +75,7 @@ export default function DocumentsFolderPage({ id }: Props) {
 
   const canUpload =
     folder !== undefined &&
-    ((folder.frame === "general" && userLevel >= MEMBER_LEVEL) || isAdmin);
+    ((folder.domainSlug === "general-documents" && userLevel >= MEMBER_LEVEL) || isAdmin);
 
   const documents = docsData?.documents ?? [];
 

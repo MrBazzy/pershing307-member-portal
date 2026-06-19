@@ -15,6 +15,8 @@ export interface DocumentFolderDetail {
   sortOrder: number;
   frame: string;
   domainId?: string | null;
+  /** Slug of the linked protected domain, e.g. general-documents */
+  domainSlug?: string | null;
   subfolders: DocumentFolderItem[];
   createdAt: Date;
   updatedAt: Date;

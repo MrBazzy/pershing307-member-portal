@@ -1360,6 +1360,8 @@ export interface DocumentFolderItem {
   /** Which section this folder belongs to: general or ritual */
   frame: string;
   domainId?: string | null;
+  /** Slug of the linked protected domain, e.g. general-documents */
+  domainSlug?: string | null;
   subfolderCount: number;
   createdAt: string;
   updatedAt: string;
@@ -1377,6 +1379,8 @@ export interface DocumentFolderDetail {
   sortOrder: number;
   frame: string;
   domainId?: string | null;
+  /** Slug of the linked protected domain, e.g. general-documents */
+  domainSlug?: string | null;
   subfolders: DocumentFolderItem[];
   createdAt: string;
   updatedAt: string;

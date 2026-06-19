@@ -4862,6 +4862,10 @@ components:
         domainId:
           type: string
           nullable: true
+        domainSlug:
+          type: string
+          nullable: true
+          description: "Slug of the linked protected domain, e.g. general-documents"
         subfolderCount:
           type: integer
         createdAt:
@@ -4900,6 +4904,10 @@ components:
         domainId:
           type: string
           nullable: true
+        domainSlug:
+          type: string
+          nullable: true
+          description: "Slug of the linked protected domain, e.g. general-documents"
         subfolders:
           type: array
           items:

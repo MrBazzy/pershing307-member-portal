@@ -140,7 +140,7 @@ export default function DocumentsPage() {
         {!isError && (hasGeneral || hasRitual) && (
           <div className="space-y-8">
             <FrameSection
-              title="General Documents"
+              title="General Information"
               description="Administrative records and member resources."
               folders={generalFolders}
               isLoading={isLoading}
@@ -151,7 +151,7 @@ export default function DocumentsPage() {
             )}
 
             <FrameSection
-              title="Ritual Documents"
+              title="Ritual Information"
               description="Degree ritual materials and ceremonial resources."
               folders={ritualFolders}
               isLoading={isLoading}

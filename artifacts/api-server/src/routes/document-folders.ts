@@ -333,6 +333,7 @@ type FolderRow = {
   description: string | null;
   accessPolicy: unknown;
   domainId: string | null;
+  domainSlug: string | null;
   frame: string;
   isSystemRoot: boolean;
   sortOrder: number;
@@ -354,6 +355,7 @@ const folderColumns = {
   sortOrder: documentFoldersTable.sortOrder,
   createdAt: documentFoldersTable.createdAt,
   updatedAt: documentFoldersTable.updatedAt,
+  domainSlug: protectedDomainsTable.slug,
   domainAccessLogic: protectedDomainsTable.accessLogic,
   domainAllowedRoleSlugs: protectedDomainsTable.allowedRoleSlugs,
   domainMinDegree: protectedDomainsTable.minDegree,
@@ -368,6 +370,7 @@ function formatFolder(f: FolderRow, subfolderCount: number) {
     sortOrder: f.sortOrder,
     frame: f.frame,
     domainId: f.domainId ?? null,
+    domainSlug: f.domainSlug ?? null,
     subfolderCount,
     createdAt: f.createdAt.toISOString(),
     updatedAt: f.updatedAt.toISOString(),
@@ -537,6 +540,7 @@ router.get("/:id", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) =>
     sortOrder: folder.sortOrder,
     frame: folder.frame,
     domainId: folder.domainId ?? null,
+    domainSlug: folder.domainSlug ?? null,
     subfolders: subfolders.map((s) => formatFolder(s as FolderRow, subCountMap.get(s.id) ?? 0)),
     createdAt: folder.createdAt.toISOString(),
     updatedAt: folder.updatedAt.toISOString(),

@@ -15,6 +15,8 @@ export interface DocumentFolderItem {
   /** Which section this folder belongs to: general or ritual */
   frame: string;
   domainId?: string | null;
+  /** Slug of the linked protected domain, e.g. general-documents */
+  domainSlug?: string | null;
   subfolderCount: number;
   createdAt: Date;
   updatedAt: Date;

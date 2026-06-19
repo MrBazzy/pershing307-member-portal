@@ -606,7 +606,7 @@ export default function AdminDocumentManagementPage() {
               <div className="flex items-center gap-2 mb-3">
                 <FolderOpen className="h-4 w-4 text-primary" />
                 <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
-                  General Documents
+                  General Information
                 </h2>
               </div>
               <div className="space-y-2">
@@ -636,7 +636,7 @@ export default function AdminDocumentManagementPage() {
               <div className="flex items-center gap-2 mb-3">
                 <BookOpen className="h-4 w-4 text-amber-600 dark:text-amber-500" />
                 <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
-                  Ritual Documents
+                  Ritual Information
                 </h2>
               </div>
               <div className="space-y-2">

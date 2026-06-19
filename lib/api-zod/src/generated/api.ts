@@ -2242,6 +2242,7 @@ export const ListDocumentFoldersResponse = zod.object({
   "sortOrder": zod.number(),
   "frame": zod.string().describe('Which section this folder belongs to: general or ritual'),
   "domainId": zod.string().nullish(),
+  "domainSlug": zod.string().nullish().describe('Slug of the linked protected domain, e.g. general-documents'),
   "subfolderCount": zod.number(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -2264,6 +2265,7 @@ export const GetDocumentFolderResponse = zod.object({
   "sortOrder": zod.number(),
   "frame": zod.string(),
   "domainId": zod.string().nullish(),
+  "domainSlug": zod.string().nullish().describe('Slug of the linked protected domain, e.g. general-documents'),
   "subfolders": zod.array(zod.object({
   "id": zod.string(),
   "title": zod.string(),
@@ -2272,6 +2274,7 @@ export const GetDocumentFolderResponse = zod.object({
   "sortOrder": zod.number(),
   "frame": zod.string().describe('Which section this folder belongs to: general or ritual'),
   "domainId": zod.string().nullish(),
+  "domainSlug": zod.string().nullish().describe('Slug of the linked protected domain, e.g. general-documents'),
   "subfolderCount": zod.number(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -2307,6 +2310,7 @@ export const UpdateDocumentFolderResponse = zod.object({
   "sortOrder": zod.number(),
   "frame": zod.string(),
   "domainId": zod.string().nullish(),
+  "domainSlug": zod.string().nullish().describe('Slug of the linked protected domain, e.g. general-documents'),
   "subfolders": zod.array(zod.object({
   "id": zod.string(),
   "title": zod.string(),
@@ -2315,6 +2319,7 @@ export const UpdateDocumentFolderResponse = zod.object({
   "sortOrder": zod.number(),
   "frame": zod.string().describe('Which section this folder belongs to: general or ritual'),
   "domainId": zod.string().nullish(),
+  "domainSlug": zod.string().nullish().describe('Slug of the linked protected domain, e.g. general-documents'),
   "subfolderCount": zod.number(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
