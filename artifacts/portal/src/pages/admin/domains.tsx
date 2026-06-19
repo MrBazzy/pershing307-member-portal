@@ -224,7 +224,7 @@ export default function AdminDomainsPage() {
   const [createDesc, setCreateDesc] = useState("");
   const [createLogic, setCreateLogic] = useState<"role_only" | "degree_only" | "role_or_degree" | "role_and_degree">("role_only");
   const [createRoles, setCreateRoles] = useState<string[]>([]);
-  const [createDegree, setCreateDegree] = useState<string>("");
+  const [createDegree, setCreateDegree] = useState<string>("none");
 
   function autoSlug(name: string) {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -232,7 +232,7 @@ export default function AdminDomainsPage() {
 
   function handleCreate() {
     if (!createName.trim() || !createSlug.trim()) return;
-    const minDegree = createDegree ? parseInt(createDegree) : null;
+    const minDegree = createDegree && createDegree !== "none" ? parseInt(createDegree) : null;
     createDomain.mutate(
       {
         data: {
@@ -250,7 +250,7 @@ export default function AdminDomainsPage() {
           toast({ title: "Domain created" });
           setShowCreate(false);
           setCreateName(""); setCreateSlug(""); setCreateFrame("general"); setCreateDesc("");
-          setCreateLogic("role_only"); setCreateRoles([]); setCreateDegree("");
+          setCreateLogic("role_only"); setCreateRoles([]); setCreateDegree("none");
           invalidate();
         },
         onError: (e: any) =>
@@ -290,18 +290,18 @@ export default function AdminDomainsPage() {
   const [accessTarget, setAccessTarget] = useState<DocumentDomainItem | null>(null);
   const [accessLogic, setAccessLogic] = useState<"role_only" | "degree_only" | "role_or_degree" | "role_and_degree">("role_only");
   const [accessRoles, setAccessRoles] = useState<string[]>([]);
-  const [accessDegree, setAccessDegree] = useState<string>("");
+  const [accessDegree, setAccessDegree] = useState<string>("none");
 
   function openEditAccess(d: DocumentDomainItem) {
     setAccessTarget(d);
     setAccessLogic(d.accessLogic as any);
     setAccessRoles([...d.allowedRoleSlugs]);
-    setAccessDegree(d.minDegree != null ? String(d.minDegree) : "");
+    setAccessDegree(d.minDegree != null ? String(d.minDegree) : "none");
   }
 
   function handleEditAccess() {
     if (!accessTarget) return;
-    const minDegree = accessDegree ? parseInt(accessDegree) : null;
+    const minDegree = accessDegree && accessDegree !== "none" ? parseInt(accessDegree) : null;
     updateAccess.mutate(
       {
         id: accessTarget.id,
@@ -523,7 +523,7 @@ export default function AdminDomainsPage() {
                     <SelectValue placeholder="No degree requirement" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No degree requirement</SelectItem>
+                    <SelectItem value="none">No degree requirement</SelectItem>
                     {DEGREE_OPTIONS.map((d) => (
                       <SelectItem key={d.value} value={String(d.value)}>{d.label}</SelectItem>
                     ))}
@@ -628,7 +628,7 @@ export default function AdminDomainsPage() {
                     <SelectValue placeholder="No degree requirement" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No degree requirement</SelectItem>
+                    <SelectItem value="none">No degree requirement</SelectItem>
                     {DEGREE_OPTIONS.map((d) => (
                       <SelectItem key={d.value} value={String(d.value)}>{d.label}</SelectItem>
                     ))}
