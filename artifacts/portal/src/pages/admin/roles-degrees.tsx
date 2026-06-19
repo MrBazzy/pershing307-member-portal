@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListRoles,
@@ -39,7 +38,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Shield, GraduationCap, Plus, Pencil, Trash2, Lock, Loader2 } from "lucide-react";
+import { Shield, GraduationCap, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 
 type Tab = "roles" | "degrees";
 
@@ -269,7 +268,7 @@ function RolesTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Define the permission roles available in this lodge. System roles are built-in and cannot be deleted.
+          Define the permission roles available in this lodge.
         </p>
         <Button size="sm" onClick={openCreate}>
           <Plus className="h-4 w-4 mr-1" />
@@ -287,12 +286,6 @@ function RolesTab() {
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-medium text-sm">{role.name}</span>
                 <code className="text-xs bg-muted rounded px-1.5 py-0.5">{role.slug}</code>
-                {role.isSystem && (
-                  <Badge variant="secondary" className="text-xs gap-1">
-                    <Lock className="h-3 w-3" />
-                    system
-                  </Badge>
-                )}
               </div>
               <div className="flex items-center gap-3 mt-0.5">
                 <span className="text-xs text-muted-foreground">
@@ -352,11 +345,6 @@ function RolesTab() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Role</DialogTitle>
-            {editRole?.isSystem && (
-              <DialogDescription className="text-amber-600">
-                This is a system role. The slug cannot be changed.
-              </DialogDescription>
-            )}
           </DialogHeader>
           <RoleFormFields
             form={editForm}
