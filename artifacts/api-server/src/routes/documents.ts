@@ -441,7 +441,11 @@ router.get("/:id/view", requireAuth(), async (req, res) => {
     const objectFile = await objectStorageService.getObjectEntityFile(doc.storagePath);
     const response = await objectStorageService.downloadObject(objectFile, 0);
 
-    // Inline disposition — browser renders PDF/images directly
+    // Inline disposition — browser renders PDF/images directly.
+    // Remove X-Frame-Options so the portal can embed this in a dialog iframe.
+    // Chrome checks X-Frame-Options against the top-level origin (Replit IDE),
+    // not the direct parent (portal), so SAMEORIGIN would incorrectly block it.
+    res.removeHeader("X-Frame-Options");
     res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(doc.originalFileName)}"`);
     res.setHeader("Content-Type", doc.mimeType);
     res.status(response.status);

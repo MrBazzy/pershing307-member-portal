@@ -290,6 +290,67 @@ function FolderDocumentsList({ folderId }: { folderId: string }) {
   );
 }
 
+function SubfolderRow({ sub, isAdmin, onEdit, onDelete }: {
+  sub: { id: string; title: string; description?: string | null; subfolderCount: number };
+  isAdmin: boolean;
+  onEdit: (folder: { id: string; title: string; description: string | null }) => void;
+  onDelete: (folder: { id: string; title: string }) => void;
+}) {
+  const [docsExpanded, setDocsExpanded] = useState(false);
+
+  return (
+    <div className="border border-card-border/50 rounded-md overflow-hidden">
+      <div className="flex items-center gap-2 py-1.5 px-2 group bg-muted/20">
+        <Folder className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <span className="text-sm text-foreground flex-1">{sub.title}</span>
+        {sub.description && (
+          <span className="text-xs text-muted-foreground hidden sm:block truncate max-w-[200px]">
+            {sub.description}
+          </span>
+        )}
+        {isAdmin && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onEdit({ id: sub.id, title: sub.title, description: sub.description ?? null })}>
+                <Pencil className="h-3.5 w-3.5 mr-2" />
+                Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => onDelete({ id: sub.id, title: sub.title })}
+                disabled={sub.subfolderCount > 0}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+      {isAdmin && (
+        <div className="border-t border-card-border/50">
+          <button
+            className="w-full flex items-center gap-2 px-3 py-1 text-xs text-muted-foreground hover:bg-muted/30 transition-colors"
+            onClick={() => setDocsExpanded(!docsExpanded)}
+          >
+            {docsExpanded
+              ? <ChevronDown className="h-3 w-3 shrink-0" />
+              : <ChevronRight className="h-3 w-3 shrink-0" />}
+            <FileText className="h-3 w-3 shrink-0" />
+            <span>Documents</span>
+          </button>
+          {docsExpanded && <FolderDocumentsList folderId={sub.id} />}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SubfolderList({ folderId, isAdmin, onEdit, onDelete }: {
   folderId: string;
   isAdmin: boolean;
@@ -302,40 +363,15 @@ function SubfolderList({ folderId, isAdmin, onEdit, onDelete }: {
   if (!data?.subfolders?.length) return null;
 
   return (
-    <div className="pl-8 space-y-1 pb-2">
+    <div className="pl-8 space-y-1.5 pb-2 pr-2">
       {data.subfolders.map((sub) => (
-        <div key={sub.id} className="flex items-center gap-2 py-1 group">
-          <Folder className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <span className="text-sm text-foreground flex-1">{sub.title}</span>
-          {sub.description && (
-            <span className="text-xs text-muted-foreground hidden sm:block truncate max-w-[200px]">
-              {sub.description}
-            </span>
-          )}
-          {isAdmin && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <MoreHorizontal className="h-3.5 w-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onEdit({ id: sub.id, title: sub.title, description: sub.description ?? null })}>
-                  <Pencil className="h-3.5 w-3.5 mr-2" />
-                  Rename
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={() => onDelete({ id: sub.id, title: sub.title })}
-                  disabled={sub.subfolderCount > 0}
-                >
-                  <Trash2 className="h-3.5 w-3.5 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
+        <SubfolderRow
+          key={sub.id}
+          sub={sub}
+          isAdmin={isAdmin}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
       ))}
     </div>
   );
