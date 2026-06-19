@@ -3,3 +3,4 @@
 - [Pershing307 lib dist rebuild](pershing307-lib-dist-rebuild.md) — after orval codegen, must run `cd lib/api-client-react && npx tsc --build` or portal TS picks up stale dist/ declarations.
 - [Pershing307 Sprint 2A](pershing307-sprint2a.md) — Birthday Calendar + Roadmap Box: what was built, what's pending (DOB edit in admin/users).
 - [Pershing307 Document Domains](pershing307-document-domains.md) — DOCUMENT-DOMAINS-001: domain access system, seeded domains, frame split, PM_SUPER_LEVEL.
+- [Pershing307 Document Matrix Bypass Patterns](pershing307-matrix-bypass.md) — recurring patterns where hardcoded isAdmin checks bypass the access matrix; what was fixed and the rule for future routes.
