@@ -2520,3 +2520,147 @@ export const UpdateDocumentDomainAccessResponse = zod.object({
 })
 
 
+/**
+ * @summary Request a presigned upload URL for a document
+ */
+export const requestDocumentUploadBodyFileSizeMax = 20971520;
+
+
+
+export const RequestDocumentUploadBody = zod.object({
+  "folderId": zod.string(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "fileName": zod.string(),
+  "fileSize": zod.number().min(1).max(requestDocumentUploadBodyFileSizeMax),
+  "mimeType": zod.string()
+})
+
+
+/**
+ * @summary List documents in a folder (filtered by access and status)
+ */
+export const ListDocumentsQueryParams = zod.object({
+  "folderId": zod.coerce.string()
+})
+
+export const ListDocumentsResponse = zod.object({
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "folderId": zod.string(),
+  "folderTitle": zod.string(),
+  "uploaderId": zod.string().nullish(),
+  "uploaderName": zod.string().nullish(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "originalFileName": zod.string(),
+  "mimeType": zod.string(),
+  "fileSize": zod.number(),
+  "status": zod.string(),
+  "rejectionReason": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Download a document file (streamed through API with access check)
+ */
+export const DownloadDocumentParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+/**
+ * @summary Rename or update description of a document (admin only)
+ */
+export const UpdateDocumentParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UpdateDocumentBody = zod.object({
+  "title": zod.string().optional(),
+  "description": zod.string().nullish()
+})
+
+export const UpdateDocumentResponse = zod.object({
+  "id": zod.string(),
+  "folderId": zod.string(),
+  "folderTitle": zod.string(),
+  "uploaderId": zod.string().nullish(),
+  "uploaderName": zod.string().nullish(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "originalFileName": zod.string(),
+  "mimeType": zod.string(),
+  "fileSize": zod.number(),
+  "status": zod.string(),
+  "rejectionReason": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Approve, reject, archive, or delete a document
+ */
+export const UpdateDocumentStatusParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UpdateDocumentStatusBody = zod.object({
+  "status": zod.enum(['published', 'rejected', 'archived', 'deleted']),
+  "rejectionReason": zod.string().nullish()
+})
+
+export const UpdateDocumentStatusResponse = zod.object({
+  "id": zod.string(),
+  "folderId": zod.string(),
+  "folderTitle": zod.string(),
+  "uploaderId": zod.string().nullish(),
+  "uploaderName": zod.string().nullish(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "originalFileName": zod.string(),
+  "mimeType": zod.string(),
+  "fileSize": zod.number(),
+  "status": zod.string(),
+  "rejectionReason": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary List all documents pending admin review (admin only)
+ */
+export const ListDocumentReviewResponse = zod.object({
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "folderId": zod.string(),
+  "folderTitle": zod.string(),
+  "uploaderId": zod.string().nullish(),
+  "uploaderFirstName": zod.string().nullish(),
+  "uploaderLastName": zod.string().nullish(),
+  "uploaderEmail": zod.string().nullish(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "originalFileName": zod.string(),
+  "mimeType": zod.string(),
+  "fileSize": zod.number(),
+  "status": zod.string(),
+  "createdAt": zod.string()
+})),
+  "pendingCount": zod.number()
+})
+
+
+/**
+ * @summary Get count of documents pending review (admin only)
+ */
+export const GetDocumentReviewCountResponse = zod.object({
+  "pendingCount": zod.number()
+})
+
+

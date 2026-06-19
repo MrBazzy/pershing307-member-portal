@@ -45,6 +45,10 @@ tags:
     description: Object storage upload and serving endpoints
   - name: reports
     description: Administrative reports and exports
+  - name: documents
+    description: Document library — upload, browse, and download
+  - name: document-review
+    description: Admin document review queue
 paths:
   /healthz:
     get:
@@ -2878,6 +2882,180 @@ paths:
         "404":
           description: Not found
 
+  /documents/request-upload:
+    post:
+      operationId: requestDocumentUpload
+      tags: [documents]
+      summary: Request a presigned upload URL for a document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestDocumentUploadInput"
+      responses:
+        "201":
+          description: Upload URL issued; document record created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestDocumentUploadResult"
+        "400":
+          description: Invalid input or disallowed file type
+        "401":
+          description: Not authenticated
+        "403":
+          description: No upload rights for this folder
+        "404":
+          description: Folder not found
+
+  /documents:
+    get:
+      operationId: listDocuments
+      tags: [documents]
+      summary: List documents in a folder (filtered by access and status)
+      parameters:
+        - name: folderId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Document list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentListResult"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Access denied
+        "404":
+          description: Folder not found
+
+  /documents/{id}/download:
+    get:
+      operationId: downloadDocument
+      tags: [documents]
+      summary: Download a document file (streamed through API with access check)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File download stream
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "401":
+          description: Not authenticated
+        "403":
+          description: Access denied
+        "404":
+          description: Not found
+
+  /documents/{id}:
+    patch:
+      operationId: updateDocument
+      tags: [documents]
+      summary: Rename or update description of a document (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDocumentInput"
+      responses:
+        "200":
+          description: Updated document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentItem"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Admin only
+        "404":
+          description: Not found
+
+  /documents/{id}/status:
+    patch:
+      operationId: updateDocumentStatus
+      tags: [documents]
+      summary: Approve, reject, archive, or delete a document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDocumentStatusInput"
+      responses:
+        "200":
+          description: Updated document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentItem"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: Not found
+
+  /document-review:
+    get:
+      operationId: listDocumentReview
+      tags: [document-review]
+      summary: List all documents pending admin review (admin only)
+      responses:
+        "200":
+          description: Pending documents list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentReviewListResult"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Admin only
+
+  /document-review/count:
+    get:
+      operationId: getDocumentReviewCount
+      tags: [document-review]
+      summary: Get count of documents pending review (admin only)
+      responses:
+        "200":
+          description: Pending count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentReviewCountResult"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Admin only
+
 components:
   schemas:
     HealthStatus:
@@ -4919,3 +5097,158 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MemberDetailItem"
+
+    RequestDocumentUploadInput:
+      type: object
+      required: [folderId, title, fileName, fileSize, mimeType]
+      properties:
+        folderId:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        fileName:
+          type: string
+        fileSize:
+          type: integer
+          minimum: 1
+          maximum: 20971520
+        mimeType:
+          type: string
+
+    RequestDocumentUploadResult:
+      type: object
+      required: [documentId, uploadURL, objectPath, status]
+      properties:
+        documentId:
+          type: string
+        uploadURL:
+          type: string
+        objectPath:
+          type: string
+        status:
+          type: string
+
+    DocumentItem:
+      type: object
+      required: [id, folderId, folderTitle, title, originalFileName, mimeType, fileSize, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        folderId:
+          type: string
+        folderTitle:
+          type: string
+        uploaderId:
+          type: string
+          nullable: true
+        uploaderName:
+          type: string
+          nullable: true
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        originalFileName:
+          type: string
+        mimeType:
+          type: string
+        fileSize:
+          type: integer
+        status:
+          type: string
+        rejectionReason:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    DocumentListResult:
+      type: object
+      required: [documents]
+      properties:
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentItem"
+
+    UpdateDocumentInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+
+    UpdateDocumentStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [published, rejected, archived, deleted]
+        rejectionReason:
+          type: string
+          nullable: true
+
+    DocumentReviewItem:
+      type: object
+      required: [id, folderId, folderTitle, title, originalFileName, mimeType, fileSize, status, createdAt]
+      properties:
+        id:
+          type: string
+        folderId:
+          type: string
+        folderTitle:
+          type: string
+        uploaderId:
+          type: string
+          nullable: true
+        uploaderFirstName:
+          type: string
+          nullable: true
+        uploaderLastName:
+          type: string
+          nullable: true
+        uploaderEmail:
+          type: string
+          nullable: true
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        originalFileName:
+          type: string
+        mimeType:
+          type: string
+        fileSize:
+          type: integer
+        status:
+          type: string
+        createdAt:
+          type: string
+
+    DocumentReviewListResult:
+      type: object
+      required: [documents, pendingCount]
+      properties:
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentReviewItem"
+        pendingCount:
+          type: integer
+
+    DocumentReviewCountResult:
+      type: object
+      required: [pendingCount]
+      properties:
+        pendingCount:
+          type: integer

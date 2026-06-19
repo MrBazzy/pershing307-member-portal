@@ -1555,6 +1555,93 @@ export interface MemberDetailReport {
   members: MemberDetailItem[];
 }
 
+export interface RequestDocumentUploadInput {
+  folderId: string;
+  title: string;
+  description?: string | null;
+  fileName: string;
+  /**
+     * @minimum 1
+     * @maximum 20971520
+     */
+  fileSize: number;
+  mimeType: string;
+}
+
+export interface RequestDocumentUploadResult {
+  documentId: string;
+  uploadURL: string;
+  objectPath: string;
+  status: string;
+}
+
+export interface DocumentItem {
+  id: string;
+  folderId: string;
+  folderTitle: string;
+  uploaderId?: string | null;
+  uploaderName?: string | null;
+  title: string;
+  description?: string | null;
+  originalFileName: string;
+  mimeType: string;
+  fileSize: number;
+  status: string;
+  rejectionReason?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DocumentListResult {
+  documents: DocumentItem[];
+}
+
+export interface UpdateDocumentInput {
+  title?: string;
+  description?: string | null;
+}
+
+export type UpdateDocumentStatusInputStatus = typeof UpdateDocumentStatusInputStatus[keyof typeof UpdateDocumentStatusInputStatus];
+
+
+export const UpdateDocumentStatusInputStatus = {
+  published: 'published',
+  rejected: 'rejected',
+  archived: 'archived',
+  deleted: 'deleted',
+} as const;
+
+export interface UpdateDocumentStatusInput {
+  status: UpdateDocumentStatusInputStatus;
+  rejectionReason?: string | null;
+}
+
+export interface DocumentReviewItem {
+  id: string;
+  folderId: string;
+  folderTitle: string;
+  uploaderId?: string | null;
+  uploaderFirstName?: string | null;
+  uploaderLastName?: string | null;
+  uploaderEmail?: string | null;
+  title: string;
+  description?: string | null;
+  originalFileName: string;
+  mimeType: string;
+  fileSize: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface DocumentReviewListResult {
+  documents: DocumentReviewItem[];
+  pendingCount: number;
+}
+
+export interface DocumentReviewCountResult {
+  pendingCount: number;
+}
+
 export type ListUsersParams = {
 /**
  * @minimum 1
@@ -1601,4 +1688,8 @@ export type DeleteHistorySection200 = {
 export type BeginPasskeyRegistration200 = { [key: string]: unknown };
 
 export type BeginPasskeyAuthentication200 = { [key: string]: unknown };
+
+export type ListDocumentsParams = {
+folderId: string;
+};
 

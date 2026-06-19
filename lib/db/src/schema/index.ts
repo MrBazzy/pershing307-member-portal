@@ -25,3 +25,4 @@ export * from "./history-sections";
 export * from "./pershing-bio";
 export * from "./passkey-credentials";
 export * from "./document-folders";
+export * from "./documents";

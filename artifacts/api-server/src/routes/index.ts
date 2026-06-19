@@ -21,6 +21,8 @@ import passkeysRouter from "./passkeys";
 import documentFoldersRouter from "./document-folders";
 import documentDomainsRouter from "./document-domains";
 import reportsRouter from "./reports";
+import documentsRouter from "./documents";
+import documentReviewRouter from "./document-review";
 
 const router: IRouter = Router();
 
@@ -46,5 +48,7 @@ router.use("/passkeys", passkeysRouter);
 router.use("/document-folders", documentFoldersRouter);
 router.use("/document-domains", documentDomainsRouter);
 router.use("/reports", reportsRouter);
+router.use("/documents", documentsRouter);
+router.use("/document-review", documentReviewRouter);
 
 export default router;

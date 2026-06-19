@@ -63,6 +63,10 @@ import type {
   DocumentFolderItem,
   DocumentFolderListResult,
   DocumentFolderUpdateInput,
+  DocumentItem,
+  DocumentListResult,
+  DocumentReviewCountResult,
+  DocumentReviewListResult,
   DocumentSubfolderCreateInput,
   DomainGrantInput,
   DomainListResult,
@@ -89,6 +93,7 @@ import type {
   InvitationListResult,
   InvitationLookupResult,
   ListAuditLogsParams,
+  ListDocumentsParams,
   ListEventsParams,
   ListTracingBoardEntriesParams,
   ListUsersParams,
@@ -106,6 +111,8 @@ import type {
   ReorderCategoriesInput,
   ReorderHistorySectionsInput,
   ReorderRoadmapInput,
+  RequestDocumentUploadInput,
+  RequestDocumentUploadResult,
   ResetPasswordInput,
   RoadmapItem,
   RoadmapListResult,
@@ -125,6 +132,8 @@ import type {
   UpdateBirthdayVisibilityInput,
   UpdateCategoryInput,
   UpdateDateOfBirthInput,
+  UpdateDocumentInput,
+  UpdateDocumentStatusInput,
   UpdateEventInput,
   UpdateHistoryDocumentInput,
   UpdateHistoryPageInput,
@@ -9613,4 +9622,534 @@ export const useUpdateDocumentDomainAccess = <TError = ErrorType<void>,
       > => {
       return useMutation(getUpdateDocumentDomainAccessMutationOptions(options));
     }
+
+export const getRequestDocumentUploadUrl = () => {
+
+
+
+
+  return `/api/documents/request-upload`
+}
+
+/**
+ * @summary Request a presigned upload URL for a document
+ */
+export const requestDocumentUpload = async (requestDocumentUploadInput: RequestDocumentUploadInput, options?: RequestInit): Promise<RequestDocumentUploadResult> => {
+
+  return customFetch<RequestDocumentUploadResult>(getRequestDocumentUploadUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      requestDocumentUploadInput,)
+  }
+);}
+
+
+
+
+export const getRequestDocumentUploadMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestDocumentUpload>>, TError,{data: BodyType<RequestDocumentUploadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestDocumentUpload>>, TError,{data: BodyType<RequestDocumentUploadInput>}, TContext> => {
+
+const mutationKey = ['requestDocumentUpload'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestDocumentUpload>>, {data: BodyType<RequestDocumentUploadInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestDocumentUpload(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestDocumentUploadMutationResult = NonNullable<Awaited<ReturnType<typeof requestDocumentUpload>>>
+    export type RequestDocumentUploadMutationBody = BodyType<RequestDocumentUploadInput>
+    export type RequestDocumentUploadMutationError = ErrorType<void>
+
+    /**
+ * @summary Request a presigned upload URL for a document
+ */
+export const useRequestDocumentUpload = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestDocumentUpload>>, TError,{data: BodyType<RequestDocumentUploadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestDocumentUpload>>,
+        TError,
+        {data: BodyType<RequestDocumentUploadInput>},
+        TContext
+      > => {
+      return useMutation(getRequestDocumentUploadMutationOptions(options));
+    }
+
+export const getListDocumentsUrl = (params: ListDocumentsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/documents?${stringifiedParams}` : `/api/documents`
+}
+
+/**
+ * @summary List documents in a folder (filtered by access and status)
+ */
+export const listDocuments = async (params: ListDocumentsParams, options?: RequestInit): Promise<DocumentListResult> => {
+
+  return customFetch<DocumentListResult>(getListDocumentsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListDocumentsQueryKey = (params?: ListDocumentsParams,) => {
+    return [
+    `/api/documents`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListDocumentsQueryOptions = <TData = Awaited<ReturnType<typeof listDocuments>>, TError = ErrorType<void>>(params: ListDocumentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDocumentsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDocuments>>> = ({ signal }) => listDocuments(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDocuments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListDocumentsQueryResult = NonNullable<Awaited<ReturnType<typeof listDocuments>>>
+export type ListDocumentsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List documents in a folder (filtered by access and status)
+ */
+
+export function useListDocuments<TData = Awaited<ReturnType<typeof listDocuments>>, TError = ErrorType<void>>(
+ params: ListDocumentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListDocumentsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getDownloadDocumentUrl = (id: string,) => {
+
+
+
+
+  return `/api/documents/${id}/download`
+}
+
+/**
+ * @summary Download a document file (streamed through API with access check)
+ */
+export const downloadDocument = async (id: string, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getDownloadDocumentUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadDocumentQueryKey = (id: string,) => {
+    return [
+    `/api/documents/${id}/download`
+    ] as const;
+    }
+
+
+export const getDownloadDocumentQueryOptions = <TData = Awaited<ReturnType<typeof downloadDocument>>, TError = ErrorType<void>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadDocument>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadDocumentQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadDocument>>> = ({ signal }) => downloadDocument(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadDocument>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DownloadDocumentQueryResult = NonNullable<Awaited<ReturnType<typeof downloadDocument>>>
+export type DownloadDocumentQueryError = ErrorType<void>
+
+
+/**
+ * @summary Download a document file (streamed through API with access check)
+ */
+
+export function useDownloadDocument<TData = Awaited<ReturnType<typeof downloadDocument>>, TError = ErrorType<void>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadDocument>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getDownloadDocumentQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateDocumentUrl = (id: string,) => {
+
+
+
+
+  return `/api/documents/${id}`
+}
+
+/**
+ * @summary Rename or update description of a document (admin only)
+ */
+export const updateDocument = async (id: string,
+    updateDocumentInput: UpdateDocumentInput, options?: RequestInit): Promise<DocumentItem> => {
+
+  return customFetch<DocumentItem>(getUpdateDocumentUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateDocumentInput,)
+  }
+);}
+
+
+
+
+export const getUpdateDocumentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDocument>>, TError,{id: string;data: BodyType<UpdateDocumentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDocument>>, TError,{id: string;data: BodyType<UpdateDocumentInput>}, TContext> => {
+
+const mutationKey = ['updateDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDocument>>, {id: string;data: BodyType<UpdateDocumentInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateDocument(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof updateDocument>>>
+    export type UpdateDocumentMutationBody = BodyType<UpdateDocumentInput>
+    export type UpdateDocumentMutationError = ErrorType<void>
+
+    /**
+ * @summary Rename or update description of a document (admin only)
+ */
+export const useUpdateDocument = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDocument>>, TError,{id: string;data: BodyType<UpdateDocumentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateDocument>>,
+        TError,
+        {id: string;data: BodyType<UpdateDocumentInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateDocumentMutationOptions(options));
+    }
+
+export const getUpdateDocumentStatusUrl = (id: string,) => {
+
+
+
+
+  return `/api/documents/${id}/status`
+}
+
+/**
+ * @summary Approve, reject, archive, or delete a document
+ */
+export const updateDocumentStatus = async (id: string,
+    updateDocumentStatusInput: UpdateDocumentStatusInput, options?: RequestInit): Promise<DocumentItem> => {
+
+  return customFetch<DocumentItem>(getUpdateDocumentStatusUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateDocumentStatusInput,)
+  }
+);}
+
+
+
+
+export const getUpdateDocumentStatusMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDocumentStatus>>, TError,{id: string;data: BodyType<UpdateDocumentStatusInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDocumentStatus>>, TError,{id: string;data: BodyType<UpdateDocumentStatusInput>}, TContext> => {
+
+const mutationKey = ['updateDocumentStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDocumentStatus>>, {id: string;data: BodyType<UpdateDocumentStatusInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateDocumentStatus(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateDocumentStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateDocumentStatus>>>
+    export type UpdateDocumentStatusMutationBody = BodyType<UpdateDocumentStatusInput>
+    export type UpdateDocumentStatusMutationError = ErrorType<void>
+
+    /**
+ * @summary Approve, reject, archive, or delete a document
+ */
+export const useUpdateDocumentStatus = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDocumentStatus>>, TError,{id: string;data: BodyType<UpdateDocumentStatusInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateDocumentStatus>>,
+        TError,
+        {id: string;data: BodyType<UpdateDocumentStatusInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateDocumentStatusMutationOptions(options));
+    }
+
+export const getListDocumentReviewUrl = () => {
+
+
+
+
+  return `/api/document-review`
+}
+
+/**
+ * @summary List all documents pending admin review (admin only)
+ */
+export const listDocumentReview = async ( options?: RequestInit): Promise<DocumentReviewListResult> => {
+
+  return customFetch<DocumentReviewListResult>(getListDocumentReviewUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListDocumentReviewQueryKey = () => {
+    return [
+    `/api/document-review`
+    ] as const;
+    }
+
+
+export const getListDocumentReviewQueryOptions = <TData = Awaited<ReturnType<typeof listDocumentReview>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDocumentReview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDocumentReviewQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDocumentReview>>> = ({ signal }) => listDocumentReview({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDocumentReview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListDocumentReviewQueryResult = NonNullable<Awaited<ReturnType<typeof listDocumentReview>>>
+export type ListDocumentReviewQueryError = ErrorType<void>
+
+
+/**
+ * @summary List all documents pending admin review (admin only)
+ */
+
+export function useListDocumentReview<TData = Awaited<ReturnType<typeof listDocumentReview>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDocumentReview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListDocumentReviewQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetDocumentReviewCountUrl = () => {
+
+
+
+
+  return `/api/document-review/count`
+}
+
+/**
+ * @summary Get count of documents pending review (admin only)
+ */
+export const getDocumentReviewCount = async ( options?: RequestInit): Promise<DocumentReviewCountResult> => {
+
+  return customFetch<DocumentReviewCountResult>(getGetDocumentReviewCountUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDocumentReviewCountQueryKey = () => {
+    return [
+    `/api/document-review/count`
+    ] as const;
+    }
+
+
+export const getGetDocumentReviewCountQueryOptions = <TData = Awaited<ReturnType<typeof getDocumentReviewCount>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDocumentReviewCount>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDocumentReviewCountQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDocumentReviewCount>>> = ({ signal }) => getDocumentReviewCount({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDocumentReviewCount>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDocumentReviewCountQueryResult = NonNullable<Awaited<ReturnType<typeof getDocumentReviewCount>>>
+export type GetDocumentReviewCountQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get count of documents pending review (admin only)
+ */
+
+export function useGetDocumentReviewCount<TData = Awaited<ReturnType<typeof getDocumentReviewCount>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDocumentReviewCount>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDocumentReviewCountQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
