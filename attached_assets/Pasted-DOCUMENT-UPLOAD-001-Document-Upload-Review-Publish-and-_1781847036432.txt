@@ -1,0 +1,331 @@
+DOCUMENT-UPLOAD-001 — Document Upload, Review, Publish and Delete
+
+STEP 0 — SAFETY FIRST
+
+Before making changes:
+
+1. Create Replit checkpoint/snapshot.
+2. Create git tag if possible:
+
+v3.8-before-document-upload
+
+3. Confirm build passes.
+4. Confirm current Documents structure and Domains & Access Control still work.
+
+Only then start implementation.
+
+--------------------------------------------------
+GOAL
+--------------------------------------------------
+
+Add secure document upload functionality to the existing Document Library.
+
+This sprint adds:
+
+- Upload files
+- Pending review workflow
+- Approve / reject files
+- Publish files
+- Delete / archive files
+- Download/view files
+- Audit logging
+
+Preserve the existing folder structure and access rules.
+
+--------------------------------------------------
+UPLOAD RIGHTS
+--------------------------------------------------
+
+1. General Documents folder
+
+Members and above may upload documents to:
+- General Documents
+- Subfolders inside General Documents
+
+But uploads by normal members must NOT be published immediately.
+
+They must be stored as:
+
+Status: Pending Review
+
+Visible only to:
+- the uploader
+- Site Administrator
+- PM Super Administrator
+- users with approval rights
+
+2. Administrators
+
+Site Administrator and PM Super Administrator may upload directly to any folder they are allowed to manage.
+
+For restricted folders, upload rights must follow management rights, not read rights.
+
+3. Restricted folders
+
+Only authorized management roles may upload directly to:
+- Meeting Minutes
+- Secretary Documents
+- Treasury Documents
+- Worshipful Master Documents
+- Entered Apprentice Ritual
+- Fellowcraft Ritual
+- Master Mason Ritual
+- Past Master Ritual
+
+For this sprint:
+- Normal members may only contribute files to General Documents.
+- Normal members may not upload to Ritual folders.
+- Normal members may not upload to Secretary, Treasury or WM folders.
+
+--------------------------------------------------
+DOCUMENT STATUS
+--------------------------------------------------
+
+Add document status:
+
+- Pending Review
+- Published
+- Rejected
+- Archived
+- Deleted
+
+Behavior:
+
+Pending Review:
+- visible to uploader and administrators only
+- not visible to general users
+
+Published:
+- visible according to folder/domain access rules
+
+Rejected:
+- not visible to general users
+- visible in management review history
+
+Archived:
+- hidden from normal view
+- retained for audit/history
+
+Deleted:
+- soft delete preferred
+- file no longer visible
+- metadata retained for audit where possible
+
+--------------------------------------------------
+APPROVAL WORKFLOW
+--------------------------------------------------
+
+Add Management → Document Review
+
+Visible to:
+- Site Administrator
+- PM Super Administrator
+
+Document Review must show:
+- Pending uploads
+- Uploader name
+- Folder
+- File name
+- Upload date
+- Description
+- Approve button
+- Reject button
+- Delete/Archive button
+
+Approval actions:
+- Approve → status becomes Published
+- Reject → status becomes Rejected
+- Delete/Archive → status becomes Deleted or Archived
+
+When rejecting:
+- allow optional rejection reason
+
+Uploader should see own pending/rejected files in General Documents if feasible.
+
+--------------------------------------------------
+DOCUMENT MANAGEMENT
+--------------------------------------------------
+
+In Management → Document Management:
+
+Allow Site Administrator and PM Super Administrator to:
+- View documents in folders
+- Rename document title
+- Edit description
+- Move document between folders if allowed
+- Archive document
+- Delete document
+- Restore archived document if feasible
+
+--------------------------------------------------
+USER-FACING DOCUMENT VIEW
+--------------------------------------------------
+
+Documents page should show only:
+- folders the user may access
+- published documents the user may access
+- uploader’s own pending documents in General Documents if feasible
+
+Document card/list should show:
+- Title
+- File name
+- Description
+- Folder
+- Uploaded by
+- Upload date
+- Status if uploader/admin
+- Download/View button
+
+--------------------------------------------------
+FILE TYPES
+--------------------------------------------------
+
+Allow safe file types:
+
+- PDF
+- DOCX
+- XLSX
+- PPTX
+- JPG
+- JPEG
+- PNG
+- TXT
+
+Block dangerous file types:
+
+- EXE
+- JS
+- HTML
+- HTM
+- SH
+- BAT
+- CMD
+- MSI
+- DLL
+- PHP
+- PY
+- Any executable/script file
+
+--------------------------------------------------
+FILE STORAGE SECURITY
+--------------------------------------------------
+
+Files must not be stored in public frontend assets.
+
+Downloads must go through backend authorization checks.
+
+Requirements:
+- Store files in a server-controlled upload location or configured storage backend.
+- Generate safe internal file names.
+- Preserve original file name in metadata.
+- Prevent path traversal.
+- Validate file type server-side.
+- Enforce maximum file size.
+- Do not allow direct public URLs bypassing permissions.
+
+Recommended initial max size:
+- 20 MB per file
+
+--------------------------------------------------
+ACCESS CONTROL
+--------------------------------------------------
+
+Published documents inherit access from their folder/domain.
+
+Subfolders inherit parent folder access unless already otherwise configured.
+
+Backend must check access before:
+- listing documents
+- viewing metadata
+- downloading files
+- moving files
+- deleting files
+
+Frontend hiding is not enough.
+
+--------------------------------------------------
+DELETE FUNCTION
+--------------------------------------------------
+
+Add delete/archive capability.
+
+Preferred behavior:
+- Soft delete documents by default.
+- Remove from user-facing view.
+- Keep audit metadata.
+
+Only allow hard delete if safe and explicitly implemented for administrators.
+
+Delete rights:
+- Site Administrator
+- PM Super Administrator
+- uploader may delete own Pending Review documents before approval if feasible
+
+Published documents:
+- only Site Administrator / PM Super Administrator may archive/delete
+
+--------------------------------------------------
+AUDIT LOGGING
+--------------------------------------------------
+
+Audit all actions using first and last names:
+
+- Document uploaded
+- Document approved
+- Document rejected
+- Document archived
+- Document deleted
+- Document restored
+- Document renamed
+- Document moved
+- Document downloaded
+
+Examples:
+
+John Smith uploaded "Lodge Guidelines.pdf" to General Documents / 2026. Status: Pending Review.
+
+Peter Jones approved "Lodge Guidelines.pdf" uploaded by John Smith.
+
+Peter Jones rejected "Draft Notes.docx" uploaded by John Smith. Reason: Duplicate document.
+
+John Smith downloaded "Meeting Minutes January 2026.pdf".
+
+Do not log sensitive file contents.
+
+--------------------------------------------------
+PRESERVE
+--------------------------------------------------
+
+Do not change:
+- Domains & Access Control logic
+- Folder structure
+- Roles
+- Degrees
+- Dashboard
+- History
+- Tracing Board
+- Events
+- Birthdays
+- Authentication
+
+--------------------------------------------------
+ACCEPTANCE TESTS
+--------------------------------------------------
+
+1. Member can upload a document to General Documents.
+2. Member upload appears as Pending Review.
+3. Pending document is not visible to other normal members.
+4. Site Administrator can see pending upload in Document Review.
+5. PM Super Administrator can see pending upload in Document Review.
+6. Site Administrator can approve document.
+7. Approved document becomes visible according to folder access rules.
+8. Site Administrator can reject document with reason.
+9. Rejected document is not publicly visible.
+10. Site Administrator can archive/delete document.
+11. Deleted/archived document disappears from normal view.
+12. Visitor cannot access Documents.
+13. Unauthorized user cannot download document by direct URL.
+14. Dangerous file types are blocked.
+15. Safe file types are accepted.
+16. Audit log records upload/review/delete/download actions clearly.
+17. Build passes.
