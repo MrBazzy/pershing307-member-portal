@@ -45,6 +45,7 @@ import {
   Upload,
   FileX,
   Loader2,
+  Info,
   Undo2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -272,6 +273,55 @@ export default function DocumentsFolderPage({ id }: Props) {
                 )}
               </div>
             </div>
+
+            {/* Document Library Notice — General Documents only */}
+            {folder.domainSlug === "general-documents" && (
+              <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-4">
+                <div className="flex gap-3">
+                  <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <div className="space-y-2.5 text-sm text-foreground/80">
+                    <p className="font-semibold text-foreground">Document Library Notice</p>
+                    <p>
+                      This Document Library exists to support the personal development of our
+                      Brethren, to preserve the history and traditions of our Lodge, and to
+                      facilitate the sharing of knowledge, education, and information that may
+                      help us become better men.
+                    </p>
+                    <p>
+                      Before uploading any material, please ensure that you have the right to
+                      share it. Copyrighted works, commercial publications, or materials
+                      belonging to third parties should only be uploaded when permission has
+                      been obtained or when their distribution is otherwise permitted by law.
+                    </p>
+                    <p>
+                      Please do not upload material that may be considered offensive,
+                      discriminatory, unlawful, harmful, explicit, or otherwise inconsistent
+                      with the values of Freemasonry and the good reputation of our Lodge.
+                    </p>
+                    <p>
+                      All submitted documents are reviewed before publication. This review is
+                      intended not only to ensure compliance with the above principles, but
+                      also to prevent accidental publication of incorrect, duplicate,
+                      misplaced, or unintended material.
+                    </p>
+                    <p>
+                      Brethren are kindly reminded that certain Masonic materials may be
+                      intended only for specific degrees or offices. If you are unsure where a
+                      document belongs, or whether it should be shared within a restricted
+                      area of the portal, please contact a Site Administrator. They will be
+                      pleased to assist in placing the material in the appropriate location.
+                    </p>
+                    <p>
+                      By contributing to this library, you help preserve and share knowledge
+                      for the benefit of the Craft and future generations of Brethren.
+                    </p>
+                    <p className="italic text-foreground/60">
+                      Thank you for your care, discretion, and fraternal spirit.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Subfolders section — only shown when there are subfolders */}
             {folder.subfolders.length > 0 && (
