@@ -102,6 +102,7 @@ export default function DocumentsFolderPage({ id }: Props) {
   const [pdfNumPages, setPdfNumPages] = useState<number>(0);
   const [pdfPage, setPdfPage] = useState<number>(1);
   const [withdrawTarget, setWithdrawTarget] = useState<{ id: string; title: string } | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const isAccessDenied = (error as any)?.status === 403;
 
@@ -110,6 +111,20 @@ export default function DocumentsFolderPage({ id }: Props) {
     ((folder.domainSlug === "general-documents" && userLevel >= MEMBER_LEVEL) || isAdmin);
 
   const documents = docsData?.documents ?? [];
+
+  const STATUS_FILTERS: { value: string; label: string }[] = [
+    { value: "all",           label: "All" },
+    { value: "published",     label: "Published" },
+    { value: "pending_review",label: "Pending" },
+    { value: "rejected",      label: "Rejected" },
+    { value: "archived",      label: "Archived" },
+    { value: "withdrawn",     label: "Withdrawn" },
+    { value: "deleted",       label: "Deleted" },
+  ];
+
+  const filteredDocuments = statusFilter === "all"
+    ? documents
+    : documents.filter((d) => d.status === statusFilter);
 
   function isBrowserViewable(mimeType: string): boolean {
     return (
@@ -315,6 +330,39 @@ export default function DocumentsFolderPage({ id }: Props) {
                 )}
               </div>
 
+              {/* Status filter pills — admin only */}
+              {isAdmin && documents.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-4">
+                  {STATUS_FILTERS.map(({ value, label }) => {
+                    const count = value === "all"
+                      ? documents.length
+                      : documents.filter((d) => d.status === value).length;
+                    if (value !== "all" && count === 0) return null;
+                    const active = statusFilter === value;
+                    return (
+                      <button
+                        key={value}
+                        onClick={() => setStatusFilter(value)}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border transition-colors",
+                          active
+                            ? "bg-foreground text-background border-foreground"
+                            : "bg-background text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground"
+                        )}
+                      >
+                        {label}
+                        <span className={cn(
+                          "rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none",
+                          active ? "bg-background/20 text-background" : "bg-muted text-muted-foreground"
+                        )}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
               {/* Loading docs skeleton */}
               {docsLoading && (
                 <div className="space-y-2">
@@ -325,7 +373,7 @@ export default function DocumentsFolderPage({ id }: Props) {
               )}
 
               {/* Empty state */}
-              {!docsLoading && documents.length === 0 && (
+              {!docsLoading && filteredDocuments.length === 0 && (
                 <Card className={cn("border-card-border", canUpload && "border-dashed")}>
                   <CardContent className="py-10 text-center">
                     <FileX className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2.5" />
@@ -346,9 +394,9 @@ export default function DocumentsFolderPage({ id }: Props) {
               )}
 
               {/* Document list */}
-              {!docsLoading && documents.length > 0 && (
+              {!docsLoading && filteredDocuments.length > 0 && (
                 <div className="space-y-2">
-                  {documents.map((doc) => {
+                  {filteredDocuments.map((doc) => {
                     const isUploader = doc.uploaderId === user?.id;
                     const showBadge =
                       doc.status !== "published" && (isUploader || isAdmin);
