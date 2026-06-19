@@ -16,7 +16,6 @@ import { getLodgeId } from "../lib/config";
 import { getUserVisibilityContext } from "../lib/visibility";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 import {
-  checkFolderAccess,
   initialDocumentStatus,
   getFolderWithAccess,
 } from "../lib/folderAccess";
@@ -242,13 +241,16 @@ router.get("/", requireAuth(), async (req, res) => {
   const folderId = typeof req.query.folderId === "string" ? req.query.folderId : null;
   if (!folderId) { res.status(400).json({ error: "folderId query param required" }); return; }
 
-  const { maxPermLevel: level, roleSlugs: slugs, maxDegree } = await getUserVisibilityContext(userId);
+  const { maxPermLevel: level } = await getUserVisibilityContext(userId);
   if (level < MEMBER_LEVEL) { res.json({ documents: [] }); return; }
 
-  // Verify folder access
+  // Verify folder exists in this lodge
   const folder = await getFolderWithAccess(folderId, lodgeId);
   if (!folder || folder.lodgeId !== lodgeId) { res.status(404).json({ error: "Folder not found" }); return; }
-  if (!checkFolderAccess(folder, level, slugs, maxDegree)) {
+
+  // Matrix-based access gate (falls back to legacy logic for non-system folders)
+  const folderPerms = await getEffectivePermissions(userId, folderId, lodgeId);
+  if (!folderPerms.canView) {
     res.status(403).json({ error: "Access denied" }); return;
   }
 
@@ -302,7 +304,7 @@ router.get("/:id/download", requireAuth(), async (req, res) => {
     .then((r) => r[0] ?? null);
   if (!doc) { res.status(404).json({ error: "Not found" }); return; }
 
-  const { maxPermLevel: level, roleSlugs: slugs, maxDegree } = await getUserVisibilityContext(userId);
+  const { maxPermLevel: level } = await getUserVisibilityContext(userId);
 
   // Check doc visibility — same rules as the list endpoint
   const isAdmin = level >= SITE_ADMIN_LEVEL;
@@ -327,11 +329,12 @@ router.get("/:id/download", requireAuth(), async (req, res) => {
 
   if (!canSeeDoc) { res.status(403).json({ error: "Access denied" }); return; }
 
-  // Check folder access
-  const folder = await getFolderWithAccess(doc.folderId, lodgeId);
-  if (!folder) { res.status(404).json({ error: "Folder not found" }); return; }
-  if (!isAdmin && !checkFolderAccess(folder, level, slugs, maxDegree)) {
-    res.status(403).json({ error: "Access denied" }); return;
+  // Matrix-based folder access gate (admins bypass — they always have full access)
+  if (!isAdmin) {
+    const folderPerms = await getEffectivePermissions(userId, doc.folderId, lodgeId);
+    if (!folderPerms.canView) {
+      res.status(403).json({ error: "Access denied" }); return;
+    }
   }
 
   try {
@@ -397,7 +400,7 @@ router.get("/:id/view", requireAuth(), async (req, res) => {
     .then((r) => r[0] ?? null);
   if (!doc) { res.status(404).json({ error: "Not found" }); return; }
 
-  const { maxPermLevel: level, roleSlugs: slugs, maxDegree } = await getUserVisibilityContext(userId);
+  const { maxPermLevel: level } = await getUserVisibilityContext(userId);
   const isAdmin = level >= SITE_ADMIN_LEVEL;
 
   // Only admins can view non-published documents inline
@@ -420,11 +423,10 @@ router.get("/:id/view", requireAuth(), async (req, res) => {
 
   if (!canSeeDoc) { res.status(403).json({ error: "Access denied" }); return; }
 
-  // Check folder access (bypass for admins — they can always view for review)
+  // Matrix-based folder access gate (bypass for admins — they can always view for review)
   if (!isAdmin) {
-    const folder = await getFolderWithAccess(doc.folderId, lodgeId);
-    if (!folder) { res.status(404).json({ error: "Folder not found" }); return; }
-    if (!checkFolderAccess(folder, level, slugs, maxDegree)) {
+    const folderPerms = await getEffectivePermissions(userId, doc.folderId, lodgeId);
+    if (!folderPerms.canView) {
       res.status(403).json({ error: "Access denied" }); return;
     }
   }

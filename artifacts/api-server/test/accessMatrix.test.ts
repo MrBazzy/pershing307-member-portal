@@ -277,6 +277,92 @@ describe("PUT /api/document-domains/:id/access-matrix", () => {
   });
 });
 
+describe("Matrix enforcement — GET /api/documents, download, view", () => {
+  let fx: MatrixFixtures;
+  let testDocId: string;
+
+  beforeAll(async () => {
+    fx = await seedMatrixFixtures();
+    // Insert a published document in general-documents folder so we can test
+    // the document-level routes without needing real object storage.
+    const [inserted] = await db
+      .insert(documentsTable)
+      .values({
+        lodgeId: fx.lodgeId,
+        folderId: fx.generalFolderId,
+        uploaderId: fx.memberUserId,
+        title: "__mat_test__ published doc",
+        originalFileName: "test-doc.pdf",
+        mimeType: "application/pdf",
+        fileSize: 0,
+        storagePath: "fake/path/test-doc.pdf",
+        status: "published",
+      })
+      .returning({ id: documentsTable.id });
+    testDocId = inserted.id;
+  });
+
+  afterAll(async () => {
+    if (testDocId) {
+      await db.delete(documentsTable).where(eq(documentsTable.id, testDocId));
+    }
+    await teardownMatrixFixtures(fx);
+  });
+
+  it("returns 403 on GET /documents?folderId= when member lacks matrix view access", async () => {
+    await replaceMatrixForFolder(fx.generalFolderId, fx.lodgeId, [
+      { subjectType: "role", subjectKey: "secretary", permission: "view" },
+    ]);
+
+    const agent = await loginAgent(app, fx.memberEmail, fx.password);
+    const res = await agent.get(`/api/documents?folderId=${fx.generalFolderId}`);
+    expect(res.status).toBe(403);
+
+    await replaceMatrixForFolder(fx.generalFolderId, fx.lodgeId, fx.originalMatrix as any);
+  });
+
+  it("returns 403 on GET /documents/:id/download when member lacks matrix view access", async () => {
+    await replaceMatrixForFolder(fx.generalFolderId, fx.lodgeId, [
+      { subjectType: "role", subjectKey: "secretary", permission: "view" },
+    ]);
+
+    const agent = await loginAgent(app, fx.memberEmail, fx.password);
+    const res = await agent.get(`/api/documents/${testDocId}/download`);
+    expect(res.status).toBe(403);
+
+    await replaceMatrixForFolder(fx.generalFolderId, fx.lodgeId, fx.originalMatrix as any);
+  });
+
+  it("returns 403 on GET /documents/:id/view when member lacks matrix view access", async () => {
+    await replaceMatrixForFolder(fx.generalFolderId, fx.lodgeId, [
+      { subjectType: "role", subjectKey: "secretary", permission: "view" },
+    ]);
+
+    const agent = await loginAgent(app, fx.memberEmail, fx.password);
+    const res = await agent.get(`/api/documents/${testDocId}/view`);
+    expect(res.status).toBe(403);
+
+    await replaceMatrixForFolder(fx.generalFolderId, fx.lodgeId, fx.originalMatrix as any);
+  });
+
+  it("admin bypasses matrix and can still download/view", async () => {
+    await replaceMatrixForFolder(fx.generalFolderId, fx.lodgeId, [
+      { subjectType: "role", subjectKey: "secretary", permission: "view" },
+    ]);
+
+    const agent = await loginAgent(app, fx.adminEmail, fx.password);
+    // Admin should NOT get 403 — they bypass the matrix gate entirely.
+    // The call will fail later (storage path is fake) but not with 403.
+    const dl = await agent.get(`/api/documents/${testDocId}/download`);
+    expect(dl.status).not.toBe(403);
+
+    const vw = await agent.get(`/api/documents/${testDocId}/view`);
+    expect(vw.status).not.toBe(403);
+
+    await replaceMatrixForFolder(fx.generalFolderId, fx.lodgeId, fx.originalMatrix as any);
+  });
+});
+
 describe("Matrix enforcement — GET /api/document-folders", () => {
   let fx: MatrixFixtures;
 
