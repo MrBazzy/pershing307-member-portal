@@ -5,6 +5,7 @@ import {
   useListFolderDocuments,
   getListFolderDocumentsQueryKey,
   downloadDocument,
+  viewDocument,
   useUpdateDocumentStatus,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -33,6 +34,7 @@ import {
   AlertCircle,
   FileText,
   Download,
+  Eye,
   Upload,
   FileX,
   Loader2,
@@ -88,6 +90,7 @@ export default function DocumentsFolderPage({ id }: Props) {
 
   const [uploadOpen, setUploadOpen] = useState(false);
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
+  const [viewingIds, setViewingIds] = useState<Set<string>>(new Set());
   const [withdrawTarget, setWithdrawTarget] = useState<{ id: string; title: string } | null>(null);
 
   const isAccessDenied = (error as any)?.status === 403;
@@ -97,6 +100,37 @@ export default function DocumentsFolderPage({ id }: Props) {
     ((folder.domainSlug === "general-documents" && userLevel >= MEMBER_LEVEL) || isAdmin);
 
   const documents = docsData?.documents ?? [];
+
+  function isBrowserViewable(mimeType: string): boolean {
+    return (
+      mimeType === "application/pdf" ||
+      mimeType.startsWith("image/") ||
+      mimeType === "text/plain"
+    );
+  }
+
+  async function handleView(docId: string, fileName: string) {
+    if (viewingIds.has(docId)) return;
+    setViewingIds((prev) => new Set(prev).add(docId));
+    try {
+      const blob = await viewDocument(docId);
+      const url = URL.createObjectURL(blob);
+      const tab = window.open(url, "_blank");
+      // Revoke after a short delay to let the tab load
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      if (!tab) {
+        toast({ title: "Pop-up blocked", description: `Allow pop-ups to view "${fileName}" in a new tab.`, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Could not open document", variant: "destructive" });
+    } finally {
+      setViewingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(docId);
+        return next;
+      });
+    }
+  }
 
   async function handleDownload(docId: string, fileName: string) {
     if (downloadingIds.has(docId)) return;
@@ -364,6 +398,24 @@ export default function DocumentsFolderPage({ id }: Props) {
                                 >
                                   <Undo2 className="h-3.5 w-3.5" />
                                   <span className="hidden sm:inline">Withdraw</span>
+                                </Button>
+                              )}
+                              {isBrowserViewable(doc.mimeType) && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1.5"
+                                  disabled={viewingIds.has(doc.id)}
+                                  onClick={() => handleView(doc.id, doc.originalFileName)}
+                                >
+                                  {viewingIds.has(doc.id) ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <Eye className="h-3.5 w-3.5" />
+                                  )}
+                                  <span className="hidden sm:inline">
+                                    {viewingIds.has(doc.id) ? "Opening…" : "View"}
+                                  </span>
                                 </Button>
                               )}
                               <Button
