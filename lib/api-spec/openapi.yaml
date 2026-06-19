@@ -5083,7 +5083,7 @@ components:
 
     DocumentFolderDetail:
       type: object
-      required: [id, title, isSystemRoot, sortOrder, frame, subfolders, createdAt, updatedAt]
+      required: [id, title, isSystemRoot, sortOrder, frame, canView, canUpload, canApprove, canManage, subfolders, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -5105,6 +5105,24 @@ components:
           type: string
           nullable: true
           description: "Slug of the linked protected domain, e.g. general-documents"
+        parentId:
+          type: string
+          nullable: true
+        parentTitle:
+          type: string
+          nullable: true
+        canView:
+          type: boolean
+          description: "Whether the current user may view documents in this folder"
+        canUpload:
+          type: boolean
+          description: "Whether the current user may upload documents to this folder"
+        canApprove:
+          type: boolean
+          description: "Whether the current user may approve/reject documents in this folder"
+        canManage:
+          type: boolean
+          description: "Whether the current user may manage (edit/delete) this folder"
         subfolders:
           type: array
           items:

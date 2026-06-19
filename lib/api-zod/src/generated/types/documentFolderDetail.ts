@@ -17,6 +17,16 @@ export interface DocumentFolderDetail {
   domainId?: string | null;
   /** Slug of the linked protected domain, e.g. general-documents */
   domainSlug?: string | null;
+  parentId?: string | null;
+  parentTitle?: string | null;
+  /** Whether the current user may view documents in this folder */
+  canView: boolean;
+  /** Whether the current user may upload documents to this folder */
+  canUpload: boolean;
+  /** Whether the current user may approve/reject documents in this folder */
+  canApprove: boolean;
+  /** Whether the current user may manage (edit/delete) this folder */
+  canManage: boolean;
   subfolders: DocumentFolderItem[];
   createdAt: Date;
   updatedAt: Date;
