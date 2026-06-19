@@ -2597,6 +2597,14 @@ export const ListDocumentsResponse = zod.object({
 
 
 /**
+ * @summary View a document file inline in the browser (admin-only for non-published)
+ */
+export const ViewDocumentParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+/**
  * @summary Download a document file (streamed through API with access check)
  */
 export const DownloadDocumentParams = zod.object({

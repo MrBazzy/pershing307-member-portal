@@ -389,6 +389,104 @@ router.get("/:id/download", requireAuth(), async (req, res) => {
   }
 });
 
+// ── GET /documents/:id/view ──────────────────────────────────────────────────
+// Same as download but Content-Disposition: inline — for in-browser preview.
+// Non-published documents are restricted to Site Admin+.
+
+router.get("/:id/view", requireAuth(), async (req, res) => {
+  const userId = req.session!.userId!;
+  const lodgeId = await getLodgeId();
+  if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
+
+  const doc = await db
+    .select()
+    .from(documentsTable)
+    .where(and(eq(documentsTable.id, String(req.params.id)), eq(documentsTable.lodgeId, lodgeId)))
+    .then((r) => r[0] ?? null);
+  if (!doc) { res.status(404).json({ error: "Not found" }); return; }
+
+  const { maxPermLevel: level, roleSlugs: slugs, maxDegree } = await getUserVisibilityContext(userId);
+  const isAdmin = level >= SITE_ADMIN_LEVEL;
+
+  // Only admins can view non-published documents inline
+  let canSeeDoc: boolean;
+  switch (doc.status) {
+    case "deleted":
+    case "archived":
+      canSeeDoc = isAdmin;
+      break;
+    case "published":
+      canSeeDoc = true;
+      break;
+    case "pending_review":
+    case "rejected":
+      canSeeDoc = isAdmin;
+      break;
+    default:
+      canSeeDoc = isAdmin;
+  }
+
+  if (!canSeeDoc) { res.status(403).json({ error: "Access denied" }); return; }
+
+  // Check folder access (bypass for admins — they can always view for review)
+  if (!isAdmin) {
+    const folder = await getFolderWithAccess(doc.folderId, lodgeId);
+    if (!folder) { res.status(404).json({ error: "Folder not found" }); return; }
+    if (!checkFolderAccess(folder, level, slugs, maxDegree)) {
+      res.status(403).json({ error: "Access denied" }); return;
+    }
+  }
+
+  try {
+    const objectFile = await objectStorageService.getObjectEntityFile(doc.storagePath);
+    const response = await objectStorageService.downloadObject(objectFile, 0);
+
+    // Inline disposition — browser renders PDF/images directly
+    res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(doc.originalFileName)}"`);
+    res.setHeader("Content-Type", doc.mimeType);
+    res.status(response.status);
+    response.headers.forEach((value, key) => {
+      const lower = key.toLowerCase();
+      if (lower !== "content-disposition" && lower !== "content-type") res.setHeader(key, value);
+    });
+
+    if (response.body) {
+      const nodeStream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);
+      nodeStream.pipe(res);
+    } else {
+      res.end();
+    }
+
+    // Audit fire-and-forget
+    const actor = await db
+      .select({ email: usersTable.email, firstName: usersTable.firstName, lastName: usersTable.lastName })
+      .from(usersTable).where(eq(usersTable.id, userId)).then((r) => r[0] ?? null);
+    writeAuditLog({
+      lodgeId,
+      actorId: userId,
+      actorEmail: actor?.email ?? "",
+      action: "DOCUMENT_VIEWED",
+      targetType: "document",
+      targetId: doc.id,
+      detail: {
+        fileName: doc.originalFileName,
+        title: doc.title,
+        status: doc.status,
+        actorName: actor ? `${actor.firstName} ${actor.lastName}`.trim() : "",
+      },
+      ipAddress: getClientIp(req),
+      userAgent: req.headers["user-agent"] ?? null,
+    }).catch(() => {});
+  } catch (error) {
+    if (error instanceof ObjectNotFoundError) {
+      res.status(404).json({ error: "File not found in storage" });
+      return;
+    }
+    req.log.error({ err: error }, "Document view error");
+    res.status(500).json({ error: "View failed" });
+  }
+});
+
 // ── PATCH /documents/:id ────────────────────────────────────────────────────
 
 router.patch("/:id", requireAuth(), async (req, res) => {

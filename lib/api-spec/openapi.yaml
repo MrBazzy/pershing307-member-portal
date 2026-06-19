@@ -2959,6 +2959,32 @@ paths:
         "404":
           description: Folder not found
 
+  /documents/{id}/view:
+    get:
+      operationId: viewDocument
+      tags: [documents]
+      summary: View a document file inline in the browser (admin-only for non-published)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File stream with inline content-disposition
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "401":
+          description: Not authenticated
+        "403":
+          description: Access denied
+        "404":
+          description: Not found
+
   /documents/{id}/download:
     get:
       operationId: downloadDocument

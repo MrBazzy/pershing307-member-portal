@@ -9855,6 +9855,83 @@ export function useListDocuments<TData = Awaited<ReturnType<typeof listDocuments
 
 
 
+export const getViewDocumentUrl = (id: string,) => {
+
+
+
+
+  return `/api/documents/${id}/view`
+}
+
+/**
+ * @summary View a document file inline in the browser (admin-only for non-published)
+ */
+export const viewDocument = async (id: string, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getViewDocumentUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getViewDocumentQueryKey = (id: string,) => {
+    return [
+    `/api/documents/${id}/view`
+    ] as const;
+    }
+
+
+export const getViewDocumentQueryOptions = <TData = Awaited<ReturnType<typeof viewDocument>>, TError = ErrorType<void>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof viewDocument>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getViewDocumentQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof viewDocument>>> = ({ signal }) => viewDocument(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof viewDocument>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ViewDocumentQueryResult = NonNullable<Awaited<ReturnType<typeof viewDocument>>>
+export type ViewDocumentQueryError = ErrorType<void>
+
+
+/**
+ * @summary View a document file inline in the browser (admin-only for non-published)
+ */
+
+export function useViewDocument<TData = Awaited<ReturnType<typeof viewDocument>>, TError = ErrorType<void>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof viewDocument>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getViewDocumentQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getDownloadDocumentUrl = (id: string,) => {
 
 

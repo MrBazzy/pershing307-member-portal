@@ -1,0 +1,191 @@
+DOCUMENT-REVIEW-001 — Document Inspection Before Approval
+
+STEP 0 — SAFETY FIRST
+
+Before making changes:
+
+1. Create Replit checkpoint/snapshot.
+2. Create git tag:
+
+v3.8-before-document-review-preview
+
+3. Confirm build passes.
+
+---
+
+## ISSUE
+
+In Management → Document Review
+
+administrators can currently:
+
+* Approve
+* Reject
+
+but cannot inspect the document before making a decision.
+
+This is not acceptable for governance, security and quality control.
+
+---
+
+## REQUIRED BEHAVIOR
+
+Before approving or rejecting a document, the reviewer must be able to inspect it.
+
+Document Review should show:
+
+* File name
+* Original file name
+* File type
+* File size
+* Upload date
+* Uploaded by
+* Folder
+* Description
+* Status
+
+and provide:
+
+View Document
+
+button.
+
+---
+
+## DOCUMENT VIEWER
+
+Add a View Document action.
+
+Supported behavior:
+
+PDF:
+
+* open embedded viewer
+* preview inside portal if feasible
+
+Images:
+
+* display image preview
+
+Text files:
+
+* display content
+
+Office documents:
+
+* provide preview if supported
+* otherwise provide temporary review download
+
+---
+
+## REVIEW DOWNLOAD
+
+If preview is not possible:
+
+Allow:
+
+Download for Review
+
+Only visible to:
+
+* Site Administrator
+* PM Super Administrator
+
+This must not publish the document.
+
+---
+
+## REVIEW WORKFLOW
+
+Pending document review process:
+
+1. Open document
+2. Inspect content
+3. Approve OR Reject
+
+Approving without viewing should still be allowed technically, but reviewers should have access to inspection tools.
+
+---
+
+## DUPLICATE DETECTION
+
+If feasible:
+
+Display:
+
+Possible duplicates
+
+based on:
+
+* same filename
+* same size
+* same hash
+
+This is informational only.
+
+---
+
+## SECURITY INFORMATION
+
+Show:
+
+* file extension
+* MIME type
+* upload date
+* uploader
+
+Useful for detecting suspicious uploads.
+
+---
+
+## APPROVAL SCREEN
+
+Document Review card example:
+
+Lodge Guidelines.pdf
+
+Uploaded by:
+John Smith
+
+Folder:
+General Documents / 2026
+
+Type:
+PDF
+
+Size:
+2.4 MB
+
+Status:
+Pending Review
+
+Buttons:
+
+[View Document]
+[Download for Review]
+[Approve]
+[Reject]
+
+---
+
+## AUDIT LOGGING
+
+Log:
+
+Peter Jones viewed pending document "Lodge Guidelines.pdf".
+
+Peter Jones approved pending document "Lodge Guidelines.pdf".
+
+Peter Jones rejected pending document "Draft Minutes.docx".
+
+---
+
+## ACCEPTANCE CRITERIA
+
+1. Pending documents can be inspected before approval.
+2. PDF documents can be reviewed.
+3. Images can be reviewed.
+4. Metadata is visible.
+5. Administrators can still approve/reject.
+6. Review access is limited to Site Administrator and PM Super Administrator.
+7. Build passes.
