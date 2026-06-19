@@ -36,7 +36,8 @@ app.listen(port, (err) => {
   // correct defaults without requiring a prior GET /document-folders call.
   getLodgeId()
     .then((lodgeId) => {
-      if (lodgeId) return seedFolderAccessMatrix(lodgeId);
+      if (!lodgeId) return;
+      return seedFolderAccessMatrix(lodgeId);
     })
     .catch((e) =>
       logger.warn({ err: e }, "Access matrix seed skipped — lodge may not be bootstrapped yet")
