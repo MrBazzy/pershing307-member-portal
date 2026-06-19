@@ -112,16 +112,28 @@ export default function DocumentsFolderPage({ id }: Props) {
   async function handleView(docId: string, fileName: string) {
     if (viewingIds.has(docId)) return;
     setViewingIds((prev) => new Set(prev).add(docId));
+    // Open the tab immediately (synchronous, inside the click handler) to avoid
+    // the browser's pop-up blocker, then navigate it once the blob is ready.
+    const tab = window.open("", "_blank");
     try {
       const blob = await viewDocument(docId);
       const url = URL.createObjectURL(blob);
-      const tab = window.open(url, "_blank");
-      // Revoke after a short delay to let the tab load
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      if (!tab) {
-        toast({ title: "Pop-up blocked", description: `Allow pop-ups to view "${fileName}" in a new tab.`, variant: "destructive" });
+      if (tab) {
+        tab.location.href = url;
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      } else {
+        // Fallback: open a normal link if the tab reference was lost
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
       }
     } catch {
+      tab?.close();
       toast({ title: "Could not open document", variant: "destructive" });
     } finally {
       setViewingIds((prev) => {
