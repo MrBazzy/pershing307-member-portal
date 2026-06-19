@@ -1772,6 +1772,7 @@ actorEmail?: string;
 from?: string;
 to?: string;
 targetType?: string;
+targetId?: string;
 };
 
 export type GetUpcomingTracingBoardEntriesParams = {

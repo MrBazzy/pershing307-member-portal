@@ -20,7 +20,9 @@ import {
   useGetDocumentDomainAccessMatrix,
   useUpdateDocumentDomainAccessMatrix,
   useListDocumentDomains,
+  useListAuditLogs,
   getGetDocumentDomainAccessMatrixQueryKey,
+  getListAuditLogsQueryKey,
 } from "@workspace/api-client-react";
 import {
   Shield,
@@ -29,6 +31,8 @@ import {
   RotateCcw,
   Save,
   X,
+  History,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -241,6 +245,89 @@ function MatrixRow({
   );
 }
 
+const SUBJECT_LABELS: Record<string, string> = {
+  visitor: "Visitor",
+  member: "Member",
+  secretary: "Secretary",
+  treasurer: "Treasurer",
+  "junior-warden": "Junior Warden",
+  "senior-warden": "Senior Warden",
+  "worshipful-master": "Worshipful Master",
+  "past-master": "Past Master",
+  "site-administrator": "Site Administrator",
+  "pm-super-administrator": "PM Super Administrator",
+  "1": "Entered Apprentice (1°)",
+  "2": "Fellowcraft (2°)",
+  "3": "Master Mason (3°)",
+};
+
+const PERMISSION_LABELS: Record<string, string> = {
+  view: "View",
+  upload: "Upload",
+  approve: "Approve",
+  manage: "Manage",
+};
+
+interface AuditGroup {
+  actorName: string;
+  timestamp: string;
+  granted: Array<{ subjectType: string; subjectKey: string; permission: string }>;
+  revoked: Array<{ subjectType: string; subjectKey: string; permission: string }>;
+}
+
+function buildAuditGroups(logs: Array<{ id: string; actorEmail?: string | null; action: string; detail?: Record<string, unknown> | null; createdAt: string }>): AuditGroup[] {
+  const groups: AuditGroup[] = [];
+  let current: AuditGroup | null = null;
+  let currentActorEmail: string | null = null;
+  let currentMs: number | null = null;
+
+  for (const log of logs) {
+    const detail = log.detail as Record<string, unknown> | null | undefined;
+    const actorName = (detail?.actorName as string | undefined) ?? log.actorEmail ?? "Unknown";
+    const logMs = new Date(log.createdAt).getTime();
+
+    const sameGroup =
+      current !== null &&
+      currentActorEmail === (log.actorEmail ?? null) &&
+      currentMs !== null &&
+      Math.abs(logMs - currentMs) < 10_000;
+
+    if (!sameGroup) {
+      if (current) groups.push(current);
+      current = { actorName, timestamp: log.createdAt, granted: [], revoked: [] };
+      currentActorEmail = log.actorEmail ?? null;
+      currentMs = logMs;
+    }
+
+    if (log.action === "ACCESS_MATRIX_PERMISSION_GRANTED") {
+      current!.granted.push({
+        subjectType: (detail?.subjectType as string | undefined) ?? "",
+        subjectKey: (detail?.subjectKey as string | undefined) ?? "",
+        permission: (detail?.permission as string | undefined) ?? "",
+      });
+    } else if (log.action === "ACCESS_MATRIX_PERMISSION_REVOKED") {
+      current!.revoked.push({
+        subjectType: (detail?.subjectType as string | undefined) ?? "",
+        subjectKey: (detail?.subjectKey as string | undefined) ?? "",
+        permission: (detail?.permission as string | undefined) ?? "",
+      });
+    }
+  }
+  if (current) groups.push(current);
+  return groups;
+}
+
+function formatDateTime(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default function DomainAccessPage({ id }: { id: string }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -254,6 +341,12 @@ export default function DomainAccessPage({ id }: { id: string }) {
     isLoading,
     isError,
   } = useGetDocumentDomainAccessMatrix(id);
+
+  const { data: auditData, isLoading: auditLoading } = useListAuditLogs({
+    targetType: "domain",
+    targetId: id,
+    limit: 200,
+  });
 
   const updateMatrix = useUpdateDocumentDomainAccessMatrix();
 
@@ -297,6 +390,8 @@ export default function DomainAccessPage({ id }: { id: string }) {
     }
   }
 
+  const auditQueryParams = { targetType: "domain", targetId: id, limit: 200 };
+
   function handleSave() {
     updateMatrix.mutate(
       { id, data: { matrix: setToMatrixInput(localSet) } },
@@ -306,6 +401,7 @@ export default function DomainAccessPage({ id }: { id: string }) {
           setLocalSet(matrixToSet(data.matrix));
           setInitialized(true);
           queryClient.invalidateQueries({ queryKey: getGetDocumentDomainAccessMatrixQueryKey(id) });
+          queryClient.invalidateQueries({ queryKey: getListAuditLogsQueryKey(auditQueryParams) });
         },
         onError: (e: any) => {
           toast({
@@ -339,6 +435,7 @@ export default function DomainAccessPage({ id }: { id: string }) {
           setLocalSet(matrixToSet(data.matrix));
           setInitialized(true);
           queryClient.invalidateQueries({ queryKey: getGetDocumentDomainAccessMatrixQueryKey(id) });
+          queryClient.invalidateQueries({ queryKey: getListAuditLogsQueryKey(auditQueryParams) });
           setShowResetConfirm(false);
         },
         onError: (e: any) => {
@@ -530,6 +627,79 @@ export default function DomainAccessPage({ id }: { id: string }) {
                 </div>
               </div>
             )}
+
+            {/* Change History */}
+            <div className="rounded-lg border border-card-border bg-card overflow-hidden">
+              <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+                <History className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">Change history</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Recent permission matrix updates for this domain.</p>
+                </div>
+              </div>
+
+              {auditLoading ? (
+                <div className="p-4 space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 rounded" />
+                  ))}
+                </div>
+              ) : !auditData?.logs.length ? (
+                <div className="px-4 py-8 text-center">
+                  <p className="text-sm text-muted-foreground">No changes recorded yet.</p>
+                </div>
+              ) : (() => {
+                const groups = buildAuditGroups(auditData.logs as any[]);
+                if (!groups.length) {
+                  return (
+                    <div className="px-4 py-8 text-center">
+                      <p className="text-sm text-muted-foreground">No changes recorded yet.</p>
+                    </div>
+                  );
+                }
+                return (
+                  <ul className="divide-y divide-border">
+                    {groups.map((group, i) => (
+                      <li key={i} className="px-4 py-3">
+                        <div className="flex items-start gap-3">
+                          <div className="rounded-full bg-muted p-1.5 shrink-0 mt-0.5">
+                            <User className="h-3.5 w-3.5 text-muted-foreground" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground">{group.actorName}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{formatDateTime(group.timestamp)}</p>
+                            {(group.granted.length > 0 || group.revoked.length > 0) && (
+                              <ul className="mt-2 space-y-1">
+                                {group.granted.map((p, j) => (
+                                  <li key={`g-${j}`} className="flex items-center gap-1.5 text-xs">
+                                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold shrink-0">+</span>
+                                    <span className="text-foreground">
+                                      <span className="font-medium">{PERMISSION_LABELS[p.permission] ?? p.permission}</span>
+                                      {" granted to "}
+                                      <span className="font-medium">{SUBJECT_LABELS[p.subjectKey] ?? p.subjectKey}</span>
+                                    </span>
+                                  </li>
+                                ))}
+                                {group.revoked.map((p, j) => (
+                                  <li key={`r-${j}`} className="flex items-center gap-1.5 text-xs">
+                                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-destructive/15 text-destructive font-bold shrink-0">−</span>
+                                    <span className="text-foreground">
+                                      <span className="font-medium">{PERMISSION_LABELS[p.permission] ?? p.permission}</span>
+                                      {" revoked from "}
+                                      <span className="font-medium">{SUBJECT_LABELS[p.subjectKey] ?? p.subjectKey}</span>
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                );
+              })()}
+            </div>
           </div>
         )}
       </div>

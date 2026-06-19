@@ -19,6 +19,7 @@ const filterSchema = z.object({
   from: z.string().optional(),
   to: z.string().optional(),
   targetType: z.string().optional(),
+  targetId: z.string().optional(),
 });
 
 router.get("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
@@ -34,7 +35,7 @@ router.get("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) =
     return;
   }
 
-  const { limit, offset, action, actorEmail, from, to, targetType } = parsed.data;
+  const { limit, offset, action, actorEmail, from, to, targetType, targetId } = parsed.data;
 
   const conditions: SQL[] = [eq(auditLogsTable.lodgeId, lodgeId)];
 
@@ -49,6 +50,7 @@ router.get("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) =
     if (!isNaN(toDate.getTime())) conditions.push(lte(auditLogsTable.createdAt, toDate));
   }
   if (targetType) conditions.push(eq(auditLogsTable.targetType, targetType));
+  if (targetId) conditions.push(eq(auditLogsTable.targetId, targetId));
 
   const logs = await db
     .select()

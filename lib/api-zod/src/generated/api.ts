@@ -814,7 +814,8 @@ export const ListAuditLogsQueryParams = zod.object({
   "actorEmail": zod.coerce.string().optional(),
   "from": zod.coerce.string().optional(),
   "to": zod.coerce.string().optional(),
-  "targetType": zod.coerce.string().optional()
+  "targetType": zod.coerce.string().optional(),
+  "targetId": zod.coerce.string().optional()
 })
 
 export const ListAuditLogsResponse = zod.object({
