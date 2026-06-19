@@ -11,9 +11,15 @@ import {
   useDeleteDocumentFolder,
   useLinkDocumentFolderDomain,
   useListDocumentDomains,
+  useListFolderDocuments,
+  useUpdateDocument,
+  useUpdateDocumentStatus,
   getListDocumentFoldersQueryKey,
   getGetDocumentFolderQueryKey,
+  getListFolderDocumentsQueryKey,
 } from "@workspace/api-client-react";
+import type { DocumentItem } from "@workspace/api-client-react";
+import { DocumentStatusBadge } from "@/components/documents/document-status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,6 +71,9 @@ import {
   ChevronDown,
   ChevronRight,
   Shield,
+  FileText,
+  Archive,
+  RotateCcw,
 } from "lucide-react";
 import { ADMIN_LEVEL, PM_SUPER_LEVEL } from "@/lib/roles";
 import { cn } from "@/lib/utils";
@@ -100,6 +109,185 @@ interface FolderRowProps {
   onLinkDomain: (folder: { id: string; title: string; domainId: string | null; frame: string }) => void;
   onDelete: (folder: { id: string; title: string }) => void;
   onAddSubfolder: (parentId: string, parentTitle: string) => void;
+}
+
+function formatDocDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+}
+
+function FolderDocumentsList({ folderId }: { folderId: string }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { data, isLoading } = useListFolderDocuments(folderId, {
+    query: { queryKey: getListFolderDocumentsQueryKey(folderId) },
+  });
+  const updateDoc = useUpdateDocument();
+  const updateStatus = useUpdateDocumentStatus();
+
+  const [editDoc, setEditDoc] = useState<{ id: string; title: string; description: string | null } | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [confirmTarget, setConfirmTarget] = useState<{ id: string; title: string; newStatus: "archived" | "deleted" } | null>(null);
+
+  const documents = data?.documents ?? [];
+
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: getListFolderDocumentsQueryKey(folderId) });
+  }
+
+  function handleRename() {
+    if (!editDoc || !editTitle.trim()) return;
+    updateDoc.mutate(
+      { id: editDoc.id, data: { title: editTitle.trim(), description: editDesc.trim() || null } },
+      {
+        onSuccess: () => { toast({ title: "Document updated" }); setEditDoc(null); invalidate(); },
+        onError: () => toast({ title: "Failed to update document", variant: "destructive" }),
+      },
+    );
+  }
+
+  function handleStatusUpdate() {
+    if (!confirmTarget) return;
+    updateStatus.mutate(
+      { id: confirmTarget.id, data: { status: confirmTarget.newStatus } },
+      {
+        onSuccess: () => {
+          toast({ title: `Document ${confirmTarget.newStatus}` });
+          setConfirmTarget(null);
+          invalidate();
+        },
+        onError: () => toast({ title: "Failed to update document status", variant: "destructive" }),
+      },
+    );
+  }
+
+  function handleRestore(doc: DocumentItem) {
+    updateStatus.mutate(
+      { id: doc.id, data: { status: "published" } },
+      {
+        onSuccess: () => { toast({ title: `"${doc.title}" restored` }); invalidate(); },
+        onError: () => toast({ title: "Failed to restore document", variant: "destructive" }),
+      },
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="px-4 pb-3 pt-1">
+        <Skeleton className="h-8 w-full" />
+      </div>
+    );
+  }
+
+  if (documents.length === 0) {
+    return (
+      <div className="px-4 pb-3 pt-1">
+        <p className="text-xs text-muted-foreground italic">No documents in this folder.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-2 pb-2">
+      <div className="space-y-1">
+        {documents.map((doc) => (
+          <div key={doc.id} className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/30 group">
+            <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-sm text-foreground font-medium truncate">{doc.title}</span>
+                <DocumentStatusBadge status={doc.status} className="text-[10px] h-4 px-1.5" />
+              </div>
+              <p className="text-xs text-muted-foreground truncate">
+                {doc.originalFileName}
+                {doc.uploaderName ? ` · ${doc.uploaderName}` : ""}
+                {" · "}
+                {formatDocDate(doc.createdAt)}
+              </p>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => { setEditDoc({ id: doc.id, title: doc.title, description: doc.description ?? null }); setEditTitle(doc.title); setEditDesc(doc.description ?? ""); }}>
+                  <Pencil className="h-3.5 w-3.5 mr-2" /> Rename / Edit
+                </DropdownMenuItem>
+                {doc.status !== "archived" && doc.status !== "deleted" && (
+                  <DropdownMenuItem onClick={() => setConfirmTarget({ id: doc.id, title: doc.title, newStatus: "archived" })}>
+                    <Archive className="h-3.5 w-3.5 mr-2" /> Archive
+                  </DropdownMenuItem>
+                )}
+                {doc.status === "archived" && (
+                  <DropdownMenuItem onClick={() => handleRestore(doc)}>
+                    <RotateCcw className="h-3.5 w-3.5 mr-2" /> Restore
+                  </DropdownMenuItem>
+                )}
+                {doc.status !== "deleted" && (
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setConfirmTarget({ id: doc.id, title: doc.title, newStatus: "deleted" })}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ))}
+      </div>
+
+      {/* Edit dialog */}
+      <Dialog open={!!editDoc} onOpenChange={(o) => { if (!o) setEditDoc(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit Document</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-sm font-medium">Title</label>
+              <Input className="mt-1.5" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} autoFocus />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Description <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <Textarea className="mt-1.5 resize-none" rows={3} value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDoc(null)}>Cancel</Button>
+            <Button onClick={handleRename} disabled={!editTitle.trim() || updateDoc.isPending}>
+              {updateDoc.isPending ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Archive/Delete confirmation */}
+      <AlertDialog open={!!confirmTarget} onOpenChange={(o) => { if (!o) setConfirmTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmTarget?.newStatus === "deleted" ? "Delete document?" : "Archive document?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmTarget?.newStatus === "deleted"
+                ? `This will permanently remove "${confirmTarget?.title}".`
+                : `"${confirmTarget?.title}" will be hidden from members. You can restore it later.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleStatusUpdate}
+              className={confirmTarget?.newStatus === "deleted" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+            >
+              {confirmTarget?.newStatus === "deleted" ? "Delete" : "Archive"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
 }
 
 function SubfolderList({ folderId, isAdmin, onEdit, onDelete }: {
@@ -155,6 +343,7 @@ function SubfolderList({ folderId, isAdmin, onEdit, onDelete }: {
 
 function FolderRow({ folder, domainMap, isAdmin, isPmSuper, onEdit, onLinkDomain, onDelete, onAddSubfolder }: FolderRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const [docsExpanded, setDocsExpanded] = useState(false);
   const isRitual = folder.frame === "ritual";
   const domainName = folder.domainId ? domainMap.get(folder.domainId) : undefined;
 
@@ -242,6 +431,22 @@ function FolderRow({ folder, domainMap, isAdmin, isPmSuper, onEdit, onLinkDomain
           onEdit={onEdit}
           onDelete={onDelete}
         />
+      )}
+
+      {isAdmin && (
+        <div className="border-t border-card-border">
+          <button
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted/30 transition-colors"
+            onClick={() => setDocsExpanded(!docsExpanded)}
+          >
+            {docsExpanded
+              ? <ChevronDown className="h-3 w-3 shrink-0" />
+              : <ChevronRight className="h-3 w-3 shrink-0" />}
+            <FileText className="h-3 w-3 shrink-0" />
+            <span>Documents</span>
+          </button>
+          {docsExpanded && <FolderDocumentsList folderId={folder.id} />}
+        </div>
       )}
     </div>
   );

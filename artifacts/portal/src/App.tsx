@@ -26,6 +26,7 @@ import AdminHistoryTimelinePage from "@/pages/admin/history-timeline";
 import AdminHistoryDocumentsPage from "@/pages/admin/history-documents";
 import AdminHistoryPershingPage from "@/pages/admin/history-pershing";
 import AdminDocumentManagementPage from "@/pages/admin/document-management";
+import AdminDocumentReviewPage from "@/pages/admin/document-review";
 import AdminReportsPage from "@/pages/admin/reports";
 import TracingBoardPage from "@/pages/tracing-board";
 import EventsPage from "@/pages/events";
@@ -222,6 +223,7 @@ function AppRoutes() {
         <Route path="/admin/history/documents" component={() => <ProtectedRoute component={AdminHistoryDocumentsPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/history/pershing" component={() => <ProtectedRoute component={AdminHistoryPershingPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/document-management" component={() => <ProtectedRoute component={AdminDocumentManagementPage} minLevel={ADMIN_LEVEL} />} />
+        <Route path="/admin/document-review" component={() => <ProtectedRoute component={AdminDocumentReviewPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/reports" component={() => <ProtectedRoute component={AdminReportsPage} minLevel={ADMIN_LEVEL} />} />
 
         <Route component={NotFound} />

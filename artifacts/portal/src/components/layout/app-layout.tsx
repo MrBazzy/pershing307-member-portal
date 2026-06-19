@@ -2,7 +2,7 @@ import { ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import pershingPortrait from "@assets/JohnJPershing_1781792629576.jpg";
-import { useLogout } from "@workspace/api-client-react";
+import { useLogout, useGetDocumentReviewCount, getGetDocumentReviewCountQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,7 @@ import {
   LayoutDashboard, Users, Mail, FileText, LogOut, ChevronRight,
   Shield, Globe, Settings, Menu, X, Cake, Map, UserCircle,
   BookOpen, CalendarDays, Landmark, Fingerprint, FolderOpen, BarChart3,
+  ClipboardCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -36,6 +37,7 @@ const MANAGEMENT_ITEMS: NavItem[] = [
   { href: "/admin/invitations", label: "Invitations", icon: Mail },
   { href: "/admin/domains", label: "Domains & Access Control", icon: Globe },
   { href: "/admin/document-management", label: "Document Management", icon: FolderOpen },
+  { href: "/admin/document-review", label: "Document Review", icon: ClipboardCheck },
   { href: "/admin/tracing-board", label: "Tracing Board", icon: BookOpen },
   { href: "/admin/events", label: "Events", icon: CalendarDays },
   { href: "/admin/history", label: "History", icon: Landmark },
@@ -72,7 +74,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     });
   };
 
-  const NavLink = ({ item, onNav }: { item: NavItem; onNav?: () => void }) => {
+  const NavLink = ({ item, onNav, badge }: { item: NavItem; onNav?: () => void; badge?: number }) => {
     const active = location === item.href || location.startsWith(item.href + "/");
     return (
       <Link
@@ -88,10 +90,22 @@ export function AppLayout({ children }: AppLayoutProps) {
       >
         <item.icon className="h-4 w-4 shrink-0" />
         <span>{item.label}</span>
-        {active && <ChevronRight className="h-3 w-3 ml-auto" />}
+        <span className="ml-auto flex items-center gap-1">
+          {badge !== undefined && badge > 0 && (
+            <span className="rounded-full bg-amber-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 min-w-[18px] text-center leading-none">
+              {badge > 99 ? "99+" : badge}
+            </span>
+          )}
+          {active && <ChevronRight className="h-3 w-3" />}
+        </span>
       </Link>
     );
   };
+
+  const { data: reviewCountData } = useGetDocumentReviewCount({
+    query: { enabled: isAdmin, queryKey: getGetDocumentReviewCountQueryKey() },
+  });
+  const reviewPendingCount = reviewCountData?.pendingCount ?? 0;
 
   const SidebarContent = ({ onNav }: { onNav?: () => void }) => (
     <>
@@ -140,7 +154,12 @@ export function AppLayout({ children }: AppLayoutProps) {
                 Management
               </p>
               {MANAGEMENT_ITEMS.map((item) => (
-                <NavLink key={item.href} item={item} onNav={onNav} />
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  onNav={onNav}
+                  badge={item.href === "/admin/document-review" ? reviewPendingCount : undefined}
+                />
               ))}
             </div>
           </div>
