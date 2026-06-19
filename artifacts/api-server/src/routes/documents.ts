@@ -279,13 +279,26 @@ router.get("/:id/download", requireAuth(), async (req, res) => {
 
   const { maxPermLevel: level, roleSlugs: slugs, maxDegree } = await getUserVisibilityContext(userId);
 
-  // Check doc visibility
+  // Check doc visibility — same rules as the list endpoint
   const isAdmin = level >= SITE_ADMIN_LEVEL;
   const isUploader = doc.uploaderId === userId;
-  const canSeeDoc =
-    isAdmin ||
-    isUploader ||
-    doc.status === "published";
+
+  let canSeeDoc: boolean;
+  switch (doc.status) {
+    case "deleted":
+    case "archived":
+      canSeeDoc = isAdmin;
+      break;
+    case "published":
+      canSeeDoc = true;
+      break;
+    case "pending_review":
+    case "rejected":
+      canSeeDoc = isAdmin || isUploader;
+      break;
+    default:
+      canSeeDoc = isAdmin;
+  }
 
   if (!canSeeDoc) { res.status(403).json({ error: "Access denied" }); return; }
 
