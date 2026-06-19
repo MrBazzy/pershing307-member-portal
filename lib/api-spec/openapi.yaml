@@ -5228,7 +5228,7 @@ components:
       properties:
         status:
           type: string
-          enum: [published, rejected, archived, deleted]
+          enum: [published, rejected, archived, deleted, withdrawn]
         rejectionReason:
           type: string
           nullable: true

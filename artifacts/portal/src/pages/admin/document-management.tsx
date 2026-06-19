@@ -215,7 +215,7 @@ function FolderDocumentsList({ folderId }: { folderId: string }) {
                 <DropdownMenuItem onClick={() => { setEditDoc({ id: doc.id, title: doc.title, description: doc.description ?? null }); setEditTitle(doc.title); setEditDesc(doc.description ?? ""); }}>
                   <Pencil className="h-3.5 w-3.5 mr-2" /> Rename / Edit
                 </DropdownMenuItem>
-                {doc.status !== "archived" && doc.status !== "deleted" && (
+                {doc.status !== "archived" && doc.status !== "deleted" && doc.status !== "withdrawn" && (
                   <DropdownMenuItem onClick={() => setConfirmTarget({ id: doc.id, title: doc.title, newStatus: "archived" })}>
                     <Archive className="h-3.5 w-3.5 mr-2" /> Archive
                   </DropdownMenuItem>

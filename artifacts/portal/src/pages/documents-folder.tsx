@@ -5,12 +5,25 @@ import {
   useListFolderDocuments,
   getListFolderDocumentsQueryKey,
   downloadDocument,
+  useUpdateDocumentStatus,
 } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { DocumentStatusBadge } from "@/components/documents/document-status-badge";
 import { UploadDocumentDialog } from "@/components/documents/upload-document-dialog";
 import {
@@ -23,6 +36,7 @@ import {
   Upload,
   FileX,
   Loader2,
+  Undo2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -54,6 +68,8 @@ function formatBytes(bytes: number): string {
 
 export default function DocumentsFolderPage({ id }: Props) {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const userLevel = getUserLevel(user?.roles);
   const isAdmin = userLevel >= SITE_ADMIN_LEVEL;
 
@@ -68,8 +84,11 @@ export default function DocumentsFolderPage({ id }: Props) {
     query: { queryKey: getListFolderDocumentsQueryKey(id), enabled: !folderError },
   });
 
+  const withdrawDoc = useUpdateDocumentStatus();
+
   const [uploadOpen, setUploadOpen] = useState(false);
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
+  const [withdrawTarget, setWithdrawTarget] = useState<{ id: string; title: string } | null>(null);
 
   const isAccessDenied = (error as any)?.status === 403;
 
@@ -101,6 +120,24 @@ export default function DocumentsFolderPage({ id }: Props) {
         return next;
       });
     }
+  }
+
+  function handleWithdraw() {
+    if (!withdrawTarget) return;
+    withdrawDoc.mutate(
+      { id: withdrawTarget.id, data: { status: "withdrawn" } },
+      {
+        onSuccess: () => {
+          toast({ title: "Submission withdrawn" });
+          setWithdrawTarget(null);
+          queryClient.invalidateQueries({ queryKey: getListFolderDocumentsQueryKey(id) });
+        },
+        onError: () => {
+          toast({ title: "Failed to withdraw submission", variant: "destructive" });
+          setWithdrawTarget(null);
+        },
+      },
+    );
   }
 
   return (
@@ -317,24 +354,37 @@ export default function DocumentsFolderPage({ id }: Props) {
                                 )}
                             </div>
 
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="shrink-0 gap-1.5"
-                              disabled={isDownloading}
-                              onClick={() =>
-                                handleDownload(doc.id, doc.originalFileName)
-                              }
-                            >
-                              {isDownloading ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <Download className="h-3.5 w-3.5" />
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {!isAdmin && isUploader && doc.status === "pending_review" && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="gap-1.5 text-muted-foreground hover:text-foreground"
+                                  onClick={() => setWithdrawTarget({ id: doc.id, title: doc.title })}
+                                >
+                                  <Undo2 className="h-3.5 w-3.5" />
+                                  <span className="hidden sm:inline">Withdraw</span>
+                                </Button>
                               )}
-                              <span className="hidden sm:inline">
-                                {isDownloading ? "Downloading…" : "Download"}
-                              </span>
-                            </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5"
+                                disabled={isDownloading}
+                                onClick={() =>
+                                  handleDownload(doc.id, doc.originalFileName)
+                                }
+                              >
+                                {isDownloading ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Download className="h-3.5 w-3.5" />
+                                )}
+                                <span className="hidden sm:inline">
+                                  {isDownloading ? "Downloading…" : "Download"}
+                                </span>
+                              </Button>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -356,6 +406,32 @@ export default function DocumentsFolderPage({ id }: Props) {
           folderTitle={folder.title}
         />
       )}
+
+      {/* Withdraw submission confirmation */}
+      <AlertDialog
+        open={!!withdrawTarget}
+        onOpenChange={(o) => { if (!o) setWithdrawTarget(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Withdraw submission?</AlertDialogTitle>
+            <AlertDialogDescription>
+              &ldquo;{withdrawTarget?.title}&rdquo; will be marked as withdrawn and
+              removed from the review queue. The file will remain in the audit
+              history but will no longer be visible to other members.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleWithdraw}
+              disabled={withdrawDoc.isPending}
+            >
+              {withdrawDoc.isPending ? "Withdrawing…" : "Withdraw Submission"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

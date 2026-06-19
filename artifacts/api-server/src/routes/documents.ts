@@ -66,7 +66,7 @@ const patchDocumentSchema = z.object({
 });
 
 const patchStatusSchema = z.object({
-  status: z.enum(["published", "rejected", "archived", "deleted"]),
+  status: z.enum(["published", "rejected", "archived", "deleted", "withdrawn"]),
   rejectionReason: z.string().max(1000).nullable().optional(),
 });
 
@@ -241,7 +241,7 @@ router.get("/", requireAuth(), async (req, res) => {
     if (d.status === "deleted") return isAdmin;
     if (d.status === "archived") return isAdmin;
     if (d.status === "published") return true;
-    if (d.status === "pending_review" || d.status === "rejected") {
+    if (d.status === "pending_review" || d.status === "rejected" || d.status === "withdrawn") {
       return isAdmin || d.uploaderId === userId;
     }
     return false;
@@ -476,13 +476,14 @@ router.patch("/:id/status", requireAuth(), async (req, res) => {
 
   const { maxPermLevel: level } = await getUserVisibilityContext(userId);
 
-  // Uploader can only delete their own pending_review documents
+  // Admins can perform all status transitions.
+  // Uploaders can only withdraw their own pending_review submissions.
   const isAdmin = level >= SITE_ADMIN_LEVEL;
   const isUploader = doc.uploaderId === userId;
 
   if (!isAdmin) {
-    if (isUploader && doc.status === "pending_review" && parsed.data.status === "deleted") {
-      // allowed — uploader retracting their own pending doc
+    if (isUploader && doc.status === "pending_review" && parsed.data.status === "withdrawn") {
+      // allowed — uploader withdrawing their own pending submission
     } else {
       res.status(403).json({ error: "Admin only" });
       return;
@@ -525,6 +526,7 @@ router.patch("/:id/status", requireAuth(), async (req, res) => {
     rejected: "DOCUMENT_REJECTED",
     archived: "DOCUMENT_ARCHIVED",
     deleted: "DOCUMENT_DELETED",
+    withdrawn: "DOCUMENT_WITHDRAWN",
   };
   const auditAction = auditActionMap[parsed.data.status]!;
 

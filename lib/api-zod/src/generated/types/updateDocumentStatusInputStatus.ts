@@ -14,4 +14,5 @@ export const UpdateDocumentStatusInputStatus = {
   rejected: 'rejected',
   archived: 'archived',
   deleted: 'deleted',
+  withdrawn: 'withdrawn',
 } as const;

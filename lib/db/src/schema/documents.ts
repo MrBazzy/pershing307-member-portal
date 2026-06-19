@@ -3,7 +3,7 @@ import { lodgesTable } from "./lodges";
 import { usersTable } from "./users";
 import { documentFoldersTable } from "./document-folders";
 
-export type DocumentStatus = "pending_review" | "published" | "rejected" | "archived" | "deleted";
+export type DocumentStatus = "pending_review" | "published" | "rejected" | "archived" | "deleted" | "withdrawn";
 
 export const documentsTable = pgTable("documents", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

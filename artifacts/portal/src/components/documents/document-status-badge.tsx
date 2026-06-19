@@ -24,6 +24,10 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
     label: "Deleted",
     className: "bg-muted text-muted-foreground border-border",
   },
+  withdrawn: {
+    label: "Withdrawn",
+    className: "bg-muted text-muted-foreground border-border",
+  },
   published: {
     label: "Published",
     className: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30",

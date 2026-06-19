@@ -2643,7 +2643,7 @@ export const UpdateDocumentStatusParams = zod.object({
 })
 
 export const UpdateDocumentStatusBody = zod.object({
-  "status": zod.enum(['published', 'rejected', 'archived', 'deleted']),
+  "status": zod.enum(['published', 'rejected', 'archived', 'deleted', 'withdrawn']),
   "rejectionReason": zod.string().nullish()
 })
 
