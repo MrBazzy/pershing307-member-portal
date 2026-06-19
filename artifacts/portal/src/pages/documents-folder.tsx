@@ -236,7 +236,7 @@ export default function DocumentsFolderPage({ id }: Props) {
 
         {/* Other error */}
         {folderError && !isAccessDenied && (
-          <Card className="border-card-border">
+          <Card className="border-amber-200">
             <CardContent className="py-12 text-center text-sm text-muted-foreground">
               Failed to load folder. Please try again.
             </CardContent>
@@ -276,11 +276,11 @@ export default function DocumentsFolderPage({ id }: Props) {
 
             {/* Document Library Notice — General Documents only */}
             {folder.domainSlug === "general-documents" && (
-              <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-4">
+              <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
                 <div className="flex gap-3">
-                  <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  <div className="space-y-2.5 text-sm text-foreground/80">
-                    <p className="font-semibold text-foreground">Document Library Notice</p>
+                  <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="space-y-2.5 text-sm text-amber-900">
+                    <p className="font-semibold text-amber-900">Document Library Notice</p>
                     <p>
                       This Document Library exists to support the personal development of our
                       Brethren, to preserve the history and traditions of our Lodge, and to
@@ -332,7 +332,7 @@ export default function DocumentsFolderPage({ id }: Props) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {folder.subfolders.map((sub) => (
                     <Link key={sub.id} href={`/documents/${sub.id}`}>
-                      <Card className="border-card-border cursor-pointer hover:border-primary/40 hover:shadow-sm transition-all">
+                      <Card className="border-amber-200 cursor-pointer hover:border-amber-400 hover:shadow-sm transition-all">
                         <CardContent className="p-4 flex items-center gap-3">
                           <div className="rounded-md bg-muted p-2 shrink-0">
                             <Folder className="h-4 w-4 text-muted-foreground" />
@@ -424,7 +424,7 @@ export default function DocumentsFolderPage({ id }: Props) {
 
               {/* Empty state */}
               {!docsLoading && filteredDocuments.length === 0 && (
-                <Card className={cn("border-card-border", canUpload && "border-dashed")}>
+                <Card className={cn("border-amber-200", canUpload && "border-dashed")}>
                   <CardContent className="py-10 text-center">
                     <FileX className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2.5" />
                     <p className="text-sm text-muted-foreground">No documents yet.</p>
@@ -453,7 +453,7 @@ export default function DocumentsFolderPage({ id }: Props) {
                     const isDownloading = downloadingIds.has(doc.id);
 
                     return (
-                      <Card key={doc.id} className="border-card-border">
+                      <Card key={doc.id} className="border-amber-200">
                         <CardContent className="p-4">
                           <div className="flex items-start gap-3">
                             <div className="rounded-md bg-muted p-2 shrink-0 mt-0.5">
