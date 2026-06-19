@@ -64,6 +64,13 @@ Orval-generated mutation hooks wrap the request body in `{ data: ... }` — do N
 - PUT with path param: `mutate({ id: "...", data: { title } })`
 After adding new routes, restart the API server workflow to pick up new route files.
 
+## Document visibility — two routes, same rule
+The portal fetches folder documents via `GET /document-folders/:id/documents`
+(in `document-folders.ts`), NOT `GET /documents?folderId=` (`documents.ts`).
+Both routes have their own visibility filter. Any change to who sees what
+must be applied to **both** files. Current rule: non-admins see only `published`;
+admins see all statuses.
+
 ## Rich Text / History Management
 - Rich text editor: TipTap (@tiptap/react @tiptap/pm @tiptap/starter-kit @tiptap/extension-underline @tiptap/extension-link @tiptap/extension-placeholder)
 - Editor component: `artifacts/portal/src/components/history/rich-text-editor.tsx` (uncontrolled, key-remount pattern)
