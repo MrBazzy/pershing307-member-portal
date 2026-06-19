@@ -6,6 +6,7 @@ import {
   protectedDomainsTable,
   usersTable,
   documentsTable,
+  folderAccessMatrixTable,
 } from "@workspace/db/schema";
 import type { FolderAccessPolicy, DomainAccessLogic } from "@workspace/db/schema";
 import { eq, and, isNull, isNotNull, asc, count, sql, inArray } from "drizzle-orm";
@@ -14,6 +15,12 @@ import { requireRole } from "../middlewares/requireRole";
 import { writeAuditLog, getClientIp } from "../lib/audit";
 import { getLodgeId } from "../lib/config";
 import { getUserVisibilityContext } from "../lib/visibility";
+import {
+  seedFolderAccessMatrix,
+  getEffectivePermissionsWithContext,
+  getEffectivePermissions,
+} from "../lib/matrixPermissions";
+import type { FolderAccessRow } from "../lib/folderAccess";
 
 const router = Router();
 
@@ -429,6 +436,9 @@ router.get("/", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) => {
     }
   }
 
+  // Seed the access matrix for any system root folders that lack it
+  await seedFolderAccessMatrix(lodgeId);
+
   // Get root folders with their domain rules in one JOIN
   const rootFolders = await db
     .select(folderColumns)
@@ -437,9 +447,34 @@ router.get("/", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) => {
     .where(and(eq(documentFoldersTable.lodgeId, lodgeId), isNull(documentFoldersTable.parentId)))
     .orderBy(asc(documentFoldersTable.sortOrder), asc(documentFoldersTable.title));
 
-  const accessible = rootFolders.filter((f) =>
-    checkFolderAccess(f as FolderRow, level, slugs, maxDegree),
+  // Batch-fetch matrix rows for all root folders
+  const rootFolderIds = rootFolders.map((f) => f.id);
+  const allMatrixRows = rootFolderIds.length > 0
+    ? await db
+        .select({
+          folderId: folderAccessMatrixTable.folderId,
+          subjectType: folderAccessMatrixTable.subjectType,
+          subjectKey: folderAccessMatrixTable.subjectKey,
+          permission: folderAccessMatrixTable.permission,
+        })
+        .from(folderAccessMatrixTable)
+        .where(inArray(folderAccessMatrixTable.folderId, rootFolderIds))
+    : [];
+
+  const userCtx = { maxPermLevel: level, roleSlugs: slugs, maxDegree };
+
+  const accessibleChecks = await Promise.all(
+    rootFolders.map((f) =>
+      getEffectivePermissionsWithContext(
+        userCtx,
+        f.id,
+        lodgeId,
+        rootFolders as unknown as FolderAccessRow[],
+        allMatrixRows,
+      ).then((p) => ({ folder: f, canView: p.canView })),
+    ),
   );
+  const accessible = accessibleChecks.filter((c) => c.canView).map((c) => c.folder);
 
   if (accessible.length === 0) {
     res.json({ folders: [] });
@@ -506,6 +541,9 @@ router.get("/:id", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) =>
     return;
   }
 
+  // Compute effective permissions for the caller
+  const effectivePerms = await getEffectivePermissions(userId, folder.id, lodgeId);
+
   // Get subfolders
   const subfolders = await db
     .select(folderColumns)
@@ -556,6 +594,10 @@ router.get("/:id", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) =>
     domainSlug: effectiveFolder.domainSlug ?? null,
     parentId: folder.parentId ?? null,
     parentTitle,
+    canView: effectivePerms.canView,
+    canUpload: effectivePerms.canUpload,
+    canApprove: effectivePerms.canApprove,
+    canManage: effectivePerms.canManage,
     subfolders: subfolders.map((s) => formatFolder(s as FolderRow, subCountMap.get(s.id) ?? 0)),
     createdAt: folder.createdAt.toISOString(),
     updatedAt: folder.updatedAt.toISOString(),

@@ -17,11 +17,10 @@ import { getUserVisibilityContext } from "../lib/visibility";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 import {
   checkFolderAccess,
-  canUploadToFolder,
   initialDocumentStatus,
   getFolderWithAccess,
-  folderAccessColumns,
 } from "../lib/folderAccess";
+import { getEffectivePermissions } from "../lib/matrixPermissions";
 
 const router = Router();
 const objectStorageService = new ObjectStorageService();
@@ -145,27 +144,28 @@ router.post("/request-upload", requireAuth(), async (req, res) => {
     resolvedAccessPolicy: folder.accessPolicy ?? null,
   }, "upload-request: resolved folder");
 
-  if (!checkFolderAccess(folder, level, slugs, maxDegree)) {
+  // Matrix-based permission check (falls back to legacy domain logic for non-matrix folders)
+  const uploadPerms = await getEffectivePermissions(userId, folderId, lodgeId);
+  if (!uploadPerms.canView) {
     req.log.warn({
       uploadDiag: true,
       userId,
       userLevel: level,
-      userRoles: slugs,
       resolvedFolderTitle: folder.title,
       resolvedDomainSlug: folder.domainSlug ?? null,
-      denialReason: "checkFolderAccess failed — no matching domain or legacy policy",
+      denialReason: "canView=false from matrix/legacy check",
     }, "upload-request: DENIED — folder access check failed");
     res.status(403).json({ error: "You do not have access to this folder." });
     return;
   }
-  if (!canUploadToFolder(folder, level)) {
+  if (!uploadPerms.canUpload) {
     req.log.warn({
       uploadDiag: true,
       userId,
       userLevel: level,
       resolvedFolderTitle: folder.title,
       resolvedDomainSlug: folder.domainSlug ?? null,
-      denialReason: "canUploadToFolder failed — domain is not general-documents and user is not admin",
+      denialReason: "canUpload=false from matrix/legacy check",
     }, "upload-request: DENIED — upload rights check failed");
     res.status(403).json({ error: "You do not have upload rights for this folder." });
     return;

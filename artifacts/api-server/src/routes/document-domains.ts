@@ -8,6 +8,11 @@ import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 import { writeAuditLog, getClientIp } from "../lib/audit";
 import { getLodgeId } from "../lib/config";
+import {
+  getMatrixForDomain,
+  replaceMatrixForFolder,
+} from "../lib/matrixPermissions";
+import type { MatrixEntryDef } from "../lib/matrixPermissions";
 
 const router = Router();
 
@@ -251,6 +256,160 @@ router.patch("/:id/access", requireAuth(), requireRole(PM_SUPER_LEVEL), async (r
   });
 
   res.json({ domain: formatDomain(updated) });
+});
+
+// ── GET /document-domains/:id/access-matrix ───────────────────────────────────
+router.get("/:id/access-matrix", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const lodgeId = await getLodgeId();
+  if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
+
+  const domain = await db
+    .select()
+    .from(protectedDomainsTable)
+    .where(and(eq(protectedDomainsTable.id, String(req.params.id)), eq(protectedDomainsTable.lodgeId, lodgeId)))
+    .then((r) => r[0] ?? null);
+  if (!domain) { res.status(404).json({ error: "Domain not found" }); return; }
+
+  const result = await getMatrixForDomain(domain.id, lodgeId);
+  if (!result) {
+    res.status(404).json({ error: "No system root folder linked to this domain" });
+    return;
+  }
+
+  res.json({
+    domainId: domain.id,
+    folderId: result.folderId,
+    matrix: result.rows.map((r) => ({
+      id: r.id,
+      subjectType: r.subjectType,
+      subjectKey: r.subjectKey,
+      permission: r.permission,
+    })),
+  });
+});
+
+// ── PUT /document-domains/:id/access-matrix ────────────────────────────────────
+const putMatrixSchema = z.object({
+  matrix: z.array(
+    z.object({
+      subjectType: z.enum(["role", "degree"]),
+      subjectKey: z.string().min(1).max(100),
+      permission: z.enum(["view", "upload", "approve", "manage"]),
+    }),
+  ),
+});
+
+router.put("/:id/access-matrix", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const userId = req.session!.userId!;
+  const lodgeId = await getLodgeId();
+  if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
+
+  const parsed = putMatrixSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
+    return;
+  }
+
+  const domain = await db
+    .select()
+    .from(protectedDomainsTable)
+    .where(and(eq(protectedDomainsTable.id, String(req.params.id)), eq(protectedDomainsTable.lodgeId, lodgeId)))
+    .then((r) => r[0] ?? null);
+  if (!domain) { res.status(404).json({ error: "Domain not found" }); return; }
+
+  const existing = await getMatrixForDomain(domain.id, lodgeId);
+  if (!existing) {
+    res.status(404).json({ error: "No system root folder linked to this domain" });
+    return;
+  }
+
+  const actor = await db
+    .select({ firstName: usersTable.firstName, lastName: usersTable.lastName, email: usersTable.email })
+    .from(usersTable)
+    .where(eq(usersTable.id, userId))
+    .then((r) => r[0] ?? null);
+  const actorName = actor ? `${actor.firstName} ${actor.lastName}`.trim() : "Admin";
+
+  // Diff old vs new for per-change audit entries
+  const oldSet = new Set(existing.rows.map((r) => `${r.subjectType}:${r.subjectKey}:${r.permission}`));
+  const newEntries: MatrixEntryDef[] = parsed.data.matrix;
+  const newSet = new Set(newEntries.map((e) => `${e.subjectType}:${e.subjectKey}:${e.permission}`));
+
+  const granted = newEntries.filter((e) => !oldSet.has(`${e.subjectType}:${e.subjectKey}:${e.permission}`));
+  const revoked = existing.rows.filter((r) => !newSet.has(`${r.subjectType}:${r.subjectKey}:${r.permission}`));
+
+  // Perform the full replace
+  const newRows = await replaceMatrixForFolder(existing.folderId, lodgeId, newEntries);
+
+  // Audit: individual grant/revoke rows
+  for (const entry of granted) {
+    await writeAuditLog({
+      lodgeId,
+      actorId: userId,
+      actorEmail: actor?.email ?? "",
+      action: "ACCESS_MATRIX_PERMISSION_GRANTED",
+      targetType: "domain",
+      targetId: domain.id,
+      detail: {
+        domainName: domain.name,
+        subjectType: entry.subjectType,
+        subjectKey: entry.subjectKey,
+        permission: entry.permission,
+        actorName,
+      },
+      ipAddress: getClientIp(req),
+      userAgent: req.headers["user-agent"] ?? null,
+    });
+  }
+  for (const entry of revoked) {
+    await writeAuditLog({
+      lodgeId,
+      actorId: userId,
+      actorEmail: actor?.email ?? "",
+      action: "ACCESS_MATRIX_PERMISSION_REVOKED",
+      targetType: "domain",
+      targetId: domain.id,
+      detail: {
+        domainName: domain.name,
+        subjectType: entry.subjectType,
+        subjectKey: entry.subjectKey,
+        permission: entry.permission,
+        actorName,
+      },
+      ipAddress: getClientIp(req),
+      userAgent: req.headers["user-agent"] ?? null,
+    });
+  }
+
+  // Audit: summary row
+  await writeAuditLog({
+    lodgeId,
+    actorId: userId,
+    actorEmail: actor?.email ?? "",
+    action: "ACCESS_MATRIX_UPDATED",
+    targetType: "domain",
+    targetId: domain.id,
+    detail: {
+      domainName: domain.name,
+      granted: granted.length,
+      revoked: revoked.length,
+      summary: `${actorName} updated access matrix for "${domain.name}".`,
+      actorName,
+    },
+    ipAddress: getClientIp(req),
+    userAgent: req.headers["user-agent"] ?? null,
+  });
+
+  res.json({
+    domainId: domain.id,
+    folderId: existing.folderId,
+    matrix: newRows.map((r) => ({
+      id: r.id,
+      subjectType: r.subjectType,
+      subjectKey: r.subjectKey,
+      permission: r.permission,
+    })),
+  });
 });
 
 // ── DELETE /document-domains/:id ──────────────────────────────────────────────
