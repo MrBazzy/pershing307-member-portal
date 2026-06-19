@@ -8,11 +8,15 @@ pdfjs.GlobalWorkerOptions.workerSrc = `${import.meta.env.BASE_URL}pdf.worker.min
 
 import {
   useGetDocumentFolder,
+  getGetDocumentFolderQueryKey,
   useListFolderDocuments,
   getListFolderDocumentsQueryKey,
   downloadDocument,
   viewDocument,
   useUpdateDocumentStatus,
+  useUpdateDocumentFolder,
+  useDeleteDocumentFolder,
+  useCreateDocumentSubfolder,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -21,7 +25,9 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +38,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { DocumentStatusBadge } from "@/components/documents/document-status-badge";
 import { UploadDocumentDialog } from "@/components/documents/upload-document-dialog";
 import {
@@ -47,6 +60,10 @@ import {
   Loader2,
   Info,
   Undo2,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  FolderPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -76,6 +93,15 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+type FolderDialogMode = "rename-folder" | "add-subfolder" | "rename-subfolder";
+
+interface FolderDialogState {
+  mode: FolderDialogMode;
+  subfolderId?: string;
+  currentTitle: string;
+  currentDescription: string;
+}
+
 export default function DocumentsFolderPage({ id }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -95,6 +121,10 @@ export default function DocumentsFolderPage({ id }: Props) {
   });
 
   const withdrawDoc = useUpdateDocumentStatus();
+  const deleteDoc   = useUpdateDocumentStatus();
+  const updateFolder   = useUpdateDocumentFolder();
+  const deleteSubfolder = useDeleteDocumentFolder();
+  const createSubfolder = useCreateDocumentSubfolder();
 
   const [uploadOpen, setUploadOpen] = useState(false);
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
@@ -103,11 +133,16 @@ export default function DocumentsFolderPage({ id }: Props) {
   const [pdfNumPages, setPdfNumPages] = useState<number>(0);
   const [pdfPage, setPdfPage] = useState<number>(1);
   const [withdrawTarget, setWithdrawTarget] = useState<{ id: string; title: string } | null>(null);
+  const [deleteDocTarget, setDeleteDocTarget] = useState<{ id: string; title: string } | null>(null);
+  const [deleteSubfolderTarget, setDeleteSubfolderTarget] = useState<{ id: string; title: string } | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [folderDialog, setFolderDialog] = useState<FolderDialogState | null>(null);
+  const [dialogTitle, setDialogTitle] = useState("");
+  const [dialogDescription, setDialogDescription] = useState("");
 
   const isAccessDenied = (error as any)?.status === 403;
-
   const canUpload = folder?.canUpload ?? false;
+  const canManage = folder?.canManage ?? false;
 
   const documents = docsData?.documents ?? [];
 
@@ -198,6 +233,106 @@ export default function DocumentsFolderPage({ id }: Props) {
     );
   }
 
+  function handleDeleteDoc() {
+    if (!deleteDocTarget) return;
+    deleteDoc.mutate(
+      { id: deleteDocTarget.id, data: { status: "deleted" } },
+      {
+        onSuccess: () => {
+          toast({ title: "Document deleted" });
+          setDeleteDocTarget(null);
+          queryClient.invalidateQueries({ queryKey: getListFolderDocumentsQueryKey(id) });
+        },
+        onError: () => {
+          toast({ title: "Failed to delete document", variant: "destructive" });
+          setDeleteDocTarget(null);
+        },
+      },
+    );
+  }
+
+  function openFolderDialog(mode: FolderDialogMode, sub?: { id: string; title: string; description?: string | null }) {
+    const currentTitle = mode === "rename-subfolder" && sub ? sub.title
+      : mode === "rename-folder" ? (folder?.title ?? "")
+      : "";
+    const currentDescription = mode === "rename-subfolder" && sub ? (sub.description ?? "")
+      : mode === "rename-folder" ? (folder?.description ?? "")
+      : "";
+    setDialogTitle(currentTitle);
+    setDialogDescription(currentDescription);
+    setFolderDialog({ mode, subfolderId: sub?.id, currentTitle, currentDescription });
+  }
+
+  function handleFolderDialogSave() {
+    if (!folderDialog) return;
+    const trimmedTitle = dialogTitle.trim();
+    if (!trimmedTitle) return;
+
+    if (folderDialog.mode === "rename-folder") {
+      updateFolder.mutate(
+        { id, data: { title: trimmedTitle, description: dialogDescription.trim() || null } },
+        {
+          onSuccess: () => {
+            toast({ title: "Folder renamed" });
+            setFolderDialog(null);
+            queryClient.invalidateQueries({ queryKey: getGetDocumentFolderQueryKey(id) });
+          },
+          onError: () => toast({ title: "Failed to rename folder", variant: "destructive" }),
+        },
+      );
+    } else if (folderDialog.mode === "add-subfolder") {
+      createSubfolder.mutate(
+        { id, data: { title: trimmedTitle, description: dialogDescription.trim() || undefined } },
+        {
+          onSuccess: () => {
+            toast({ title: "Subfolder created" });
+            setFolderDialog(null);
+            queryClient.invalidateQueries({ queryKey: getGetDocumentFolderQueryKey(id) });
+          },
+          onError: () => toast({ title: "Failed to create subfolder", variant: "destructive" }),
+        },
+      );
+    } else if (folderDialog.mode === "rename-subfolder" && folderDialog.subfolderId) {
+      updateFolder.mutate(
+        { id: folderDialog.subfolderId, data: { title: trimmedTitle, description: dialogDescription.trim() || null } },
+        {
+          onSuccess: () => {
+            toast({ title: "Subfolder renamed" });
+            setFolderDialog(null);
+            queryClient.invalidateQueries({ queryKey: getGetDocumentFolderQueryKey(id) });
+          },
+          onError: () => toast({ title: "Failed to rename subfolder", variant: "destructive" }),
+        },
+      );
+    }
+  }
+
+  function handleDeleteSubfolder() {
+    if (!deleteSubfolderTarget) return;
+    deleteSubfolder.mutate(
+      { id: deleteSubfolderTarget.id },
+      {
+        onSuccess: () => {
+          toast({ title: "Subfolder deleted" });
+          setDeleteSubfolderTarget(null);
+          queryClient.invalidateQueries({ queryKey: getGetDocumentFolderQueryKey(id) });
+        },
+        onError: () => {
+          toast({ title: "Failed to delete subfolder", variant: "destructive" });
+          setDeleteSubfolderTarget(null);
+        },
+      },
+    );
+  }
+
+  const isFolderDialogPending = updateFolder.isPending || createSubfolder.isPending;
+
+  const folderDialogLabels: Record<FolderDialogMode, { title: string; action: string }> = {
+    "rename-folder":    { title: "Rename Folder",    action: "Save" },
+    "add-subfolder":    { title: "Add Subfolder",    action: "Create" },
+    "rename-subfolder": { title: "Rename Subfolder", action: "Save" },
+  };
+
   return (
     <AppLayout>
       <div className="p-6 max-w-4xl mx-auto">
@@ -271,16 +406,38 @@ export default function DocumentsFolderPage({ id }: Props) {
         {!folderLoading && !folderError && folder && (
           <>
             {/* Folder header */}
-            <div className="flex items-center gap-3 mb-5">
-              <div className="rounded-md bg-primary/10 p-2.5">
+            <div className="flex items-start gap-3 mb-5">
+              <div className="rounded-md bg-primary/10 p-2.5 mt-0.5 shrink-0">
                 <FolderOpen className="h-6 w-6 text-primary" />
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <h1 className="text-xl font-semibold text-foreground leading-tight">
                   {folder.title}
                 </h1>
                 {folder.description && (
                   <p className="text-sm text-muted-foreground mt-0.5">{folder.description}</p>
+                )}
+                {(isAdmin || canManage) && (
+                  <div className="flex items-center gap-2 mt-2.5">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 h-7 text-xs"
+                      onClick={() => openFolderDialog("rename-folder")}
+                    >
+                      <Pencil className="h-3 w-3" />
+                      Rename
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 h-7 text-xs"
+                      onClick={() => openFolderDialog("add-subfolder")}
+                    >
+                      <FolderPlus className="h-3 w-3" />
+                      Add Subfolder
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
@@ -334,41 +491,81 @@ export default function DocumentsFolderPage({ id }: Props) {
               </div>
             )}
 
-            {/* Subfolders section — only shown when there are subfolders */}
-            {folder.subfolders.length > 0 && (
+            {/* Subfolders section */}
+            {(folder.subfolders.length > 0 || (isAdmin || canManage)) && (
               <section className="mb-8">
                 <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">
                   Subfolders
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {folder.subfolders.map((sub) => (
-                    <Link key={sub.id} href={`/documents/${sub.id}`}>
-                      <Card className="border border-card-border border-t-2 border-t-sidebar-active overflow-hidden cursor-pointer hover:border-primary/30 hover:shadow-md transition-all">
-                        <CardContent className="p-4 flex items-center gap-3">
-                          <div className="rounded-md bg-muted p-2 shrink-0">
-                            <Folder className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">
-                              {sub.title}
-                            </p>
-                            {sub.description && (
-                              <p className="text-xs text-muted-foreground truncate">
-                                {sub.description}
-                              </p>
+                {folder.subfolders.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {folder.subfolders.map((sub) => (
+                      <div key={sub.id} className="relative group">
+                        <Card className="border border-card-border border-t-2 border-t-sidebar-active overflow-hidden hover:border-primary/30 hover:shadow-md transition-all">
+                          <CardContent className="p-4 flex items-center gap-3">
+                            <Link
+                              href={`/documents/${sub.id}`}
+                              className="flex items-center gap-3 flex-1 min-w-0"
+                            >
+                              <div className="rounded-md bg-muted p-2 shrink-0">
+                                <Folder className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-foreground truncate">
+                                  {sub.title}
+                                </p>
+                                {sub.description && (
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {sub.description}
+                                  </p>
+                                )}
+                                {sub.subfolderCount > 0 && (
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {sub.subfolderCount} subfolder
+                                    {sub.subfolderCount !== 1 ? "s" : ""}
+                                  </p>
+                                )}
+                              </div>
+                            </Link>
+                            {(isAdmin || canManage) && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={(e) => e.preventDefault()}
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={() => openFolderDialog("rename-subfolder", sub)}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5 mr-2" />
+                                    Rename
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    disabled={sub.subfolderCount > 0}
+                                    onClick={() => setDeleteSubfolderTarget({ id: sub.id, title: sub.title })}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             )}
-                            {sub.subfolderCount > 0 && (
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                {sub.subfolderCount} subfolder
-                                {sub.subfolderCount !== 1 ? "s" : ""}
-                              </p>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  ))}
-                </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No subfolders yet.</p>
+                )}
               </section>
             )}
 
@@ -544,15 +741,25 @@ export default function DocumentsFolderPage({ id }: Props) {
                                   handleDownload(doc.id, doc.originalFileName)
                                 }
                               >
-                                {isDownloading ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  <Download className="h-3.5 w-3.5" />
-                                )}
+                                {isDownloading
+                                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  : <Download className="h-3.5 w-3.5" />
+                                }
                                 <span className="hidden sm:inline">
                                   {isDownloading ? "Downloading…" : "Download"}
                                 </span>
                               </Button>
+                              {(isAdmin || canManage) && doc.status !== "deleted" && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="gap-1.5 text-muted-foreground hover:text-destructive"
+                                  onClick={() => setDeleteDocTarget({ id: doc.id, title: doc.title })}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  <span className="hidden sm:inline">Delete</span>
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </CardContent>
@@ -649,6 +856,74 @@ export default function DocumentsFolderPage({ id }: Props) {
         </DialogContent>
       </Dialog>
 
+      {/* Rename / create subfolder dialog */}
+      <Dialog open={!!folderDialog} onOpenChange={(o) => { if (!o) setFolderDialog(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {folderDialog ? folderDialogLabels[folderDialog.mode].title : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="folder-dialog-title">Name</Label>
+              <Input
+                id="folder-dialog-title"
+                value={dialogTitle}
+                onChange={(e) => setDialogTitle(e.target.value)}
+                placeholder="Folder name"
+                onKeyDown={(e) => { if (e.key === "Enter") handleFolderDialogSave(); }}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="folder-dialog-desc">Description <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Input
+                id="folder-dialog-desc"
+                value={dialogDescription}
+                onChange={(e) => setDialogDescription(e.target.value)}
+                placeholder="Short description"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFolderDialog(null)}>Cancel</Button>
+            <Button
+              onClick={handleFolderDialogSave}
+              disabled={!dialogTitle.trim() || isFolderDialogPending}
+            >
+              {isFolderDialogPending ? "Saving…" : (folderDialog ? folderDialogLabels[folderDialog.mode].action : "Save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete document confirmation */}
+      <AlertDialog
+        open={!!deleteDocTarget}
+        onOpenChange={(o) => { if (!o) setDeleteDocTarget(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete document?</AlertDialogTitle>
+            <AlertDialogDescription>
+              &ldquo;{deleteDocTarget?.title}&rdquo; will be marked as deleted and
+              hidden from all members. This action can be reversed by a site
+              administrator.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteDoc}
+              disabled={deleteDoc.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteDoc.isPending ? "Deleting…" : "Delete Document"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Withdraw submission confirmation */}
       <AlertDialog
         open={!!withdrawTarget}
@@ -670,6 +945,32 @@ export default function DocumentsFolderPage({ id }: Props) {
               disabled={withdrawDoc.isPending}
             >
               {withdrawDoc.isPending ? "Withdrawing…" : "Withdraw Submission"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete subfolder confirmation */}
+      <AlertDialog
+        open={!!deleteSubfolderTarget}
+        onOpenChange={(o) => { if (!o) setDeleteSubfolderTarget(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete subfolder?</AlertDialogTitle>
+            <AlertDialogDescription>
+              &ldquo;{deleteSubfolderTarget?.title}&rdquo; and all its contents will
+              be permanently removed. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteSubfolder}
+              disabled={deleteSubfolder.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteSubfolder.isPending ? "Deleting…" : "Delete Subfolder"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
