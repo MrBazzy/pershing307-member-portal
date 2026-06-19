@@ -22,6 +22,7 @@ import {
   useListDocumentDomains,
   useListAuditLogs,
   useListRoles,
+  useListDegreeDefinitions,
   getGetDocumentDomainAccessMatrixQueryKey,
   getListAuditLogsQueryKey,
 } from "@workspace/api-client-react";
@@ -39,11 +40,7 @@ import { cn } from "@/lib/utils";
 
 // ROLE_ROWS is now built dynamically from the /roles API — see useListRoles in the component.
 
-const DEGREE_ROWS = [
-  { subjectType: "degree" as const, subjectKey: "1", label: "Entered Apprentice (1°)" },
-  { subjectType: "degree" as const, subjectKey: "2", label: "Fellowcraft (2°)" },
-  { subjectType: "degree" as const, subjectKey: "3", label: "Master Mason (3°)" },
-];
+// DEGREE_ROWS is now built dynamically from the /api/degree-definitions API — see useListDegreeDefinitions in the component.
 
 const PERMISSIONS = [
   { key: "view" as const, label: "View" },
@@ -235,11 +232,7 @@ function MatrixRow({
   );
 }
 
-const DEGREE_SUBJECT_LABELS: Record<string, string> = {
-  "1": "Entered Apprentice (1°)",
-  "2": "Fellowcraft (2°)",
-  "3": "Master Mason (3°)",
-};
+// DEGREE_SUBJECT_LABELS is built dynamically inside the component from useListDegreeDefinitions.
 
 const PERMISSION_LABELS: Record<string, string> = {
   view: "View",
@@ -317,6 +310,7 @@ export default function DomainAccessPage({ id }: { id: string }) {
   const domain = domainsData?.domains.find((d) => d.id === id) ?? null;
 
   const { data: rolesData } = useListRoles();
+  const { data: degreesData } = useListDegreeDefinitions();
 
   const roleRows = useMemo(() => {
     const roles = rolesData?.roles ?? [];
@@ -325,11 +319,19 @@ export default function DomainAccessPage({ id }: { id: string }) {
       .map((r) => ({ subjectType: "role" as const, subjectKey: r.slug, label: r.name }));
   }, [rolesData]);
 
+  const degreeRows = useMemo(() => {
+    const defs = degreesData?.definitions ?? [];
+    return [...defs]
+      .sort((a, b) => a.degree - b.degree)
+      .map((d) => ({ subjectType: "degree" as const, subjectKey: String(d.degree), label: `${d.name} (${d.degree}°)` }));
+  }, [degreesData]);
+
   const subjectLabels = useMemo(() => {
-    const map: Record<string, string> = { ...DEGREE_SUBJECT_LABELS };
+    const map: Record<string, string> = {};
+    for (const d of degreeRows) map[d.subjectKey] = d.label;
     for (const r of roleRows) map[r.subjectKey] = r.label;
     return map;
-  }, [roleRows]);
+  }, [roleRows, degreeRows]);
 
   const {
     data: matrixData,
@@ -591,7 +593,7 @@ export default function DomainAccessPage({ id }: { id: string }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {DEGREE_ROWS.map((row) => (
+                    {degreeRows.map((row) => (
                       <MatrixRow
                         key={row.subjectKey}
                         label={row.label}
