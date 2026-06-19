@@ -1,6 +1,8 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { seedSmtpFromEnv } from "./lib/smtp-seed";
+import { getLodgeId } from "./lib/config";
+import { seedFolderAccessMatrix } from "./lib/matrixPermissions";
 
 const rawPort = process.env["PORT"];
 
@@ -29,4 +31,14 @@ app.listen(port, (err) => {
   seedSmtpFromEnv().catch((e) =>
     logger.warn({ err: e }, "SMTP env seed skipped — lodge may not be bootstrapped yet")
   );
+
+  // Seed the folder access matrix once at startup so all routes see
+  // correct defaults without requiring a prior GET /document-folders call.
+  getLodgeId()
+    .then((lodgeId) => {
+      if (lodgeId) return seedFolderAccessMatrix(lodgeId);
+    })
+    .catch((e) =>
+      logger.warn({ err: e }, "Access matrix seed skipped — lodge may not be bootstrapped yet")
+    );
 });

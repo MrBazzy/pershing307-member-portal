@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
-import { protectedDomainsTable, usersTable, userDomainAccessTable } from "@workspace/db/schema";
+import { protectedDomainsTable, usersTable, userDomainAccessTable, documentFoldersTable } from "@workspace/db/schema";
 import type { DomainAccessLogic, DomainFrame } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
@@ -338,8 +338,13 @@ router.put("/:id/access-matrix", requireAuth(), requireRole(SITE_ADMIN_LEVEL), a
   const granted = newEntries.filter((e) => !oldSet.has(`${e.subjectType}:${e.subjectKey}:${e.permission}`));
   const revoked = existing.rows.filter((r) => !newSet.has(`${r.subjectType}:${r.subjectKey}:${r.permission}`));
 
-  // Perform the full replace
+  // Perform the full replace and mark folder initialized so the seeder
+  // never overwrites admin-configured permissions on a subsequent request.
   const newRows = await replaceMatrixForFolder(existing.folderId, lodgeId, newEntries);
+  await db
+    .update(documentFoldersTable)
+    .set({ matrixInitialized: true })
+    .where(eq(documentFoldersTable.id, existing.folderId));
 
   // Audit: individual grant/revoke rows
   for (const entry of granted) {

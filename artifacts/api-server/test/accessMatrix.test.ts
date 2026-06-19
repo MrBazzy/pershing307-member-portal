@@ -205,8 +205,16 @@ describe("GET /api/document-domains/:id/access-matrix", () => {
 
 describe("PUT /api/document-domains/:id/access-matrix", () => {
   let fx: MatrixFixtures;
+  // Shared agents — created once in beforeAll to avoid per-test logins that
+  // would exhaust the rate-limit window shared across all describe blocks.
+  let adminAgent: Awaited<ReturnType<typeof loginAgent>>;
+  let memberAgent: Awaited<ReturnType<typeof loginAgent>>;
 
-  beforeAll(async () => { fx = await seedMatrixFixtures(); });
+  beforeAll(async () => {
+    fx = await seedMatrixFixtures();
+    adminAgent = await loginAgent(app, fx.adminEmail, fx.password);
+    memberAgent = await loginAgent(app, fx.memberEmail, fx.password);
+  });
   afterAll(async () => { await teardownMatrixFixtures(fx); });
 
   it("returns 401 when unauthenticated", async () => {
@@ -217,29 +225,26 @@ describe("PUT /api/document-domains/:id/access-matrix", () => {
   });
 
   it("returns 403 for a non-admin member", async () => {
-    const agent = await loginAgent(app, fx.memberEmail, fx.password);
-    const res = await agent
+    const res = await memberAgent
       .put(`/api/document-domains/${fx.generalDomainId}/access-matrix`)
       .send({ matrix: [] });
     expect(res.status).toBe(403);
   });
 
   it("returns 400 for invalid payload", async () => {
-    const agent = await loginAgent(app, fx.adminEmail, fx.password);
-    const res = await agent
+    const res = await adminAgent
       .put(`/api/document-domains/${fx.generalDomainId}/access-matrix`)
       .send({ matrix: [{ subjectType: "bad-type", subjectKey: "x", permission: "view" }] });
     expect(res.status).toBe(400);
   });
 
   it("returns 200 and updates the matrix", async () => {
-    const agent = await loginAgent(app, fx.adminEmail, fx.password);
     const newMatrix = [
       { subjectType: "role", subjectKey: "secretary", permission: "view" },
       { subjectType: "role", subjectKey: "secretary", permission: "upload" },
     ];
 
-    const res = await agent
+    const res = await adminAgent
       .put(`/api/document-domains/${fx.generalDomainId}/access-matrix`)
       .send({ matrix: newMatrix });
 
@@ -257,8 +262,7 @@ describe("PUT /api/document-domains/:id/access-matrix", () => {
   });
 
   it("accepts an empty matrix (clears all permissions)", async () => {
-    const agent = await loginAgent(app, fx.adminEmail, fx.password);
-    const res = await agent
+    const res = await adminAgent
       .put(`/api/document-domains/${fx.generalDomainId}/access-matrix`)
       .send({ matrix: [] });
     expect(res.status).toBe(200);
@@ -269,11 +273,60 @@ describe("PUT /api/document-domains/:id/access-matrix", () => {
   });
 
   it("returns 404 for an unknown domain ID", async () => {
-    const agent = await loginAgent(app, fx.adminEmail, fx.password);
-    const res = await agent
+    const res = await adminAgent
       .put("/api/document-domains/nonexistent-domain-id/access-matrix")
       .send({ matrix: [] });
     expect(res.status).toBe(404);
+  });
+
+  it("regression: PUT before first seed prevents default rows being added by seeder", async () => {
+    // Simulate a fresh lodge: reset matrixInitialized so the seeder thinks it hasn't run
+    await db
+      .update(documentFoldersTable)
+      .set({ matrixInitialized: false })
+      .where(eq(documentFoldersTable.id, fx.generalFolderId));
+    // Also clear existing rows so the folder is truly "empty"
+    await replaceMatrixForFolder(fx.generalFolderId, fx.lodgeId, []);
+
+    // Admin configures custom secretary-only permissions BEFORE the seeder has run.
+    // Uses cached adminAgent — no extra login request.
+    const putRes = await adminAgent
+      .put(`/api/document-domains/${fx.generalDomainId}/access-matrix`)
+      .send({ matrix: [{ subjectType: "role", subjectKey: "secretary", permission: "view" }] });
+    expect(putRes.status).toBe(200);
+
+    // The seeder now triggers (as it does on GET /document-folders).
+    // It must be a no-op because PUT marked matrixInitialized=true.
+    await memberAgent.get("/api/document-folders"); // triggers seedFolderAccessMatrix
+
+    // Matrix must still be the admin-configured value, NOT the seeded defaults
+    const readRes = await adminAgent.get(`/api/document-domains/${fx.generalDomainId}/access-matrix`);
+    expect(readRes.status).toBe(200);
+    expect(readRes.body.matrix.length).toBe(1);
+    expect(readRes.body.matrix[0].subjectKey).toBe("secretary");
+
+    // Restore
+    await replaceMatrixForFolder(fx.generalFolderId, fx.lodgeId, fx.originalMatrix as any);
+    await db
+      .update(documentFoldersTable)
+      .set({ matrixInitialized: true })
+      .where(eq(documentFoldersTable.id, fx.generalFolderId));
+  });
+
+  it("regression: non-list routes enforce matrix via getEffectivePermissions without needing GET /document-folders first", async () => {
+    // Demonstrate that a secretary-only matrix denies a plain member on
+    // the document-list route without requiring the member to call
+    // GET /document-folders first (i.e. matrix is already seeded/set).
+    await replaceMatrixForFolder(fx.generalFolderId, fx.lodgeId, [
+      { subjectType: "role", subjectKey: "secretary", permission: "view" },
+    ]);
+
+    // Directly call a non-folder-list route — no extra login, uses cached agent
+    const res = await memberAgent.get(`/api/documents?folderId=${fx.generalFolderId}`);
+    expect(res.status).toBe(403);
+
+    // Restore
+    await replaceMatrixForFolder(fx.generalFolderId, fx.lodgeId, fx.originalMatrix as any);
   });
 });
 
