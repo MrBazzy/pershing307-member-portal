@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -83,30 +82,6 @@ const DEGREE_OPTIONS = [
   { value: 3, label: "Master Mason (3)" },
 ];
 
-function formatRoleSlug(slug: string): string {
-  return ALL_ROLES.find((r) => r.slug === slug)?.label
-    ?? slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function AccessLogicBadge({ logic }: { logic: string }) {
-  const colors: Record<string, string> = {
-    role_only: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-    degree_only: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-    role_or_degree: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
-    role_and_degree: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
-  };
-  const labels: Record<string, string> = {
-    role_only: "Role Only",
-    degree_only: "Degree Only",
-    role_or_degree: "Role or Degree",
-    role_and_degree: "Role and Degree",
-  };
-  return (
-    <span className={cn("text-xs font-medium px-2 py-0.5 rounded-md border", colors[logic] ?? "bg-muted text-muted-foreground")}>
-      {labels[logic] ?? logic}
-    </span>
-  );
-}
 
 function DomainCard({
   domain,
@@ -121,19 +96,15 @@ function DomainCard({
   onEditAccess: (d: DocumentDomainItem) => void;
   onDelete: (d: DocumentDomainItem) => void;
 }) {
-  const needsDegree = domain.accessLogic === "degree_only" || domain.accessLogic === "role_or_degree" || domain.accessLogic === "role_and_degree";
-  const hasRules = domain.allowedRoleSlugs.length > 0 || (needsDegree && domain.minDegree != null);
-
   return (
     <Card className="border-card-border h-full">
       <CardContent className="p-5 flex flex-col gap-3 h-full">
-        {/* Top row: icon left, access logic badge + menu right */}
+        {/* Top row: icon left, menu right */}
         <div className="flex items-start justify-between gap-2">
           <div className="rounded-md bg-primary/10 p-2.5 shrink-0">
             <Shield className="h-5 w-5 text-primary" />
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <AccessLogicBadge logic={domain.accessLogic} />
             {isPmSuper && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -172,26 +143,6 @@ function DomainCard({
           )}
         </div>
 
-        {/* Bottom: roles + degree info */}
-        <div className="mt-auto space-y-1.5">
-          {domain.allowedRoleSlugs.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {domain.allowedRoleSlugs.map((slug) => (
-                <Badge key={slug} variant="secondary" className="text-[10px] h-5 px-1.5 font-normal">
-                  {formatRoleSlug(slug)}
-                </Badge>
-              ))}
-            </div>
-          )}
-          {needsDegree && domain.minDegree != null && (
-            <Badge variant="outline" className="text-[10px] h-5 px-1.5">
-              {DEGREE_OPTIONS.find((d) => d.value === domain.minDegree)?.label ?? `Degree ${domain.minDegree}`}
-            </Badge>
-          )}
-          {!hasRules && (
-            <p className="text-xs text-muted-foreground/60 italic">No access rules configured.</p>
-          )}
-        </div>
       </CardContent>
     </Card>
   );
