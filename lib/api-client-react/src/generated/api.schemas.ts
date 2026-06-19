@@ -1534,6 +1534,69 @@ export interface DocumentDomainAccessUpdateInput {
   minDegree?: number | null;
 }
 
+export type DomainAccessMatrixEntrySubjectType = typeof DomainAccessMatrixEntrySubjectType[keyof typeof DomainAccessMatrixEntrySubjectType];
+
+
+export const DomainAccessMatrixEntrySubjectType = {
+  role: 'role',
+  degree: 'degree',
+} as const;
+
+export type DomainAccessMatrixEntryPermission = typeof DomainAccessMatrixEntryPermission[keyof typeof DomainAccessMatrixEntryPermission];
+
+
+export const DomainAccessMatrixEntryPermission = {
+  view: 'view',
+  upload: 'upload',
+  approve: 'approve',
+  manage: 'manage',
+} as const;
+
+export interface DomainAccessMatrixEntry {
+  id: string;
+  subjectType: DomainAccessMatrixEntrySubjectType;
+  subjectKey: string;
+  permission: DomainAccessMatrixEntryPermission;
+}
+
+export interface DomainAccessMatrixResult {
+  domainId: string;
+  folderId: string;
+  matrix: DomainAccessMatrixEntry[];
+}
+
+export type DomainAccessMatrixEntryInputSubjectType = typeof DomainAccessMatrixEntryInputSubjectType[keyof typeof DomainAccessMatrixEntryInputSubjectType];
+
+
+export const DomainAccessMatrixEntryInputSubjectType = {
+  role: 'role',
+  degree: 'degree',
+} as const;
+
+export type DomainAccessMatrixEntryInputPermission = typeof DomainAccessMatrixEntryInputPermission[keyof typeof DomainAccessMatrixEntryInputPermission];
+
+
+export const DomainAccessMatrixEntryInputPermission = {
+  view: 'view',
+  upload: 'upload',
+  approve: 'approve',
+  manage: 'manage',
+} as const;
+
+export interface DomainAccessMatrixEntryInput {
+  subjectType: DomainAccessMatrixEntryInputSubjectType;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  subjectKey: string;
+  permission: DomainAccessMatrixEntryInputPermission;
+}
+
+export interface DomainAccessMatrixUpdateInput {
+  matrix: DomainAccessMatrixEntryInput[];
+}
+
 export interface MemberDetailRoleItem {
   slug: string;
   name: string;

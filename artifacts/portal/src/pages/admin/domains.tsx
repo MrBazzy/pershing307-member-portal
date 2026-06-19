@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -147,7 +148,7 @@ function DomainCard({
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onEditAccess(domain)}>
                     <Settings2 className="h-3.5 w-3.5 mr-2" />
-                    Edit Access Rules
+                    Edit Access
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -200,6 +201,7 @@ export default function AdminDomainsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   const level = user?.roles?.reduce((max, r) => Math.max(max, r.permissionLevel), 0) ?? 0;
   const isPmSuper = level >= PM_SUPER_LEVEL;
@@ -293,10 +295,7 @@ export default function AdminDomainsPage() {
   const [accessDegree, setAccessDegree] = useState<string>("none");
 
   function openEditAccess(d: DocumentDomainItem) {
-    setAccessTarget(d);
-    setAccessLogic(d.accessLogic as any);
-    setAccessRoles([...d.allowedRoleSlugs]);
-    setAccessDegree(d.minDegree != null ? String(d.minDegree) : "none");
+    setLocation(`/admin/domains/${d.id}/access`);
   }
 
   function handleEditAccess() {

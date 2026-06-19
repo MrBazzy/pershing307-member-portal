@@ -69,6 +69,8 @@ import type {
   DocumentReviewCountResult,
   DocumentReviewListResult,
   DocumentSubfolderCreateInput,
+  DomainAccessMatrixResult,
+  DomainAccessMatrixUpdateInput,
   DomainGrantInput,
   DomainListResult,
   DomainMembersResult,
@@ -9914,6 +9916,155 @@ export const useUpdateDocumentDomainAccess = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpdateDocumentDomainAccessMutationOptions(options));
+    }
+
+export const getGetDocumentDomainAccessMatrixUrl = (id: string,) => {
+
+
+
+
+  return `/api/document-domains/${id}/access-matrix`
+}
+
+/**
+ * @summary Get the permission matrix for a domain (Site Admin)
+ */
+export const getDocumentDomainAccessMatrix = async (id: string, options?: RequestInit): Promise<DomainAccessMatrixResult> => {
+
+  return customFetch<DomainAccessMatrixResult>(getGetDocumentDomainAccessMatrixUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDocumentDomainAccessMatrixQueryKey = (id: string,) => {
+    return [
+    `/api/document-domains/${id}/access-matrix`
+    ] as const;
+    }
+
+
+export const getGetDocumentDomainAccessMatrixQueryOptions = <TData = Awaited<ReturnType<typeof getDocumentDomainAccessMatrix>>, TError = ErrorType<void>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDocumentDomainAccessMatrix>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDocumentDomainAccessMatrixQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDocumentDomainAccessMatrix>>> = ({ signal }) => getDocumentDomainAccessMatrix(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDocumentDomainAccessMatrix>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDocumentDomainAccessMatrixQueryResult = NonNullable<Awaited<ReturnType<typeof getDocumentDomainAccessMatrix>>>
+export type GetDocumentDomainAccessMatrixQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the permission matrix for a domain (Site Admin)
+ */
+
+export function useGetDocumentDomainAccessMatrix<TData = Awaited<ReturnType<typeof getDocumentDomainAccessMatrix>>, TError = ErrorType<void>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDocumentDomainAccessMatrix>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDocumentDomainAccessMatrixQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateDocumentDomainAccessMatrixUrl = (id: string,) => {
+
+
+
+
+  return `/api/document-domains/${id}/access-matrix`
+}
+
+/**
+ * @summary Replace the permission matrix for a domain (Site Admin)
+ */
+export const updateDocumentDomainAccessMatrix = async (id: string,
+    domainAccessMatrixUpdateInput: DomainAccessMatrixUpdateInput, options?: RequestInit): Promise<DomainAccessMatrixResult> => {
+
+  return customFetch<DomainAccessMatrixResult>(getUpdateDocumentDomainAccessMatrixUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      domainAccessMatrixUpdateInput,)
+  }
+);}
+
+
+
+
+export const getUpdateDocumentDomainAccessMatrixMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDocumentDomainAccessMatrix>>, TError,{id: string;data: BodyType<DomainAccessMatrixUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDocumentDomainAccessMatrix>>, TError,{id: string;data: BodyType<DomainAccessMatrixUpdateInput>}, TContext> => {
+
+const mutationKey = ['updateDocumentDomainAccessMatrix'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDocumentDomainAccessMatrix>>, {id: string;data: BodyType<DomainAccessMatrixUpdateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateDocumentDomainAccessMatrix(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateDocumentDomainAccessMatrixMutationResult = NonNullable<Awaited<ReturnType<typeof updateDocumentDomainAccessMatrix>>>
+    export type UpdateDocumentDomainAccessMatrixMutationBody = BodyType<DomainAccessMatrixUpdateInput>
+    export type UpdateDocumentDomainAccessMatrixMutationError = ErrorType<void>
+
+    /**
+ * @summary Replace the permission matrix for a domain (Site Admin)
+ */
+export const useUpdateDocumentDomainAccessMatrix = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDocumentDomainAccessMatrix>>, TError,{id: string;data: BodyType<DomainAccessMatrixUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateDocumentDomainAccessMatrix>>,
+        TError,
+        {id: string;data: BodyType<DomainAccessMatrixUpdateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateDocumentDomainAccessMatrixMutationOptions(options));
     }
 
 export const getListFolderDocumentsUrl = (id: string,) => {

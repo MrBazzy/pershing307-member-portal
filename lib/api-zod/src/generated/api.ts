@@ -2608,6 +2608,56 @@ export const UpdateDocumentDomainAccessResponse = zod.object({
 
 
 /**
+ * @summary Get the permission matrix for a domain (Site Admin)
+ */
+export const GetDocumentDomainAccessMatrixParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetDocumentDomainAccessMatrixResponse = zod.object({
+  "domainId": zod.string(),
+  "folderId": zod.string(),
+  "matrix": zod.array(zod.object({
+  "id": zod.string(),
+  "subjectType": zod.enum(['role', 'degree']),
+  "subjectKey": zod.string(),
+  "permission": zod.enum(['view', 'upload', 'approve', 'manage'])
+}))
+})
+
+
+/**
+ * @summary Replace the permission matrix for a domain (Site Admin)
+ */
+export const UpdateDocumentDomainAccessMatrixParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateDocumentDomainAccessMatrixBodyMatrixItemSubjectKeyMax = 100;
+
+
+
+export const UpdateDocumentDomainAccessMatrixBody = zod.object({
+  "matrix": zod.array(zod.object({
+  "subjectType": zod.enum(['role', 'degree']),
+  "subjectKey": zod.string().min(1).max(updateDocumentDomainAccessMatrixBodyMatrixItemSubjectKeyMax),
+  "permission": zod.enum(['view', 'upload', 'approve', 'manage'])
+}))
+})
+
+export const UpdateDocumentDomainAccessMatrixResponse = zod.object({
+  "domainId": zod.string(),
+  "folderId": zod.string(),
+  "matrix": zod.array(zod.object({
+  "id": zod.string(),
+  "subjectType": zod.enum(['role', 'degree']),
+  "subjectKey": zod.string(),
+  "permission": zod.enum(['view', 'upload', 'approve', 'manage'])
+}))
+})
+
+
+/**
  * @summary List documents in a specific folder (alias for GET /documents?folderId)
  */
 export const ListFolderDocumentsParams = zod.object({

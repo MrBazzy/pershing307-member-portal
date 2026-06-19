@@ -25,6 +25,7 @@ import AdminHistorySectionsPage from "@/pages/admin/history-sections";
 import AdminHistoryTimelinePage from "@/pages/admin/history-timeline";
 import AdminHistoryDocumentsPage from "@/pages/admin/history-documents";
 import AdminHistoryPershingPage from "@/pages/admin/history-pershing";
+import AdminDomainAccessPage from "@/pages/admin/domain-access";
 import AdminDocumentManagementPage from "@/pages/admin/document-management";
 import AdminDocumentReviewPage from "@/pages/admin/document-review";
 import AdminReportsPage from "@/pages/admin/reports";
@@ -213,6 +214,14 @@ function AppRoutes() {
         <Route path="/admin/users" component={() => <ProtectedRoute component={AdminUsersPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/invitations" component={() => <ProtectedRoute component={AdminInvitationsPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/domains" component={() => <ProtectedRoute component={AdminDomainsPage} minLevel={ADMIN_LEVEL} />} />
+        <Route path="/admin/domains/:id/access">
+          {(params) => (
+            <ProtectedRoute
+              component={() => <AdminDomainAccessPage id={(params as { id: string } | null)?.id ?? ""} />}
+              minLevel={ADMIN_LEVEL}
+            />
+          )}
+        </Route>
         <Route path="/admin/config" component={() => <ProtectedRoute component={AdminConfigPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/audit-log" component={() => <ProtectedRoute component={AdminAuditLogPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/roadmap" component={() => <ProtectedRoute component={AdminRoadmapPage} minLevel={ADMIN_LEVEL} />} />

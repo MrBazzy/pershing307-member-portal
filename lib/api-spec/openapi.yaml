@@ -2984,6 +2984,66 @@ paths:
         "404":
           description: Not found
 
+  /document-domains/{id}/access-matrix:
+    get:
+      operationId: getDocumentDomainAccessMatrix
+      summary: Get the permission matrix for a domain (Site Admin)
+      tags: [Documents]
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Access matrix
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainAccessMatrixResult"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: Domain or root folder not found
+    put:
+      operationId: updateDocumentDomainAccessMatrix
+      summary: Replace the permission matrix for a domain (Site Admin)
+      tags: [Documents]
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DomainAccessMatrixUpdateInput"
+      responses:
+        "200":
+          description: Updated matrix
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainAccessMatrixResult"
+        "400":
+          description: Validation error
+        "401":
+          description: Not authenticated
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: Domain or root folder not found
+
   /document-folders/{id}/documents:
     get:
       operationId: listFolderDocuments
@@ -5201,6 +5261,58 @@ components:
           minimum: 1
           maximum: 3
           nullable: true
+
+    DomainAccessMatrixEntry:
+      type: object
+      required: [id, subjectType, subjectKey, permission]
+      properties:
+        id:
+          type: string
+        subjectType:
+          type: string
+          enum: [role, degree]
+        subjectKey:
+          type: string
+        permission:
+          type: string
+          enum: [view, upload, approve, manage]
+
+    DomainAccessMatrixResult:
+      type: object
+      required: [domainId, folderId, matrix]
+      properties:
+        domainId:
+          type: string
+        folderId:
+          type: string
+        matrix:
+          type: array
+          items:
+            $ref: "#/components/schemas/DomainAccessMatrixEntry"
+
+    DomainAccessMatrixEntryInput:
+      type: object
+      required: [subjectType, subjectKey, permission]
+      properties:
+        subjectType:
+          type: string
+          enum: [role, degree]
+        subjectKey:
+          type: string
+          minLength: 1
+          maxLength: 100
+        permission:
+          type: string
+          enum: [view, upload, approve, manage]
+
+    DomainAccessMatrixUpdateInput:
+      type: object
+      required: [matrix]
+      properties:
+        matrix:
+          type: array
+          items:
+            $ref: "#/components/schemas/DomainAccessMatrixEntryInput"
 
     MemberDetailRoleItem:
       type: object
