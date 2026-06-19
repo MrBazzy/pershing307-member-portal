@@ -534,6 +534,17 @@ router.get("/:id", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) =>
     }
   }
 
+  // Resolve parent folder title for breadcrumb
+  let parentTitle: string | null = null;
+  if (folder.parentId) {
+    const parentRow = await db
+      .select({ title: documentFoldersTable.title })
+      .from(documentFoldersTable)
+      .where(and(eq(documentFoldersTable.id, folder.parentId), eq(documentFoldersTable.lodgeId, lodgeId)))
+      .then((rows) => rows[0] ?? null);
+    parentTitle = parentRow?.title ?? null;
+  }
+
   res.json({
     id: folder.id,
     title: folder.title,
@@ -543,6 +554,8 @@ router.get("/:id", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) =>
     frame: folder.frame,
     domainId: folder.domainId ?? null,
     domainSlug: effectiveFolder.domainSlug ?? null,
+    parentId: folder.parentId ?? null,
+    parentTitle,
     subfolders: subfolders.map((s) => formatFolder(s as FolderRow, subCountMap.get(s.id) ?? 0)),
     createdAt: folder.createdAt.toISOString(),
     updatedAt: folder.updatedAt.toISOString(),

@@ -212,7 +212,20 @@ export default function DocumentsFolderPage({ id }: Props) {
           {folderLoading ? (
             <Skeleton className="h-4 w-32" />
           ) : (
-            <span className="text-foreground font-medium">{folder?.title ?? "Folder"}</span>
+            <>
+              {folder?.parentId && folder?.parentTitle && (
+                <>
+                  <Link
+                    href={`/documents/${folder.parentId}`}
+                    className="hover:text-foreground transition-colors"
+                  >
+                    {folder.parentTitle}
+                  </Link>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </>
+              )}
+              <span className="text-foreground font-medium">{folder?.title ?? "Folder"}</span>
+            </>
           )}
         </nav>
 
