@@ -21,6 +21,7 @@ import {
   useUpdateDocumentDomainAccessMatrix,
   useListDocumentDomains,
   useListAuditLogs,
+  useListRoles,
   getGetDocumentDomainAccessMatrixQueryKey,
   getListAuditLogsQueryKey,
 } from "@workspace/api-client-react";
@@ -36,18 +37,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const ROLE_ROWS = [
-  { subjectType: "role" as const, subjectKey: "visitor", label: "Visitor" },
-  { subjectType: "role" as const, subjectKey: "member", label: "Member" },
-  { subjectType: "role" as const, subjectKey: "secretary", label: "Secretary" },
-  { subjectType: "role" as const, subjectKey: "treasurer", label: "Treasurer" },
-  { subjectType: "role" as const, subjectKey: "junior-warden", label: "Junior Warden" },
-  { subjectType: "role" as const, subjectKey: "senior-warden", label: "Senior Warden" },
-  { subjectType: "role" as const, subjectKey: "worshipful-master", label: "Worshipful Master" },
-  { subjectType: "role" as const, subjectKey: "past-master", label: "Past Master" },
-  { subjectType: "role" as const, subjectKey: "site-administrator", label: "Site Administrator" },
-  { subjectType: "role" as const, subjectKey: "pm-super-administrator", label: "PM Super Administrator" },
-];
+// ROLE_ROWS is now built dynamically from the /roles API — see useListRoles in the component.
 
 const DEGREE_ROWS = [
   { subjectType: "degree" as const, subjectKey: "1", label: "Entered Apprentice (1°)" },
@@ -245,17 +235,7 @@ function MatrixRow({
   );
 }
 
-const SUBJECT_LABELS: Record<string, string> = {
-  visitor: "Visitor",
-  member: "Member",
-  secretary: "Secretary",
-  treasurer: "Treasurer",
-  "junior-warden": "Junior Warden",
-  "senior-warden": "Senior Warden",
-  "worshipful-master": "Worshipful Master",
-  "past-master": "Past Master",
-  "site-administrator": "Site Administrator",
-  "pm-super-administrator": "PM Super Administrator",
+const DEGREE_SUBJECT_LABELS: Record<string, string> = {
   "1": "Entered Apprentice (1°)",
   "2": "Fellowcraft (2°)",
   "3": "Master Mason (3°)",
@@ -335,6 +315,21 @@ export default function DomainAccessPage({ id }: { id: string }) {
 
   const { data: domainsData } = useListDocumentDomains();
   const domain = domainsData?.domains.find((d) => d.id === id) ?? null;
+
+  const { data: rolesData } = useListRoles();
+
+  const roleRows = useMemo(() => {
+    const roles = rolesData?.roles ?? [];
+    return [...roles]
+      .sort((a, b) => (a.permissionLevel ?? 0) - (b.permissionLevel ?? 0))
+      .map((r) => ({ subjectType: "role" as const, subjectKey: r.slug, label: r.name }));
+  }, [rolesData]);
+
+  const subjectLabels = useMemo(() => {
+    const map: Record<string, string> = { ...DEGREE_SUBJECT_LABELS };
+    for (const r of roleRows) map[r.subjectKey] = r.label;
+    return map;
+  }, [roleRows]);
 
   const {
     data: matrixData,
@@ -560,7 +555,7 @@ export default function DomainAccessPage({ id }: { id: string }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {ROLE_ROWS.map((row) => (
+                    {roleRows.map((row) => (
                       <MatrixRow
                         key={row.subjectKey}
                         label={row.label}
@@ -676,7 +671,7 @@ export default function DomainAccessPage({ id }: { id: string }) {
                                     <span className="text-foreground">
                                       <span className="font-medium">{PERMISSION_LABELS[p.permission] ?? p.permission}</span>
                                       {" granted to "}
-                                      <span className="font-medium">{SUBJECT_LABELS[p.subjectKey] ?? p.subjectKey}</span>
+                                      <span className="font-medium">{subjectLabels[p.subjectKey] ?? p.subjectKey}</span>
                                     </span>
                                   </li>
                                 ))}
@@ -686,7 +681,7 @@ export default function DomainAccessPage({ id }: { id: string }) {
                                     <span className="text-foreground">
                                       <span className="font-medium">{PERMISSION_LABELS[p.permission] ?? p.permission}</span>
                                       {" revoked from "}
-                                      <span className="font-medium">{SUBJECT_LABELS[p.subjectKey] ?? p.subjectKey}</span>
+                                      <span className="font-medium">{subjectLabels[p.subjectKey] ?? p.subjectKey}</span>
                                     </span>
                                   </li>
                                 ))}

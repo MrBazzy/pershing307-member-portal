@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
-import { rolesTable, userRolesTable } from "@workspace/db/schema";
+import { rolesTable, userRolesTable, folderAccessMatrixTable } from "@workspace/db/schema";
 import { eq, and, count } from "drizzle-orm";
 import { getLodgeId } from "../lib/config";
 import { requireAuth } from "../middlewares/requireAuth";
@@ -181,6 +181,16 @@ router.delete("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, 
   }
 
   await db.delete(rolesTable).where(eq(rolesTable.id, role.id));
+
+  await db
+    .delete(folderAccessMatrixTable)
+    .where(
+      and(
+        eq(folderAccessMatrixTable.lodgeId, lodgeId),
+        eq(folderAccessMatrixTable.subjectType, "role"),
+        eq(folderAccessMatrixTable.subjectKey, role.slug),
+      ),
+    );
 
   const actor = await db
     .select({ email: usersTable.email })
