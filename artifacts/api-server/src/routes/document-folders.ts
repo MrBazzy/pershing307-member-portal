@@ -5,9 +5,10 @@ import {
   documentFoldersTable,
   protectedDomainsTable,
   usersTable,
+  documentsTable,
 } from "@workspace/db/schema";
 import type { FolderAccessPolicy, DomainAccessLogic } from "@workspace/db/schema";
-import { eq, and, isNull, isNotNull, asc, count, sql } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, asc, count, sql, inArray } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 import { writeAuditLog, getClientIp } from "../lib/audit";
@@ -539,6 +540,89 @@ router.get("/:id", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) =>
     subfolders: subfolders.map((s) => formatFolder(s as FolderRow, subCountMap.get(s.id) ?? 0)),
     createdAt: folder.createdAt.toISOString(),
     updatedAt: folder.updatedAt.toISOString(),
+  });
+});
+
+// ── GET /document-folders/:id/documents ───────────────────────────────────────
+router.get("/:id/documents", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) => {
+  const userId = req.session!.userId!;
+  const lodgeId = await getLodgeId();
+  if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
+
+  const { maxPermLevel: level, roleSlugs: slugs, maxDegree } = await getUserVisibilityContext(userId);
+
+  const folder = await db
+    .select(folderColumns)
+    .from(documentFoldersTable)
+    .leftJoin(protectedDomainsTable, eq(documentFoldersTable.domainId, protectedDomainsTable.id))
+    .where(and(eq(documentFoldersTable.id, String(req.params.id)), eq(documentFoldersTable.lodgeId, lodgeId)))
+    .then((rows) => (rows[0] ?? null) as FolderRow | null);
+
+  if (!folder) { res.status(404).json({ error: "Folder not found" }); return; }
+
+  // Walk ancestry to find effective access folder
+  let effectiveFolder: FolderRow = folder;
+  if (!folder.domainId && folder.accessPolicy === null) {
+    const allFolderRows = await db
+      .select(folderColumns)
+      .from(documentFoldersTable)
+      .leftJoin(protectedDomainsTable, eq(documentFoldersTable.domainId, protectedDomainsTable.id))
+      .where(eq(documentFoldersTable.lodgeId, lodgeId));
+    const rootFolder = findRootAncestor(folder, allFolderRows as FolderRow[]);
+    if (rootFolder) effectiveFolder = rootFolder;
+  }
+
+  if (!checkFolderAccess(effectiveFolder, level, slugs, maxDegree)) {
+    res.status(403).json({ error: "Access denied" }); return;
+  }
+
+  const isAdmin = level >= SITE_ADMIN_LEVEL;
+  const docs = await db
+    .select()
+    .from(documentsTable)
+    .where(and(eq(documentsTable.folderId, folder.id), eq(documentsTable.lodgeId, lodgeId)))
+    .orderBy(asc(documentsTable.createdAt));
+
+  const visible = docs.filter((d) => {
+    if (d.status === "deleted") return isAdmin;
+    if (d.status === "archived") return isAdmin;
+    if (d.status === "published") return true;
+    if (d.status === "pending_review" || d.status === "rejected") {
+      return isAdmin || d.uploaderId === userId;
+    }
+    return false;
+  });
+
+  const uploaderIds = [...new Set(visible.map((d) => d.uploaderId).filter(Boolean) as string[])];
+  const uploaderMap = new Map<string, { firstName: string; lastName: string }>();
+  if (uploaderIds.length > 0) {
+    const users = await db
+      .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName })
+      .from(usersTable)
+      .where(inArray(usersTable.id, uploaderIds));
+    for (const u of users) { uploaderMap.set(u.id, u); }
+  }
+
+  res.json({
+    documents: visible.map((d) => {
+      const uploader = d.uploaderId ? (uploaderMap.get(d.uploaderId) ?? null) : null;
+      return {
+        id: d.id,
+        folderId: d.folderId,
+        folderTitle: folder.title,
+        uploaderId: d.uploaderId ?? null,
+        uploaderName: uploader ? `${uploader.firstName} ${uploader.lastName}`.trim() : null,
+        title: d.title,
+        description: d.description ?? null,
+        originalFileName: d.originalFileName,
+        mimeType: d.mimeType,
+        fileSize: d.fileSize,
+        status: d.status,
+        rejectionReason: d.rejectionReason ?? null,
+        createdAt: d.createdAt.toISOString(),
+        updatedAt: d.updatedAt.toISOString(),
+      };
+    }),
   });
 });
 

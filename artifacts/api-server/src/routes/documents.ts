@@ -62,6 +62,7 @@ const requestUploadSchema = z.object({
 const patchDocumentSchema = z.object({
   title: z.string().min(1).max(500).optional(),
   description: z.string().max(2000).nullable().optional(),
+  folderId: z.string().min(1).optional(),
 });
 
 const patchStatusSchema = z.object({
@@ -370,30 +371,77 @@ router.patch("/:id", requireAuth(), async (req, res) => {
   if (parsed.data.title !== undefined) updates.title = parsed.data.title;
   if (parsed.data.description !== undefined) updates.description = parsed.data.description;
 
+  // Handle folder move
+  let targetFolderTitle: string | null = null;
+  let isMoveOperation = false;
+  if (parsed.data.folderId && parsed.data.folderId !== doc.folderId) {
+    const targetFolder = await db
+      .select({ id: documentFoldersTable.id, title: documentFoldersTable.title })
+      .from(documentFoldersTable)
+      .where(and(eq(documentFoldersTable.id, parsed.data.folderId), eq(documentFoldersTable.lodgeId, lodgeId)))
+      .then((r) => r[0] ?? null);
+    if (!targetFolder) { res.status(404).json({ error: "Target folder not found" }); return; }
+    updates.folderId = targetFolder.id;
+    targetFolderTitle = targetFolder.title;
+    isMoveOperation = true;
+  }
+
   const [updated] = await db
     .update(documentsTable).set(updates).where(eq(documentsTable.id, doc.id)).returning();
 
-  const folder = await db
+  const currentFolder = await db
     .select({ title: documentFoldersTable.title })
-    .from(documentFoldersTable).where(eq(documentFoldersTable.id, doc.folderId)).then((r) => r[0] ?? null);
+    .from(documentFoldersTable).where(eq(documentFoldersTable.id, updated.folderId)).then((r) => r[0] ?? null);
 
-  await writeAuditLog({
-    lodgeId,
-    actorId: userId,
-    actorEmail: actor?.email ?? "",
-    action: "DOCUMENT_RENAMED",
-    targetType: "document",
-    targetId: doc.id,
-    detail: {
-      oldTitle: doc.title,
-      newTitle: parsed.data.title ?? doc.title,
-      actorName: actor ? `${actor.firstName} ${actor.lastName}`.trim() : "",
-    },
-    ipAddress: getClientIp(req),
-    userAgent: req.headers["user-agent"] ?? null,
-  });
+  const actorName = actor ? `${actor.firstName} ${actor.lastName}`.trim() : "";
 
-  res.json(formatDocument(updated, actor, folder?.title ?? ""));
+  // Fetch actual uploader for response
+  const uploader = doc.uploaderId && doc.uploaderId !== userId
+    ? await db.select({ firstName: usersTable.firstName, lastName: usersTable.lastName, email: usersTable.email })
+        .from(usersTable).where(eq(usersTable.id, doc.uploaderId)).then((r) => r[0] ?? null)
+    : (doc.uploaderId === userId ? actor : null);
+
+  if (isMoveOperation) {
+    const sourceFolderRow = await db
+      .select({ title: documentFoldersTable.title })
+      .from(documentFoldersTable).where(eq(documentFoldersTable.id, doc.folderId)).then((r) => r[0] ?? null);
+    await writeAuditLog({
+      lodgeId,
+      actorId: userId,
+      actorEmail: actor?.email ?? "",
+      action: "DOCUMENT_MOVED",
+      targetType: "document",
+      targetId: doc.id,
+      detail: {
+        title: updated.title,
+        fromFolderTitle: sourceFolderRow?.title ?? "",
+        toFolderTitle: targetFolderTitle ?? "",
+        actorName,
+      },
+      ipAddress: getClientIp(req),
+      userAgent: req.headers["user-agent"] ?? null,
+    });
+  }
+
+  if (parsed.data.title !== undefined && parsed.data.title !== doc.title) {
+    await writeAuditLog({
+      lodgeId,
+      actorId: userId,
+      actorEmail: actor?.email ?? "",
+      action: "DOCUMENT_RENAMED",
+      targetType: "document",
+      targetId: doc.id,
+      detail: {
+        oldTitle: doc.title,
+        newTitle: parsed.data.title,
+        actorName,
+      },
+      ipAddress: getClientIp(req),
+      userAgent: req.headers["user-agent"] ?? null,
+    });
+  }
+
+  res.json(formatDocument(updated, uploader, currentFolder?.title ?? ""));
 });
 
 // ── PATCH /documents/:id/status ─────────────────────────────────────────────

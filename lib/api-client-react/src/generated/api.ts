@@ -9623,6 +9623,83 @@ export const useUpdateDocumentDomainAccess = <TError = ErrorType<void>,
       return useMutation(getUpdateDocumentDomainAccessMutationOptions(options));
     }
 
+export const getListFolderDocumentsUrl = (id: string,) => {
+
+
+
+
+  return `/api/document-folders/${id}/documents`
+}
+
+/**
+ * @summary List documents in a specific folder (alias for GET /documents?folderId)
+ */
+export const listFolderDocuments = async (id: string, options?: RequestInit): Promise<DocumentListResult> => {
+
+  return customFetch<DocumentListResult>(getListFolderDocumentsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListFolderDocumentsQueryKey = (id: string,) => {
+    return [
+    `/api/document-folders/${id}/documents`
+    ] as const;
+    }
+
+
+export const getListFolderDocumentsQueryOptions = <TData = Awaited<ReturnType<typeof listFolderDocuments>>, TError = ErrorType<void>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listFolderDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListFolderDocumentsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listFolderDocuments>>> = ({ signal }) => listFolderDocuments(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listFolderDocuments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListFolderDocumentsQueryResult = NonNullable<Awaited<ReturnType<typeof listFolderDocuments>>>
+export type ListFolderDocumentsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List documents in a specific folder (alias for GET /documents?folderId)
+ */
+
+export function useListFolderDocuments<TData = Awaited<ReturnType<typeof listFolderDocuments>>, TError = ErrorType<void>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listFolderDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListFolderDocumentsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getRequestDocumentUploadUrl = () => {
 
 

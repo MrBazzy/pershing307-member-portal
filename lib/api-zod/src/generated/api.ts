@@ -2521,6 +2521,33 @@ export const UpdateDocumentDomainAccessResponse = zod.object({
 
 
 /**
+ * @summary List documents in a specific folder (alias for GET /documents?folderId)
+ */
+export const ListFolderDocumentsParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const ListFolderDocumentsResponse = zod.object({
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "folderId": zod.string(),
+  "folderTitle": zod.string(),
+  "uploaderId": zod.string().nullish(),
+  "uploaderName": zod.string().nullish(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "originalFileName": zod.string(),
+  "mimeType": zod.string(),
+  "fileSize": zod.number(),
+  "status": zod.string(),
+  "rejectionReason": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+})
+
+
+/**
  * @summary Request a presigned upload URL for a document
  */
 export const requestDocumentUploadBodyFileSizeMax = 20971520;
@@ -2581,7 +2608,8 @@ export const UpdateDocumentParams = zod.object({
 
 export const UpdateDocumentBody = zod.object({
   "title": zod.string().optional(),
-  "description": zod.string().nullish()
+  "description": zod.string().nullish(),
+  "folderId": zod.string().optional().describe('Move document to a different folder (admin only)')
 })
 
 export const UpdateDocumentResponse = zod.object({

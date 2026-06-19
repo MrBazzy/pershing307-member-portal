@@ -2882,6 +2882,31 @@ paths:
         "404":
           description: Not found
 
+  /document-folders/{id}/documents:
+    get:
+      operationId: listFolderDocuments
+      tags: [documents]
+      summary: List documents in a specific folder (alias for GET /documents?folderId)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Document list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentListResult"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Access denied
+        "404":
+          description: Folder not found
+
   /documents/request-upload:
     post:
       operationId: requestDocumentUpload
@@ -5185,6 +5210,9 @@ components:
         description:
           type: string
           nullable: true
+        folderId:
+          type: string
+          description: Move document to a different folder (admin only)
 
     UpdateDocumentStatusInput:
       type: object

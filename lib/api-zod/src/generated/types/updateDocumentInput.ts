@@ -9,4 +9,6 @@
 export interface UpdateDocumentInput {
   title?: string;
   description?: string | null;
+  /** Move document to a different folder (admin only) */
+  folderId?: string;
 }
