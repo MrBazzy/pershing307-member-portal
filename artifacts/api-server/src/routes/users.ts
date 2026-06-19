@@ -14,7 +14,7 @@ import {
   passwordHistoryTable,
   auditLogsTable,
 } from "@workspace/db/schema";
-import { eq, and, or, ilike, count, inArray } from "drizzle-orm";
+import { eq, and, or, ilike, count, inArray, ne } from "drizzle-orm";
 import { writeAuditLog, getClientIp } from "../lib/audit";
 import { getLodgeId, getConfig } from "../lib/config";
 import { requireAuth } from "../middlewares/requireAuth";
@@ -24,6 +24,7 @@ import { isTestResetEnabled } from "../lib/env";
 
 const router = Router();
 
+const MEMBER_LEVEL = 20;
 const SITE_ADMIN_LEVEL = 80;
 const PM_SUPER_ADMIN_LEVEL = 90;
 
@@ -837,6 +838,179 @@ const dateOfBirthSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .nullable(),
+});
+
+// ── PATCH /me/name  (member changes own name) ─────────────────────────────────
+router.patch("/me/name", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) => {
+  const actorId = req.session!.userId!;
+  const lodgeId = await getLodgeId();
+
+  const parsed = z.object({
+    firstName: z.string().min(1).max(100).trim(),
+    lastName: z.string().min(1).max(100).trim(),
+  }).safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "First name and last name are required." });
+    return;
+  }
+
+  const existing = await db
+    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName })
+    .from(usersTable)
+    .where(and(eq(usersTable.id, actorId), eq(usersTable.lodgeId, lodgeId!)))
+    .limit(1);
+
+  if (existing.length === 0) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const { firstName, lastName } = parsed.data;
+  await db
+    .update(usersTable)
+    .set({ firstName, lastName, updatedAt: new Date() })
+    .where(eq(usersTable.id, actorId));
+
+  await writeAuditLog({
+    lodgeId,
+    actorId,
+    action: "USER_NAME_UPDATED",
+    targetType: "user",
+    targetId: actorId,
+    detail: {
+      previousFirstName: existing[0].firstName,
+      previousLastName: existing[0].lastName,
+      updatedFirstName: firstName,
+      updatedLastName: lastName,
+      selfService: true,
+    },
+    ipAddress: getClientIp(req),
+  });
+
+  res.json({ success: true });
+});
+
+// ── PATCH /me/email  (member changes own email) ────────────────────────────────
+router.patch("/me/email", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) => {
+  const actorId = req.session!.userId!;
+  const lodgeId = await getLodgeId();
+
+  const parsed = z.object({
+    email: z.string().email().max(255).trim().toLowerCase(),
+  }).safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "A valid email address is required." });
+    return;
+  }
+
+  const { email } = parsed.data;
+
+  const existing = await db
+    .select({ id: usersTable.id, email: usersTable.email })
+    .from(usersTable)
+    .where(and(eq(usersTable.id, actorId), eq(usersTable.lodgeId, lodgeId!)))
+    .limit(1);
+
+  if (existing.length === 0) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  if (existing[0].email.toLowerCase() === email) {
+    res.status(400).json({ error: "The new email address is the same as your current one." });
+    return;
+  }
+
+  const conflict = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(and(eq(usersTable.lodgeId, lodgeId!), eq(usersTable.email, email), ne(usersTable.id, actorId)))
+    .limit(1);
+
+  if (conflict.length > 0) {
+    res.status(400).json({ error: "That email address is already in use." });
+    return;
+  }
+
+  await db
+    .update(usersTable)
+    .set({ email, emailVerified: false, updatedAt: new Date() })
+    .where(eq(usersTable.id, actorId));
+
+  await writeAuditLog({
+    lodgeId,
+    actorId,
+    action: "USER_EMAIL_UPDATED",
+    targetType: "user",
+    targetId: actorId,
+    detail: { previousEmail: existing[0].email, updatedEmail: email, selfService: true },
+    ipAddress: getClientIp(req),
+  });
+
+  res.json({ success: true });
+});
+
+// ── PATCH /:id/email  (admin changes member email) ────────────────────────────
+router.patch("/:id/email", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const targetId = String(req.params.id);
+  const actorId = req.session!.userId!;
+  const lodgeId = await getLodgeId();
+
+  const parsed = z.object({
+    email: z.string().email().max(255).trim().toLowerCase(),
+  }).safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "A valid email address is required." });
+    return;
+  }
+
+  const { email } = parsed.data;
+
+  const existing = await db
+    .select({ id: usersTable.id, email: usersTable.email })
+    .from(usersTable)
+    .where(and(eq(usersTable.id, targetId), eq(usersTable.lodgeId, lodgeId!)))
+    .limit(1);
+
+  if (existing.length === 0) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  if (existing[0].email.toLowerCase() === email) {
+    res.status(400).json({ error: "The new email address is the same as the current one." });
+    return;
+  }
+
+  const conflict = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(and(eq(usersTable.lodgeId, lodgeId!), eq(usersTable.email, email), ne(usersTable.id, targetId)))
+    .limit(1);
+
+  if (conflict.length > 0) {
+    res.status(400).json({ error: "That email address is already in use by another account." });
+    return;
+  }
+
+  await db
+    .update(usersTable)
+    .set({ email, emailVerified: false, updatedAt: new Date() })
+    .where(eq(usersTable.id, targetId));
+
+  await invalidateUserSessions(targetId);
+
+  await writeAuditLog({
+    lodgeId,
+    actorId,
+    action: "USER_EMAIL_UPDATED",
+    targetType: "user",
+    targetId,
+    detail: { previousEmail: existing[0].email, updatedEmail: email },
+    ipAddress: getClientIp(req),
+  });
+
+  res.json({ success: true });
 });
 
 router.patch("/:id/name", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {

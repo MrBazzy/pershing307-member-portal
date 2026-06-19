@@ -1129,6 +1129,89 @@ paths:
         "401":
           description: Unauthorized
 
+  /users/me/name:
+    patch:
+      operationId: updateOwnName
+      tags: [users]
+      summary: Update own first and last name (member self-service)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserNameInput"
+      responses:
+        "200":
+          description: Name updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "400":
+          description: Invalid input
+        "401":
+          description: Unauthorized
+
+  /users/me/email:
+    patch:
+      operationId: updateOwnEmail
+      tags: [users]
+      summary: Update own email address (member self-service)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEmailInput"
+      responses:
+        "200":
+          description: Email updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "400":
+          description: Invalid input or email already in use
+        "401":
+          description: Unauthorized
+
+  /users/{id}/email:
+    patch:
+      operationId: adminUpdateUserEmail
+      tags: [users]
+      summary: Update a member's email address (Site Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEmailInput"
+      responses:
+        "200":
+          description: Email updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "400":
+          description: Invalid input or email already in use
+        "403":
+          description: Forbidden
+        "404":
+          description: User not found
+
   /users/{id}/name:
     patch:
       operationId: updateUserName
@@ -3982,6 +4065,15 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/BirthdayMonth"
+
+    UpdateEmailInput:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
 
     UpdateUserNameInput:
       type: object

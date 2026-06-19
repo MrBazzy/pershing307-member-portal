@@ -5,7 +5,7 @@ import {
   useListDegreeDefinitions,
   useAddUserDegree, useRemoveUserDegree, useResetTestUser,
   useUpdateUserMembershipStatus, useFixMembership, useAdminResetPassword,
-  useUpdateDateOfBirth, useUpdateUserName,
+  useUpdateDateOfBirth, useUpdateUserName, useAdminUpdateUserEmail,
   listUserPasskeys, revokeUserPasskey,
   getListUsersQueryKey, getGetUserQueryKey, getGetUserDegreesQueryKey,
 } from "@workspace/api-client-react";
@@ -307,11 +307,12 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
   const [dobEdit, setDobEdit] = useState<string>("");
   const [firstNameEdit, setFirstNameEdit] = useState("");
   const [lastNameEdit, setLastNameEdit] = useState("");
+  const [emailEdit, setEmailEdit] = useState("");
   const [pwdResetConfirmOpen, setPwdResetConfirmOpen] = useState(false);
   const [tempPasswordResult, setTempPasswordResult] = useState<{ tempPassword: string; expiresAt: string } | null>(null);
   const [copiedPassword, setCopiedPassword] = useState(false);
 
-  useEffect(() => { setMembershipStatusEdit(""); setDobEdit(""); setFirstNameEdit(""); setLastNameEdit(""); }, [userId]);
+  useEffect(() => { setMembershipStatusEdit(""); setDobEdit(""); setFirstNameEdit(""); setLastNameEdit(""); setEmailEdit(""); }, [userId]);
 
   const { data, isLoading } = useGetUser(userId ?? "", {
     query: { enabled: !!userId, queryKey: getGetUserQueryKey(userId ?? "") },
@@ -331,6 +332,7 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
   const adminResetPassword = useAdminResetPassword();
   const updateDateOfBirth = useUpdateDateOfBirth();
   const updateUserName = useUpdateUserName();
+  const adminUpdateEmail = useAdminUpdateUserEmail();
 
   const isPmSuperAdmin = currentUser?.roles?.some((r) => r.permissionLevel >= 90) ?? false;
 
@@ -446,6 +448,50 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
                   >
                     {updateUserName.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save Name"}
                   </Button>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Email Address</p>
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      type="email"
+                      className="flex-1 h-8 text-xs"
+                      placeholder="Email address"
+                      value={emailEdit !== "" ? emailEdit : (user.email ?? "")}
+                      onChange={(e) => setEmailEdit(e.target.value)}
+                      data-testid="input-email"
+                    />
+                    <Button
+                      size="sm" className="h-8 px-3"
+                      disabled={
+                        adminUpdateEmail.isPending ||
+                        emailEdit === "" ||
+                        emailEdit.trim() === "" ||
+                        emailEdit.toLowerCase() === user.email?.toLowerCase()
+                      }
+                      onClick={() => {
+                        if (!userId) return;
+                        const newEmail = emailEdit.trim();
+                        if (!newEmail) return;
+                        adminUpdateEmail.mutate(
+                          { id: userId, data: { email: newEmail } },
+                          {
+                            onSuccess: () => {
+                              invalidate();
+                              setEmailEdit("");
+                              toast({ title: "Email updated", description: "The member's email address has been changed. Their account is now marked as unverified." });
+                            },
+                            onError: (e: any) => toast({ title: "Error", description: e?.data?.error ?? "Failed to update email", variant: "destructive" }),
+                          }
+                        );
+                      }}
+                      data-testid="button-save-email"
+                    >
+                      {adminUpdateEmail.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save Email"}
+                    </Button>
+                  </div>
                 </div>
 
                 <Separator />

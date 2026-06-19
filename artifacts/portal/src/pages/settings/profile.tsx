@@ -11,11 +11,13 @@ import {
   useUpdateBirthdayVisibility,
   useGetOwnDateOfBirth,
   useUpdateOwnDateOfBirth,
+  useUpdateOwnName,
+  useUpdateOwnEmail,
   getGetBirthdayVisibilityQueryKey,
   getGetOwnDateOfBirthQueryKey,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/use-auth";
-import { Cake, Calendar, EyeOff, Loader2 } from "lucide-react";
+import { Cake, Calendar, EyeOff, Loader2, User, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 
@@ -50,9 +52,9 @@ const VISIBILITY_OPTIONS: {
 export default function ProfileSettingsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, refetch: refreshUser } = useAuth();
 
-  const maxPermissionLevel = user?.roles?.reduce((max, r) => Math.max(max, r.permissionLevel), 0) ?? 0;
+  const maxPermissionLevel = user?.roles?.reduce((max: number, r: any) => Math.max(max, r.permissionLevel), 0) ?? 0;
   const canEdit = maxPermissionLevel >= 20;
 
   const { data: dobData, isLoading: isDobLoading } = useGetOwnDateOfBirth();
@@ -60,6 +62,8 @@ export default function ProfileSettingsPage() {
 
   const updateDob = useUpdateOwnDateOfBirth();
   const updateVisibility = useUpdateBirthdayVisibility();
+  const updateOwnName = useUpdateOwnName();
+  const updateOwnEmail = useUpdateOwnEmail();
 
   const savedDob = dobData?.dateOfBirth ?? null;
   const [dobInput, setDobInput] = useState<string>(savedDob ?? "");
@@ -69,8 +73,23 @@ export default function ProfileSettingsPage() {
   const [selectedVisibility, setSelectedVisibility] = useState<Visibility>(savedVisibility);
   useEffect(() => { setSelectedVisibility(savedVisibility); }, [savedVisibility]);
 
+  const [firstNameInput, setFirstNameInput] = useState(user?.firstName ?? "");
+  const [lastNameInput, setLastNameInput] = useState(user?.lastName ?? "");
+  useEffect(() => {
+    setFirstNameInput(user?.firstName ?? "");
+    setLastNameInput(user?.lastName ?? "");
+  }, [user?.firstName, user?.lastName]);
+
+  const [emailInput, setEmailInput] = useState(user?.email ?? "");
+  useEffect(() => { setEmailInput(user?.email ?? ""); }, [user?.email]);
+
   const dobChanged = dobInput !== (savedDob ?? "");
   const visibilityChanged = selectedVisibility !== savedVisibility;
+  const nameChanged =
+    firstNameInput.trim() !== "" &&
+    lastNameInput.trim() !== "" &&
+    (firstNameInput.trim() !== (user?.firstName ?? "") || lastNameInput.trim() !== (user?.lastName ?? ""));
+  const emailChanged = emailInput.trim() !== "" && emailInput.trim().toLowerCase() !== (user?.email ?? "").toLowerCase();
 
   const handleSaveDob = () => {
     updateDob.mutate(
@@ -110,22 +129,183 @@ export default function ProfileSettingsPage() {
     );
   };
 
+  const handleSaveName = () => {
+    updateOwnName.mutate(
+      { data: { firstName: firstNameInput.trim(), lastName: lastNameInput.trim() } },
+      {
+        onSuccess: () => {
+          if (refreshUser) refreshUser();
+          toast({ title: "Saved", description: "Your name has been updated." });
+        },
+        onError: (e: any) => {
+          toast({
+            title: "Error",
+            description: e?.data?.error ?? "Failed to update name.",
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  };
+
+  const handleSaveEmail = () => {
+    updateOwnEmail.mutate(
+      { data: { email: emailInput.trim() } },
+      {
+        onSuccess: () => {
+          if (refreshUser) refreshUser();
+          toast({
+            title: "Email updated",
+            description: "Your email address has been changed. Please use it to sign in next time.",
+          });
+        },
+        onError: (e: any) => {
+          toast({
+            title: "Error",
+            description: e?.data?.error ?? "Failed to update email address.",
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  };
+
   return (
     <AppLayout>
       <div className="p-6 max-w-2xl space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Cake className="h-6 w-6" />
+            <User className="h-6 w-6" />
             Profile Settings
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Manage your birthday information and how it is shared with other lodge members.
+            Manage your personal information, contact details, and birthday settings.
           </p>
         </div>
 
+        {/* ── Personal Information ── */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Birthday Information</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              Personal Information
+            </CardTitle>
+            <CardDescription>
+              {canEdit
+                ? "Update your first and last name as it appears to other lodge members."
+                : "Your name as it appears to other lodge members. Contact an administrator to make changes."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {canEdit ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">First name</label>
+                    <Input
+                      value={firstNameInput}
+                      onChange={(e) => setFirstNameInput(e.target.value)}
+                      placeholder="First name"
+                      data-testid="input-own-first-name"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Last name</label>
+                    <Input
+                      value={lastNameInput}
+                      onChange={(e) => setLastNameInput(e.target.value)}
+                      placeholder="Last name"
+                      data-testid="input-own-last-name"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 pt-1">
+                  <Button
+                    onClick={handleSaveName}
+                    disabled={updateOwnName.isPending || !nameChanged}
+                    data-testid="button-save-own-name"
+                  >
+                    {updateOwnName.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Save Name
+                  </Button>
+                  {nameChanged && (
+                    <button
+                      type="button"
+                      onClick={() => { setFirstNameInput(user?.firstName ?? ""); setLastNameInput(user?.lastName ?? ""); }}
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-foreground">
+                {user?.firstName} {user?.lastName}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── Email Address ── */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              Email Address
+            </CardTitle>
+            <CardDescription>
+              {canEdit
+                ? "Update the email address used to sign in and receive lodge notifications."
+                : "Your email address on file. Contact an administrator to make changes."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {canEdit ? (
+              <div className="space-y-3">
+                <Input
+                  type="email"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="your@email.com"
+                  data-testid="input-own-email"
+                />
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={handleSaveEmail}
+                    disabled={updateOwnEmail.isPending || !emailChanged}
+                    data-testid="button-save-own-email"
+                  >
+                    {updateOwnEmail.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Save Email
+                  </Button>
+                  {emailChanged && (
+                    <button
+                      type="button"
+                      onClick={() => setEmailInput(user?.email ?? "")}
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  After saving, use your new email address to sign in.
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-foreground">{user?.email}</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── Birthday Information ── */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Cake className="h-4 w-4 text-muted-foreground" />
+              Birthday Information
+            </CardTitle>
             <CardDescription>
               {canEdit
                 ? "Set your date of birth and choose how it appears in the Birthday Calendar."

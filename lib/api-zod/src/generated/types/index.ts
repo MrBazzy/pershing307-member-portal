@@ -168,6 +168,7 @@ export * from './updateDateOfBirthInput';
 export * from './updateDocumentInput';
 export * from './updateDocumentStatusInput';
 export * from './updateDocumentStatusInputStatus';
+export * from './updateEmailInput';
 export * from './updateEventInput';
 export * from './updateEventInputVisibility';
 export * from './updateHistoryDocumentInput';

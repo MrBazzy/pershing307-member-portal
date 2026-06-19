@@ -135,6 +135,7 @@ import type {
   UpdateDateOfBirthInput,
   UpdateDocumentInput,
   UpdateDocumentStatusInput,
+  UpdateEmailInput,
   UpdateEventInput,
   UpdateHistoryDocumentInput,
   UpdateHistoryPageInput,
@@ -4066,6 +4067,220 @@ export const useUpdateBirthdayVisibility = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpdateBirthdayVisibilityMutationOptions(options));
+    }
+
+export const getUpdateOwnNameUrl = () => {
+
+
+
+
+  return `/api/users/me/name`
+}
+
+/**
+ * @summary Update own first and last name (member self-service)
+ */
+export const updateOwnName = async (updateUserNameInput: UpdateUserNameInput, options?: RequestInit): Promise<SuccessResult> => {
+
+  return customFetch<SuccessResult>(getUpdateOwnNameUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateUserNameInput,)
+  }
+);}
+
+
+
+
+export const getUpdateOwnNameMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnName>>, TError,{data: BodyType<UpdateUserNameInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOwnName>>, TError,{data: BodyType<UpdateUserNameInput>}, TContext> => {
+
+const mutationKey = ['updateOwnName'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOwnName>>, {data: BodyType<UpdateUserNameInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateOwnName(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOwnNameMutationResult = NonNullable<Awaited<ReturnType<typeof updateOwnName>>>
+    export type UpdateOwnNameMutationBody = BodyType<UpdateUserNameInput>
+    export type UpdateOwnNameMutationError = ErrorType<void>
+
+    /**
+ * @summary Update own first and last name (member self-service)
+ */
+export const useUpdateOwnName = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnName>>, TError,{data: BodyType<UpdateUserNameInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateOwnName>>,
+        TError,
+        {data: BodyType<UpdateUserNameInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateOwnNameMutationOptions(options));
+    }
+
+export const getUpdateOwnEmailUrl = () => {
+
+
+
+
+  return `/api/users/me/email`
+}
+
+/**
+ * @summary Update own email address (member self-service)
+ */
+export const updateOwnEmail = async (updateEmailInput: UpdateEmailInput, options?: RequestInit): Promise<SuccessResult> => {
+
+  return customFetch<SuccessResult>(getUpdateOwnEmailUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateEmailInput,)
+  }
+);}
+
+
+
+
+export const getUpdateOwnEmailMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnEmail>>, TError,{data: BodyType<UpdateEmailInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOwnEmail>>, TError,{data: BodyType<UpdateEmailInput>}, TContext> => {
+
+const mutationKey = ['updateOwnEmail'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOwnEmail>>, {data: BodyType<UpdateEmailInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateOwnEmail(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOwnEmailMutationResult = NonNullable<Awaited<ReturnType<typeof updateOwnEmail>>>
+    export type UpdateOwnEmailMutationBody = BodyType<UpdateEmailInput>
+    export type UpdateOwnEmailMutationError = ErrorType<void>
+
+    /**
+ * @summary Update own email address (member self-service)
+ */
+export const useUpdateOwnEmail = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnEmail>>, TError,{data: BodyType<UpdateEmailInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateOwnEmail>>,
+        TError,
+        {data: BodyType<UpdateEmailInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateOwnEmailMutationOptions(options));
+    }
+
+export const getAdminUpdateUserEmailUrl = (id: string,) => {
+
+
+
+
+  return `/api/users/${id}/email`
+}
+
+/**
+ * @summary Update a member's email address (Site Admin only)
+ */
+export const adminUpdateUserEmail = async (id: string,
+    updateEmailInput: UpdateEmailInput, options?: RequestInit): Promise<SuccessResult> => {
+
+  return customFetch<SuccessResult>(getAdminUpdateUserEmailUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateEmailInput,)
+  }
+);}
+
+
+
+
+export const getAdminUpdateUserEmailMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdateUserEmail>>, TError,{id: string;data: BodyType<UpdateEmailInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminUpdateUserEmail>>, TError,{id: string;data: BodyType<UpdateEmailInput>}, TContext> => {
+
+const mutationKey = ['adminUpdateUserEmail'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminUpdateUserEmail>>, {id: string;data: BodyType<UpdateEmailInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminUpdateUserEmail(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminUpdateUserEmailMutationResult = NonNullable<Awaited<ReturnType<typeof adminUpdateUserEmail>>>
+    export type AdminUpdateUserEmailMutationBody = BodyType<UpdateEmailInput>
+    export type AdminUpdateUserEmailMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a member's email address (Site Admin only)
+ */
+export const useAdminUpdateUserEmail = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdateUserEmail>>, TError,{id: string;data: BodyType<UpdateEmailInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminUpdateUserEmail>>,
+        TError,
+        {id: string;data: BodyType<UpdateEmailInput>},
+        TContext
+      > => {
+      return useMutation(getAdminUpdateUserEmailMutationOptions(options));
     }
 
 export const getUpdateUserNameUrl = (id: string,) => {

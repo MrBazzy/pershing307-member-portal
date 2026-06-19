@@ -543,6 +543,11 @@ export interface BirthdaysByMonthResult {
   months: BirthdayMonth[];
 }
 
+export interface UpdateEmailInput {
+  /** @maxLength 255 */
+  email: string;
+}
+
 export interface UpdateUserNameInput {
   /**
      * @minLength 1

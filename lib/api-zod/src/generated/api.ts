@@ -916,6 +916,64 @@ export const UpdateBirthdayVisibilityResponse = zod.object({
 
 
 /**
+ * @summary Update own first and last name (member self-service)
+ */
+export const updateOwnNameBodyFirstNameMax = 100;
+
+export const updateOwnNameBodyLastNameMax = 100;
+
+
+
+export const UpdateOwnNameBody = zod.object({
+  "firstName": zod.string().min(1).max(updateOwnNameBodyFirstNameMax),
+  "lastName": zod.string().min(1).max(updateOwnNameBodyLastNameMax)
+})
+
+export const UpdateOwnNameResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary Update own email address (member self-service)
+ */
+export const updateOwnEmailBodyEmailMax = 255;
+
+
+
+export const UpdateOwnEmailBody = zod.object({
+  "email": zod.string().email().max(updateOwnEmailBodyEmailMax)
+})
+
+export const UpdateOwnEmailResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary Update a member's email address (Site Admin only)
+ */
+export const AdminUpdateUserEmailParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const adminUpdateUserEmailBodyEmailMax = 255;
+
+
+
+export const AdminUpdateUserEmailBody = zod.object({
+  "email": zod.string().email().max(adminUpdateUserEmailBodyEmailMax)
+})
+
+export const AdminUpdateUserEmailResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
  * @summary Update a member's first and last name (Site Admin only)
  */
 export const UpdateUserNameParams = zod.object({
