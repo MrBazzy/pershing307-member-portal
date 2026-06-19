@@ -270,9 +270,9 @@ router.get("/", requireAuth(), async (req, res) => {
     ))
     .orderBy(asc(documentsTable.createdAt));
 
-  // Filter by visibility — members see only published; admins see all statuses
+  // Filter by visibility — approvers (canApprove) and admins see all statuses; others see only published
   const isAdmin = level >= SITE_ADMIN_LEVEL;
-  const visible = docs.filter((d) => isAdmin || d.status === "published");
+  const visible = docs.filter((d) => isAdmin || folderPerms.canApprove || d.status === "published");
 
   // Fetch uploaders in bulk
   const uploaderIds = [...new Set(visible.map((d) => d.uploaderId).filter(Boolean) as string[])];
@@ -305,11 +305,17 @@ router.get("/:id/download", requireAuth(), async (req, res) => {
   if (!doc) { res.status(404).json({ error: "Not found" }); return; }
 
   const { maxPermLevel: level } = await getUserVisibilityContext(userId);
-
-  // Check doc visibility — same rules as the list endpoint
   const isAdmin = level >= SITE_ADMIN_LEVEL;
   const isUploader = doc.uploaderId === userId;
 
+  // Fetch matrix perms once; admins get a static all-true object to avoid the DB round-trip
+  const folderPerms = isAdmin
+    ? { canView: true, canUpload: true, canApprove: true, canManage: true }
+    : await getEffectivePermissions(userId, doc.folderId, lodgeId);
+
+  if (!folderPerms.canView) { res.status(403).json({ error: "Access denied" }); return; }
+
+  // Visibility by status: deleted/archived = admin only; pending/rejected = approver or uploader
   let canSeeDoc: boolean;
   switch (doc.status) {
     case "deleted":
@@ -321,21 +327,13 @@ router.get("/:id/download", requireAuth(), async (req, res) => {
       break;
     case "pending_review":
     case "rejected":
-      canSeeDoc = isAdmin || isUploader;
+      canSeeDoc = folderPerms.canApprove || isUploader;
       break;
     default:
       canSeeDoc = isAdmin;
   }
 
   if (!canSeeDoc) { res.status(403).json({ error: "Access denied" }); return; }
-
-  // Matrix-based folder access gate (admins bypass — they always have full access)
-  if (!isAdmin) {
-    const folderPerms = await getEffectivePermissions(userId, doc.folderId, lodgeId);
-    if (!folderPerms.canView) {
-      res.status(403).json({ error: "Access denied" }); return;
-    }
-  }
 
   try {
     const objectFile = await objectStorageService.getObjectEntityFile(doc.storagePath);
@@ -402,8 +400,16 @@ router.get("/:id/view", requireAuth(), async (req, res) => {
 
   const { maxPermLevel: level } = await getUserVisibilityContext(userId);
   const isAdmin = level >= SITE_ADMIN_LEVEL;
+  const isUploader = doc.uploaderId === userId;
 
-  // Only admins can view non-published documents inline
+  // Fetch matrix perms once; admins get a static all-true object to avoid the DB round-trip
+  const folderPerms = isAdmin
+    ? { canView: true, canUpload: true, canApprove: true, canManage: true }
+    : await getEffectivePermissions(userId, doc.folderId, lodgeId);
+
+  if (!folderPerms.canView) { res.status(403).json({ error: "Access denied" }); return; }
+
+  // Visibility by status: deleted/archived = admin only; pending/rejected = approver or uploader
   let canSeeDoc: boolean;
   switch (doc.status) {
     case "deleted":
@@ -415,21 +421,13 @@ router.get("/:id/view", requireAuth(), async (req, res) => {
       break;
     case "pending_review":
     case "rejected":
-      canSeeDoc = isAdmin;
+      canSeeDoc = folderPerms.canApprove || isUploader;
       break;
     default:
       canSeeDoc = isAdmin;
   }
 
   if (!canSeeDoc) { res.status(403).json({ error: "Access denied" }); return; }
-
-  // Matrix-based folder access gate (bypass for admins — they can always view for review)
-  if (!isAdmin) {
-    const folderPerms = await getEffectivePermissions(userId, doc.folderId, lodgeId);
-    if (!folderPerms.canView) {
-      res.status(403).json({ error: "Access denied" }); return;
-    }
-  }
 
   try {
     const objectFile = await objectStorageService.getObjectEntityFile(doc.storagePath);

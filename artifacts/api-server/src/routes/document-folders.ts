@@ -633,8 +633,8 @@ router.get("/:id/documents", requireAuth(), requireRole(MEMBER_LEVEL), async (re
     .where(and(eq(documentsTable.folderId, folder.id), eq(documentsTable.lodgeId, lodgeId)))
     .orderBy(asc(documentsTable.createdAt));
 
-  // Members see only published; admins see all statuses
-  const visible = docs.filter((d) => isAdmin || d.status === "published");
+  // Approvers (canApprove) and admins see all statuses; others see only published
+  const visible = docs.filter((d) => isAdmin || viewPerms.canApprove || d.status === "published");
 
   const uploaderIds = [...new Set(visible.map((d) => d.uploaderId).filter(Boolean) as string[])];
   const uploaderMap = new Map<string, { firstName: string; lastName: string }>();

@@ -391,8 +391,8 @@ export default function DocumentsFolderPage({ id }: Props) {
                 )}
               </div>
 
-              {/* Status filter pills — admin only */}
-              {isAdmin && documents.length > 0 && (
+              {/* Status filter pills — admins and approvers */}
+              {(isAdmin || folder?.canApprove) && documents.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-4">
                   {STATUS_FILTERS.map(({ value, label }) => {
                     const count = value === "all"
@@ -460,7 +460,7 @@ export default function DocumentsFolderPage({ id }: Props) {
                   {filteredDocuments.map((doc) => {
                     const isUploader = doc.uploaderId === user?.id;
                     const showBadge =
-                      doc.status !== "published" && (isUploader || isAdmin);
+                      doc.status !== "published" && (isUploader || isAdmin || folder?.canApprove);
                     const isDownloading = downloadingIds.has(doc.id);
 
                     return (
@@ -499,7 +499,7 @@ export default function DocumentsFolderPage({ id }: Props) {
                               </p>
                               {doc.status === "rejected" &&
                                 doc.rejectionReason &&
-                                (isUploader || isAdmin) && (
+                                (isUploader || isAdmin || folder?.canApprove) && (
                                   <p className="text-xs text-destructive mt-1.5 flex items-start gap-1">
                                     <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                                     <span>Rejected: {doc.rejectionReason}</span>
