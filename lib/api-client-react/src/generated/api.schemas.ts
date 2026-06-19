@@ -482,6 +482,24 @@ export interface RoleListResult {
   roles: Role[];
 }
 
+export interface RoleResult {
+  role: Role;
+}
+
+export interface RoleCreateInput {
+  name: string;
+  slug: string;
+  permissionLevel: number;
+  description?: string | null;
+}
+
+export interface RoleUpdateInput {
+  name?: string;
+  slug?: string;
+  permissionLevel?: number;
+  description?: string | null;
+}
+
 /**
  * @nullable
  */

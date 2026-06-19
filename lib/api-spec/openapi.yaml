@@ -841,6 +841,73 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RoleListResult"
+    post:
+      operationId: createRole
+      tags: [roles]
+      summary: Create a new role (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleCreateInput"
+      responses:
+        "201":
+          description: Role created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleResult"
+        "409":
+          description: Slug conflict
+
+  /roles/{id}:
+    patch:
+      operationId: updateRole
+      tags: [roles]
+      summary: Update a role (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleUpdateInput"
+      responses:
+        "200":
+          description: Role updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleResult"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteRole
+      tags: [roles]
+      summary: Delete a non-system role with no assigned members (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResult"
+        "400":
+          description: System role
+        "409":
+          description: Role still assigned to members
 
   /domains:
     get:
@@ -4022,8 +4089,21 @@ components:
           type: string
         permissionLevel:
           type: integer
+        description:
+          type: ["string", "null"]
         isSystem:
           type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    RoleResult:
+      type: object
+      required: [role]
+      properties:
+        role:
+          $ref: "#/components/schemas/Role"
 
     RoleListResult:
       type: object
@@ -4033,6 +4113,43 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Role"
+
+    RoleCreateInput:
+      type: object
+      required: [name, slug, permissionLevel]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 60
+        permissionLevel:
+          type: integer
+          minimum: 1
+          maximum: 89
+        description:
+          type: ["string", "null"]
+
+    RoleUpdateInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 60
+        permissionLevel:
+          type: integer
+          minimum: 1
+          maximum: 89
+        description:
+          type: ["string", "null"]
 
     AuditLogEntry:
       type: object

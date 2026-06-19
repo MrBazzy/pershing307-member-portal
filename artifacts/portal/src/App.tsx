@@ -19,6 +19,7 @@ import AdminAuditLogPage from "@/pages/admin/audit-log";
 import AdminDomainsPage from "@/pages/admin/domains";
 import AdminConfigPage from "@/pages/admin/config";
 import AdminRoadmapPage from "@/pages/admin/roadmap";
+import AdminRolesDegreesPage from "@/pages/admin/roles-degrees";
 import AdminTracingBoardPage from "@/pages/admin/tracing-board";
 import AdminEventsPage from "@/pages/admin/events";
 import AdminHistorySectionsPage from "@/pages/admin/history-sections";
@@ -225,6 +226,7 @@ function AppRoutes() {
         <Route path="/admin/config" component={() => <ProtectedRoute component={AdminConfigPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/audit-log" component={() => <ProtectedRoute component={AdminAuditLogPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/roadmap" component={() => <ProtectedRoute component={AdminRoadmapPage} minLevel={ADMIN_LEVEL} />} />
+        <Route path="/admin/roles-degrees" component={() => <ProtectedRoute component={AdminRolesDegreesPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/tracing-board" component={() => <ProtectedRoute component={AdminTracingBoardPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/events" component={() => <ProtectedRoute component={AdminEventsPage} minLevel={ADMIN_LEVEL} />} />
         <Route path="/admin/history" component={() => <ProtectedRoute component={AdminHistorySectionsPage} minLevel={ADMIN_LEVEL} />} />

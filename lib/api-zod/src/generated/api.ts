@@ -679,8 +679,79 @@ export const ListRolesResponse = zod.object({
   "name": zod.string(),
   "slug": zod.string(),
   "permissionLevel": zod.number(),
-  "isSystem": zod.boolean()
+  "description": zod.string().nullish(),
+  "isSystem": zod.boolean(),
+  "createdAt": zod.string().optional(),
+  "updatedAt": zod.string().optional()
 }))
+})
+
+
+/**
+ * @summary Create a new role (admin)
+ */
+export const createRoleBodyNameMax = 100;
+
+export const createRoleBodySlugMax = 60;
+
+export const createRoleBodyPermissionLevelMax = 89;
+
+
+
+export const CreateRoleBody = zod.object({
+  "name": zod.string().min(1).max(createRoleBodyNameMax),
+  "slug": zod.string().min(1).max(createRoleBodySlugMax),
+  "permissionLevel": zod.number().min(1).max(createRoleBodyPermissionLevelMax),
+  "description": zod.string().nullish()
+})
+
+
+/**
+ * @summary Update a role (admin)
+ */
+export const UpdateRoleParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateRoleBodyNameMax = 100;
+
+export const updateRoleBodySlugMax = 60;
+
+export const updateRoleBodyPermissionLevelMax = 89;
+
+
+
+export const UpdateRoleBody = zod.object({
+  "name": zod.string().min(1).max(updateRoleBodyNameMax).optional(),
+  "slug": zod.string().min(1).max(updateRoleBodySlugMax).optional(),
+  "permissionLevel": zod.number().min(1).max(updateRoleBodyPermissionLevelMax).optional(),
+  "description": zod.string().nullish()
+})
+
+export const UpdateRoleResponse = zod.object({
+  "role": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "permissionLevel": zod.number(),
+  "description": zod.string().nullish(),
+  "isSystem": zod.boolean(),
+  "createdAt": zod.string().optional(),
+  "updatedAt": zod.string().optional()
+})
+})
+
+
+/**
+ * @summary Delete a non-system role with no assigned members (admin)
+ */
+export const DeleteRoleParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteRoleResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
 })
 
 

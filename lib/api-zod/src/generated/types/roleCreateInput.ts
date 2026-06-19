@@ -6,14 +6,22 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface Role {
-  id: string;
+export interface RoleCreateInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
   name: string;
+  /**
+     * @minLength 1
+     * @maxLength 60
+     */
   slug: string;
+  /**
+     * @minimum 1
+     * @maximum 89
+     */
   permissionLevel: number;
   /** @nullable */
   description?: string | null;
-  isSystem: boolean;
-  createdAt?: string;
-  updatedAt?: string;
 }

@@ -8,6 +8,12 @@ description: Portal stack, lib build, auth patterns, key config values, known go
 - PostgreSQL + Drizzle ORM (`lib/db/src/schema/`)
 - Orval codegen: `cd lib/api-spec && pnpm exec orval --config orval.config.ts`
   then `pnpm -w run typecheck:libs` — output: `lib/api-client-react/src/generated/api.ts` + `api.schemas.ts`
+- **IMPORTANT**: Orval codegen currently crashes OOM in this environment before finishing.
+  It cleans the output folder first, leaving generated files wiped. Workaround:
+  1. Restore from git: `git show HEAD:lib/api-client-react/src/generated/api.ts > .../api.ts`  (same for api.schemas.ts)
+  2. Manually append new hooks/types following the exact patterns in those files
+  3. The package exports via `"exports": { ".": "./src/index.ts" }` — Vite reads TypeScript source directly, no tsc rebuild needed
+  4. `tsc --build` in api-client-react also times out — skip it; the portal works without it
 - Auth: express-session + connect-pg-simple (plaintext sid, not hashed)
 - Session data: `{userId, lodgeId, twoFactorVerified, forceLogout?}`
 
