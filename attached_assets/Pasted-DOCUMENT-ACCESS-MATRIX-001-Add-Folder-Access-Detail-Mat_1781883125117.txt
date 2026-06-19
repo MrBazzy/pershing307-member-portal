@@ -1,0 +1,419 @@
+DOCUMENT-ACCESS-MATRIX-001 — Add Folder Access Detail Matrix
+
+STEP 0 — SAFETY FIRST
+
+Before making changes:
+
+1. Create Replit checkpoint/snapshot.
+2. Create git tag:
+
+v3.8-before-folder-access-matrix
+
+3. Confirm build passes.
+
+Only then start implementation.
+
+--------------------------------------------------
+GOAL
+--------------------------------------------------
+
+Keep the current Domains & Access Control overview page.
+
+It is useful as a high-level overview.
+
+Add a detailed access screen per folder/domain.
+
+This detailed screen must allow administrators to define exactly what each role and degree may do.
+
+--------------------------------------------------
+CURRENT PAGE
+--------------------------------------------------
+
+Management → Domains & Access Control currently shows cards grouped under:
+
+- General Information
+- Ritual Information
+
+Keep this overview.
+
+Each card should continue to show:
+- folder/domain name
+- description
+- current access summary
+- role/degree access type
+
+--------------------------------------------------
+NEW FUNCTIONALITY
+--------------------------------------------------
+
+On each folder/domain card, add or update the three-dot menu:
+
+⋯
+
+Menu option:
+
+Edit Access
+
+Clicking Edit Access opens a dedicated access detail screen or modal for that folder/domain.
+
+Example:
+
+Domains & Access Control
+→ General Documents
+→ Edit Access
+
+--------------------------------------------------
+ACCESS DETAIL SCREEN
+--------------------------------------------------
+
+The access detail screen should show:
+
+Folder / Domain name:
+General Documents
+
+Description:
+Accessible to all lodge members.
+
+Access Matrix:
+
+Roles:
+- Visitor
+- Member
+- Secretary
+- Treasurer
+- Junior Warden
+- Senior Warden
+- Worshipful Master
+- Past Master
+- Site Administrator
+- PM Super Administrator
+
+Degrees:
+- Entered Apprentice
+- Fellowcraft
+- Master Mason
+
+For every role and every degree, show these permission columns:
+
+1. View
+2. Upload
+3. Approve
+4. Manage
+
+--------------------------------------------------
+PERMISSION MEANING
+--------------------------------------------------
+
+View:
+Can see the folder and published documents.
+
+Upload:
+Can upload or submit documents.
+
+Approve:
+Can approve, reject, archive or delete submitted documents.
+
+Manage:
+Can manage folder structure and access settings.
+
+Manage includes:
+- create subfolder
+- rename subfolder
+- delete empty subfolder
+- edit folder description
+- edit access rules
+
+--------------------------------------------------
+IMPORTANT DELETE RULE
+--------------------------------------------------
+
+Do not create a general "Delete" checkbox for normal users.
+
+Document deletion/archive remains controlled through the Approve permission.
+
+For this sprint:
+- Approve = approve/reject/archive/delete document submissions.
+- Manage = manage folder structure and permissions.
+
+--------------------------------------------------
+SITE ADMINISTRATOR RULE
+--------------------------------------------------
+
+Site Administrator is a technical administration role.
+
+Site Administrator may have:
+
+Manage = checked
+
+without automatically having:
+
+View = checked
+
+This is intentional.
+
+Example:
+
+Treasury Documents:
+- Site Administrator may manage folder structure if allowed.
+- Site Administrator should not automatically view financial content unless View is explicitly checked.
+
+--------------------------------------------------
+PM SUPER ADMINISTRATOR RULE
+--------------------------------------------------
+
+PM Super Administrator may be granted View, Upload, Approve and Manage according to the matrix.
+
+Do not hardcode this outside the matrix if avoidable.
+
+Default Pershing setup may grant PM Super Administrator broad access, but it must be visible and configurable in the matrix.
+
+--------------------------------------------------
+EFFECTIVE ACCESS
+--------------------------------------------------
+
+Access must be calculated dynamically at runtime based on:
+
+- Current roles
+- Current degrees
+- Folder/domain access matrix
+
+If a user's role or degree changes, folder access changes immediately.
+
+No manual per-user document access grants.
+
+--------------------------------------------------
+DEFAULT MATRIX VALUES
+--------------------------------------------------
+
+Set sensible defaults based on the current rules.
+
+GENERAL DOCUMENTS
+
+Roles:
+- Member: View, Upload
+- Secretary: View, Upload
+- Treasurer: View, Upload
+- Junior Warden: View, Upload
+- Senior Warden: View, Upload
+- Worshipful Master: View, Upload, Approve, Manage
+- Past Master: View, Upload
+- Site Administrator: View, Upload, Approve, Manage
+- PM Super Administrator: View, Upload, Approve, Manage
+- Visitor: no access
+
+Degrees:
+No degree-specific rights required.
+
+--------------------------------------------------
+
+MEETING MINUTES
+
+Roles:
+- Member: View
+- Secretary: View, Upload, Approve, Manage
+- Treasurer: View
+- Junior Warden: View
+- Senior Warden: View
+- Worshipful Master: View, Upload, Approve, Manage
+- Past Master: View
+- Site Administrator: Manage only unless View is explicitly checked
+- PM Super Administrator: View, Upload, Approve, Manage
+- Visitor: no access
+
+Degrees:
+No degree-specific rights required.
+
+--------------------------------------------------
+
+SECRETARY DOCUMENTS
+
+Roles:
+- Secretary: View, Upload, Approve, Manage
+- Worshipful Master: View, Upload, Approve, Manage
+- PM Super Administrator: View, Upload, Approve, Manage
+- Site Administrator: Manage only unless View is explicitly checked
+- all others: no access
+
+Degrees:
+No degree-specific rights required.
+
+--------------------------------------------------
+
+TREASURY DOCUMENTS
+
+Roles:
+- Treasurer: View, Upload, Approve, Manage
+- Worshipful Master: View, Upload, Approve, Manage
+- PM Super Administrator: View, Upload, Approve, Manage
+- Site Administrator: Manage only unless View is explicitly checked
+- all others: no access
+
+Degrees:
+No degree-specific rights required.
+
+--------------------------------------------------
+
+WORSHIPFUL MASTER DOCUMENTS
+
+Roles:
+- Worshipful Master: View, Upload, Approve, Manage
+- PM Super Administrator: View, Upload, Approve, Manage
+- Site Administrator: Manage only unless View is explicitly checked
+- all others: no access
+
+Degrees:
+No degree-specific rights required.
+
+--------------------------------------------------
+
+ENTERED APPRENTICE RITUAL
+
+Roles:
+- Worshipful Master: View, Upload, Approve, Manage
+- Past Master: View
+- PM Super Administrator: View, Upload, Approve, Manage
+- Site Administrator: Manage only unless View is explicitly checked
+
+Degrees:
+- Entered Apprentice: View
+- Fellowcraft: View
+- Master Mason: View
+
+No general member upload rights for ritual folders.
+
+--------------------------------------------------
+
+FELLOWCRAFT RITUAL
+
+Roles:
+- Worshipful Master: View, Upload, Approve, Manage
+- Past Master: View
+- PM Super Administrator: View, Upload, Approve, Manage
+- Site Administrator: Manage only unless View is explicitly checked
+
+Degrees:
+- Fellowcraft: View
+- Master Mason: View
+
+No access for Entered Apprentice.
+
+--------------------------------------------------
+
+MASTER MASON RITUAL
+
+Roles:
+- Worshipful Master: View, Upload, Approve, Manage
+- Past Master: View
+- PM Super Administrator: View, Upload, Approve, Manage
+- Site Administrator: Manage only unless View is explicitly checked
+
+Degrees:
+- Master Mason: View
+
+No access for Entered Apprentice or Fellowcraft.
+
+--------------------------------------------------
+
+PAST MASTER RITUAL
+
+Roles:
+- Past Master: View
+- Worshipful Master: View, Upload, Approve, Manage
+- PM Super Administrator: View, Upload, Approve, Manage
+- Site Administrator: Manage only unless View is explicitly checked
+
+Degrees:
+No degree-specific rights required.
+
+--------------------------------------------------
+SUBFOLDERS
+--------------------------------------------------
+
+Subfolders inherit the parent folder's matrix by default.
+
+No separate subfolder matrix in this sprint.
+
+--------------------------------------------------
+BACKEND ENFORCEMENT
+--------------------------------------------------
+
+Frontend visibility is not enough.
+
+Backend APIs must check the matrix before allowing:
+
+- list folder
+- view document
+- upload document
+- approve document
+- reject document
+- archive/delete document
+- manage folder
+
+--------------------------------------------------
+UI REQUIREMENTS
+--------------------------------------------------
+
+Access detail screen should be easy to understand.
+
+Use:
+
+- Role Permissions section
+- Degree Permissions section
+- Clear checkboxes
+- Save button
+- Cancel button
+- Reset to default button if feasible
+
+Show warning:
+
+"Changes to this access matrix immediately affect all users with the selected roles or degrees."
+
+--------------------------------------------------
+AUDIT LOGGING
+--------------------------------------------------
+
+Log access matrix changes using first and last names.
+
+Examples:
+
+John Smith updated access matrix for "General Documents".
+
+John Smith granted Upload permission to Members for "General Documents".
+
+John Smith removed View permission from Entered Apprentice for "Fellowcraft Ritual".
+
+--------------------------------------------------
+PRESERVE
+--------------------------------------------------
+
+Do not change:
+- Dashboard
+- History
+- Tracing Board
+- Events
+- Birthdays
+- Authentication
+- Existing document folder structure
+- Existing document uploads
+
+Do not implement:
+- per-user overrides
+- temporary access grants
+- document versioning
+- document search
+
+--------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------
+
+1. Domains & Access Control overview remains available.
+2. Each folder/domain card has Edit Access.
+3. Edit Access opens a folder-specific access matrix.
+4. Matrix supports roles and degrees.
+5. Matrix supports View, Upload, Approve and Manage.
+6. Access changes apply dynamically.
+7. Subfolders inherit parent folder matrix.
+8. Site Administrator can have Manage without View.
+9. Backend enforces permissions.
+10. Audit log records matrix changes.
+11. Build passes.
