@@ -331,6 +331,7 @@ type FolderRow = {
   id: string;
   title: string;
   description: string | null;
+  parentId: string | null;
   accessPolicy: unknown;
   domainId: string | null;
   domainSlug: string | null;
@@ -348,6 +349,7 @@ const folderColumns = {
   id: documentFoldersTable.id,
   title: documentFoldersTable.title,
   description: documentFoldersTable.description,
+  parentId: documentFoldersTable.parentId,
   accessPolicy: documentFoldersTable.accessPolicy,
   domainId: documentFoldersTable.domainId,
   frame: documentFoldersTable.frame,
@@ -636,9 +638,8 @@ function findRootAncestor(folder: FolderRow, all: FolderRow[]): FolderRow | null
   let cur: FolderRow = folder;
   for (let i = 0; i < 10; i++) {
     if (cur.domainId || cur.accessPolicy) return cur;
-    const parentId = (cur as any).parentId;
-    if (!parentId) return cur;
-    const parent = map.get(parentId);
+    if (!cur.parentId) return cur;
+    const parent = map.get(cur.parentId);
     if (!parent) return cur;
     cur = parent;
   }
@@ -709,6 +710,7 @@ router.post("/:id/subfolders", requireAuth(), requireRole(SITE_ADMIN_LEVEL), asy
     formatFolder(
       {
         ...newFolder,
+        domainSlug: null,
         domainAccessLogic: null,
         domainAllowedRoleSlugs: null,
         domainMinDegree: null,
@@ -778,6 +780,7 @@ router.patch("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, r
     formatFolder(
       {
         ...updated,
+        domainSlug: null,
         domainAccessLogic: null,
         domainAllowedRoleSlugs: null,
         domainMinDegree: null,

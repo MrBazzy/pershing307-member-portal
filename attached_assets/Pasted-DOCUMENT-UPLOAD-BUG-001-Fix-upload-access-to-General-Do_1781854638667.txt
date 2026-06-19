@@ -1,0 +1,116 @@
+DOCUMENT-UPLOAD-BUG-001 — Fix upload access to General Documents subfolders
+
+STEP 0 — SAFETY FIRST
+
+Before making changes:
+
+1. Create Replit checkpoint/snapshot.
+2. Create git tag:
+
+v3.8-before-general-documents-subfolder-upload-fix
+
+3. Confirm build passes.
+
+--------------------------------------------------
+ISSUE
+--------------------------------------------------
+
+Uploading documents into subfolders under:
+
+General Information
+└── General Documents
+    └── [subfolder]
+
+still fails with:
+
+Access Denied
+
+This happens for:
+- normal Member
+- PM Super Administrator
+
+--------------------------------------------------
+EXPECTED BEHAVIOR
+--------------------------------------------------
+
+If a user has upload permission to the parent folder:
+
+General Documents
+
+then the user must also have upload permission to all subfolders beneath General Documents.
+
+This applies to:
+- Member
+- Secretary
+- Treasurer
+- Junior Warden
+- Senior Warden
+- Worshipful Master
+- Past Master
+- Site Administrator
+- PM Super Administrator
+
+Visitors must still be denied.
+
+--------------------------------------------------
+REQUIRED FIX
+--------------------------------------------------
+
+Update the upload permission check so that for subfolders it resolves inherited permissions from the folder ancestry.
+
+Logic:
+
+1. User selects upload target folder.
+2. If target folder is General Documents:
+   - allow upload for all non-Visitor roles.
+3. If target folder is a descendant/subfolder of General Documents:
+   - inherit General Documents upload rule.
+   - allow upload for all non-Visitor roles.
+4. If target folder is not General Documents or a descendant of General Documents:
+   - apply normal folder-specific upload restrictions.
+
+Important:
+Do not use the frame/group "General Information" for permission checks.
+Use the actual folder hierarchy:
+General Documents → subfolders.
+
+--------------------------------------------------
+BACKEND REQUIREMENT
+--------------------------------------------------
+
+The fix must be server-side.
+
+Frontend button visibility is not enough.
+
+Backend upload API must allow uploads to descendants of General Documents when the user is allowed to upload to General Documents.
+
+--------------------------------------------------
+DEBUG OUTPUT
+--------------------------------------------------
+
+Add temporary or safe server-side diagnostic logging for denied uploads:
+
+- user name
+- user roles
+- user degrees
+- target folder
+- target folder parent chain
+- resolved upload root
+- permission decision
+- denial reason
+
+Do not log file contents.
+
+--------------------------------------------------
+ACCEPTANCE TESTS
+--------------------------------------------------
+
+1. Member can upload to General Documents.
+2. Member can upload to subfolder under General Documents.
+3. PM Super Administrator can upload to subfolder under General Documents.
+4. Visitor cannot upload to General Documents.
+5. Member cannot upload to Meeting Minutes.
+6. Member cannot upload to Secretary Documents.
+7. Member cannot upload to Ritual folders.
+8. Backend denies unauthorized direct upload attempts.
+9. Build passes.

@@ -129,11 +129,44 @@ router.post("/request-upload", requireAuth(), async (req, res) => {
   const folder = await getFolderWithAccess(folderId, lodgeId);
   if (!folder || folder.lodgeId !== lodgeId) { res.status(404).json({ error: "Folder not found" }); return; }
 
+  req.log.info({
+    uploadDiag: true,
+    userId,
+    userLevel: level,
+    userRoles: slugs,
+    userMaxDegree: maxDegree,
+    requestedFolderId: folderId,
+    resolvedFolderId: folder.id,
+    resolvedFolderTitle: folder.title,
+    resolvedFolderParentId: folder.parentId ?? null,
+    resolvedDomainSlug: folder.domainSlug ?? null,
+    resolvedDomainAccessLogic: folder.domainAccessLogic ?? null,
+    resolvedDomainAllowedRoleSlugs: folder.domainAllowedRoleSlugs ?? null,
+    resolvedAccessPolicy: folder.accessPolicy ?? null,
+  }, "upload-request: resolved folder");
+
   if (!checkFolderAccess(folder, level, slugs, maxDegree)) {
+    req.log.warn({
+      uploadDiag: true,
+      userId,
+      userLevel: level,
+      userRoles: slugs,
+      resolvedFolderTitle: folder.title,
+      resolvedDomainSlug: folder.domainSlug ?? null,
+      denialReason: "checkFolderAccess failed — no matching domain or legacy policy",
+    }, "upload-request: DENIED — folder access check failed");
     res.status(403).json({ error: "You do not have access to this folder." });
     return;
   }
   if (!canUploadToFolder(folder, level)) {
+    req.log.warn({
+      uploadDiag: true,
+      userId,
+      userLevel: level,
+      resolvedFolderTitle: folder.title,
+      resolvedDomainSlug: folder.domainSlug ?? null,
+      denialReason: "canUploadToFolder failed — domain is not general-documents and user is not admin",
+    }, "upload-request: DENIED — upload rights check failed");
     res.status(403).json({ error: "You do not have upload rights for this folder." });
     return;
   }
