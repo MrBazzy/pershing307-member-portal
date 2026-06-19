@@ -1,13 +1,13 @@
 import { useState, useCallback, useEffect } from "react";
 import {
   useListUsers, useListRoles, useGetUser, useDeactivateUser, useActivateUser,
-  useGrantUserRole, useRevokeUserRole, useGetUserDomains, useGetUserDegrees,
-  useGrantUserDomain, useRevokeUserDomain, useListDomains, useListDegreeDefinitions,
+  useGrantUserRole, useRevokeUserRole, useGetUserDegrees,
+  useListDegreeDefinitions,
   useAddUserDegree, useRemoveUserDegree, useResetTestUser,
   useUpdateUserMembershipStatus, useFixMembership, useAdminResetPassword,
   useUpdateDateOfBirth, useUpdateUserName,
   listUserPasskeys, revokeUserPasskey,
-  getListUsersQueryKey, getGetUserQueryKey, getGetUserDomainsQueryKey, getGetUserDegreesQueryKey,
+  getListUsersQueryKey, getGetUserQueryKey, getGetUserDegreesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -317,9 +317,7 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
     query: { enabled: !!userId, queryKey: getGetUserQueryKey(userId ?? "") },
   });
   const { data: rolesData } = useListRoles();
-  const { data: domainsAllData } = useListDomains();
   const { data: degreeDefsData } = useListDegreeDefinitions();
-  const { data: userDomainsData } = useGetUserDomains(userId ?? "", { query: { enabled: !!userId && tab === "domains", queryKey: getGetUserDomainsQueryKey(userId ?? "") } });
   const { data: userDegreesData } = useGetUserDegrees(userId ?? "", { query: { enabled: !!userId && tab === "degrees", queryKey: getGetUserDegreesQueryKey(userId ?? "") } });
 
   const deactivate = useDeactivateUser();
@@ -327,8 +325,6 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
   const updateMembershipStatus = useUpdateUserMembershipStatus();
   const grantRole = useGrantUserRole();
   const revokeRole = useRevokeUserRole();
-  const grantDomain = useGrantUserDomain();
-  const revokeDomain = useRevokeUserDomain();
   const addDegree = useAddUserDegree();
   const removeDegree = useRemoveUserDegree();
   const resetTestUser = useResetTestUser();
@@ -342,8 +338,6 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
   const testResetEnabled = data?.testResetEnabled ?? false;
   const isSelf = !!user && user.id === currentUser?.id;
   const canResetTestUser = testResetEnabled && isPmSuperAdmin && !isSelf;
-  const allDomains = domainsAllData?.domains ?? [];
-  const userDomains = userDomainsData?.domains ?? [];
   const userDegrees = userDegreesData?.degrees ?? [];
   const degreeDefs = degreeDefsData?.definitions ?? [
     { degree: 1, name: "Entered Apprentice", abbreviation: "EA" },
@@ -355,7 +349,6 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
     queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
     if (userId) {
       queryClient.invalidateQueries({ queryKey: getGetUserQueryKey(userId) });
-      queryClient.invalidateQueries({ queryKey: getGetUserDomainsQueryKey(userId) });
       queryClient.invalidateQueries({ queryKey: getGetUserDegreesQueryKey(userId) });
     }
   };
@@ -364,8 +357,6 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
   const availableRoles = rolesData?.roles?.filter(
     (r) => !currentRoleIds.has(r.id) && (isPmSuperAdmin || r.permissionLevel < 90)
   ) ?? [];
-  const grantedDomainIds = new Set(userDomains.map((d) => d.domainId));
-  const availableDomains = allDomains.filter((d) => !grantedDomainIds.has(d.id));
 
   return (
     <Sheet open={!!userId} onOpenChange={(open) => { if (!open) { onClose(); setTab("info"); } }}>
@@ -385,7 +376,6 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
             <Tabs value={tab} onValueChange={setTab}>
               <TabsList className="w-full">
                 <TabsTrigger value="info" className="flex-1">Info</TabsTrigger>
-                <TabsTrigger value="domains" className="flex-1">Domains</TabsTrigger>
                 <TabsTrigger value="degrees" className="flex-1">Degrees</TabsTrigger>
               </TabsList>
 
@@ -693,56 +683,6 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
                       </Button>
                     </div>
                   </>
-                )}
-              </TabsContent>
-
-              <TabsContent value="domains" className="space-y-4 pt-4">
-                {userDomains.length === 0 ? (
-                  <p className="text-xs text-muted-foreground py-3">No domain access granted.</p>
-                ) : (
-                  <div className="space-y-1.5">
-                    {userDomains.map((d) => (
-                      <div key={d.domainId} className="flex items-center justify-between px-3 py-2 bg-muted/30 rounded-sm">
-                        <div>
-                          <span className="text-sm font-medium">{d.domainName}</span>
-                          <span className="text-xs text-muted-foreground font-mono ml-2">{d.domainSlug}</span>
-                        </div>
-                        {isPmSuperAdmin && (
-                          <Button
-                            variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                            onClick={() => revokeDomain.mutate({ id: userId!, domainId: d.domainId }, { onSuccess: () => { invalidate(); toast({ title: "Domain access revoked" }); } })}
-                            disabled={revokeDomain.isPending}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {isPmSuperAdmin && availableDomains.length > 0 && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-2">Grant access to:</p>
-                    <div className="space-y-1">
-                      {availableDomains.map((d) => (
-                        <div key={d.id} className="flex items-center justify-between px-3 py-2 border rounded-sm">
-                          <span className="text-sm">{d.name}</span>
-                          <Button
-                            size="sm" variant="outline" className="h-7 text-xs"
-                            onClick={() => grantDomain.mutate({ id: userId!, data: { domainId: d.id } }, { onSuccess: () => { invalidate(); toast({ title: "Domain access granted" }); } })}
-                            disabled={grantDomain.isPending}
-                          >
-                            Grant
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {!isPmSuperAdmin && (
-                  <p className="text-xs text-muted-foreground italic">Only PM Super Administrators can modify domain access.</p>
                 )}
               </TabsContent>
 

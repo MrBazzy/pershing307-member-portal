@@ -5,7 +5,9 @@ import {
   useListBirthdays,
   useListEvents,
   useGetMemberDetailsReport,
+  useGetDocumentAccessReport,
   type MemberDetailItem,
+  type DocumentAccessDomainItem,
 } from "@workspace/api-client-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import {
   BarChart3, Users, Cake, CalendarDays, UserPlus, Printer, Search,
-  TrendingUp, CircleUser, FileText,
+  TrendingUp, CircleUser, FileText, FolderOpen, ShieldCheck,
 } from "lucide-react";
 import { format, subDays, isAfter, isBefore, parseISO } from "date-fns";
 import { VISITOR_LEVEL, MEMBER_LEVEL, ADMIN_LEVEL } from "@/lib/roles";
@@ -105,6 +107,7 @@ export default function AdminReportsPage() {
   const { data: birthdayData, isLoading: birthdaysLoading } = useListBirthdays();
   const { data: eventsData, isLoading: eventsLoading } = useListEvents({});
   const { data: memberDetailsData, isLoading: memberDetailsLoading } = useGetMemberDetailsReport();
+  const { data: docAccessData, isLoading: docAccessLoading } = useGetDocumentAccessReport();
 
   const [rosterSearch, setRosterSearch] = useState("");
   const [birthdayWindow, setBirthdayWindow] = useState<30 | 60 | 90>(30);
@@ -184,6 +187,7 @@ export default function AdminReportsPage() {
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="new-members">New Members</TabsTrigger>
             <TabsTrigger value="member-details">Member Details</TabsTrigger>
+            <TabsTrigger value="doc-access">Document Access</TabsTrigger>
           </TabsList>
 
           {/* ── OVERVIEW ── */}
@@ -601,6 +605,109 @@ export default function AdminReportsPage() {
                   </table>
                 </div>
               </Card>
+            )}
+          </TabsContent>
+
+          {/* ── DOCUMENT ACCESS ── */}
+          <TabsContent value="doc-access" className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground">
+                Shows which members can access each protected document domain, and why.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => window.print()}>
+                <Printer className="h-3.5 w-3.5 mr-1.5" />
+                Print
+              </Button>
+            </div>
+
+            {docAccessLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
+              </div>
+            ) : !docAccessData?.domains?.length ? (
+              <Card className="border-card-border border-dashed">
+                <CardContent className="py-12 text-center">
+                  <FolderOpen className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">No protected domains configured yet.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-5 print:space-y-6">
+                {docAccessData.domains.map((domain: DocumentAccessDomainItem) => (
+                  <Card key={domain.id} className="border-card-border overflow-hidden print:break-inside-avoid">
+                    <CardHeader className="pb-2 pt-4 px-4 print:pb-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                            <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
+                            {domain.name}
+                          </CardTitle>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <Badge variant="outline" className="text-[11px] font-mono">{domain.slug}</Badge>
+                            <Badge
+                              className={cn("text-[11px] border-0", domain.frame === "ritual" ? "bg-amber-500/15 text-amber-700 dark:text-amber-400" : "bg-blue-500/10 text-blue-700 dark:text-blue-400")}
+                            >
+                              {domain.frame}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {domain.folderCount} folder{domain.folderCount !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Access rule:{" "}
+                            <span className="font-medium text-foreground">
+                              {domain.accessLogic === "role_only" && `Role only (${domain.allowedRoleSlugs.join(", ") || "none"})`}
+                              {domain.accessLogic === "degree_only" && `Degree ≥ ${domain.minDegree ?? "—"}`}
+                              {domain.accessLogic === "role_or_degree" && `Role (${domain.allowedRoleSlugs.join(", ") || "none"}) or Degree ≥ ${domain.minDegree ?? "—"}`}
+                              {domain.accessLogic === "role_and_degree" && `Role (${domain.allowedRoleSlugs.join(", ") || "none"}) and Degree ≥ ${domain.minDegree ?? "—"}`}
+                            </span>
+                          </p>
+                        </div>
+                        <Badge className="shrink-0 bg-primary/10 text-primary border-0">
+                          {domain.members.length} member{domain.members.length !== 1 ? "s" : ""}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+
+                    {domain.members.length === 0 ? (
+                      <CardContent className="pb-4 pt-2 px-4">
+                        <p className="text-xs text-muted-foreground italic">No members currently have access to this domain.</p>
+                      </CardContent>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-y border-card-border bg-muted/40">
+                              <th className="text-left px-4 py-2 font-semibold text-xs text-muted-foreground uppercase tracking-wide">Name</th>
+                              <th className="text-left px-4 py-2 font-semibold text-xs text-muted-foreground uppercase tracking-wide print:table-cell hidden sm:table-cell">Email</th>
+                              <th className="text-left px-4 py-2 font-semibold text-xs text-muted-foreground uppercase tracking-wide">Access via</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-card-border">
+                            {domain.members.map((m) => (
+                              <tr key={m.id} className="hover:bg-muted/30 transition-colors print:hover:bg-transparent">
+                                <td className="px-4 py-2.5 font-medium text-foreground whitespace-nowrap">
+                                  {m.lastName}, {m.firstName}
+                                </td>
+                                <td className="px-4 py-2.5 text-muted-foreground text-xs print:table-cell hidden sm:table-cell">
+                                  {m.email}
+                                </td>
+                                <td className="px-4 py-2.5">
+                                  <Badge
+                                    className={cn("text-[11px] border-0", m.accessReason === "Explicit grant" ? "bg-amber-500/15 text-amber-700 dark:text-amber-400" : "bg-green-500/15 text-green-700 dark:text-green-400")}
+                                  >
+                                    {m.accessReason}
+                                  </Badge>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
             )}
           </TabsContent>
         </Tabs>

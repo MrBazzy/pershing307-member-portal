@@ -1214,6 +1214,25 @@ paths:
         "403":
           description: Forbidden
 
+  /reports/document-access:
+    get:
+      operationId: getDocumentAccessReport
+      tags: [reports]
+      summary: Document access report — which members can access each protected domain/folder set
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Document access report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentAccessReport"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
   /roadmap:
     get:
       operationId: listRoadmapItems
@@ -5114,6 +5133,60 @@ components:
         notes:
           type: string
           nullable: true
+
+    DocumentAccessMemberItem:
+      type: object
+      required: [id, firstName, lastName, email, accessReason]
+      properties:
+        id:
+          type: string
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+        email:
+          type: string
+        accessReason:
+          type: string
+
+    DocumentAccessDomainItem:
+      type: object
+      required: [id, name, slug, frame, accessLogic, allowedRoleSlugs, folderCount, members]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        frame:
+          type: string
+        accessLogic:
+          type: string
+        allowedRoleSlugs:
+          type: array
+          items:
+            type: string
+        minDegree:
+          type: integer
+          nullable: true
+        folderCount:
+          type: integer
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentAccessMemberItem"
+
+    DocumentAccessReport:
+      type: object
+      required: [domains]
+      properties:
+        domains:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentAccessDomainItem"
 
     MemberDetailItem:
       type: object

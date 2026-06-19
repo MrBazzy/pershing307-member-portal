@@ -985,6 +985,30 @@ export const GetMemberDetailsReportResponse = zod.object({
 
 
 /**
+ * @summary Document access report — which members can access each protected domain/folder set
+ */
+export const GetDocumentAccessReportResponse = zod.object({
+  "domains": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "frame": zod.string(),
+  "accessLogic": zod.string(),
+  "allowedRoleSlugs": zod.array(zod.string()),
+  "minDegree": zod.number().nullish(),
+  "folderCount": zod.number(),
+  "members": zod.array(zod.object({
+  "id": zod.string(),
+  "firstName": zod.string().nullable(),
+  "lastName": zod.string().nullable(),
+  "email": zod.string(),
+  "accessReason": zod.string()
+}))
+}))
+})
+
+
+/**
  * @summary List roadmap items (visible only for members, all for admins)
  */
 export const ListRoadmapItemsResponse = zod.object({

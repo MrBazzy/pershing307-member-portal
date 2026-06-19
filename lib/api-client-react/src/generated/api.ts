@@ -51,6 +51,7 @@ import type {
   DegreeDefinitionUpdateInput,
   DegreeInput,
   DeleteHistorySection200,
+  DocumentAccessReport,
   DocumentAttachmentUploadRequest,
   DocumentAttachmentUploadResponse,
   DocumentDomainAccessUpdateInput,
@@ -4276,6 +4277,83 @@ export function useGetMemberDetailsReport<TData = Awaited<ReturnType<typeof getM
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetMemberDetailsReportQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetDocumentAccessReportUrl = () => {
+
+
+
+
+  return `/api/reports/document-access`
+}
+
+/**
+ * @summary Document access report — which members can access each protected domain/folder set
+ */
+export const getDocumentAccessReport = async ( options?: RequestInit): Promise<DocumentAccessReport> => {
+
+  return customFetch<DocumentAccessReport>(getGetDocumentAccessReportUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDocumentAccessReportQueryKey = () => {
+    return [
+    `/api/reports/document-access`
+    ] as const;
+    }
+
+
+export const getGetDocumentAccessReportQueryOptions = <TData = Awaited<ReturnType<typeof getDocumentAccessReport>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDocumentAccessReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDocumentAccessReportQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDocumentAccessReport>>> = ({ signal }) => getDocumentAccessReport({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDocumentAccessReport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDocumentAccessReportQueryResult = NonNullable<Awaited<ReturnType<typeof getDocumentAccessReport>>>
+export type GetDocumentAccessReportQueryError = ErrorType<void>
+
+
+/**
+ * @summary Document access report — which members can access each protected domain/folder set
+ */
+
+export function useGetDocumentAccessReport<TData = Awaited<ReturnType<typeof getDocumentAccessReport>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDocumentAccessReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDocumentAccessReportQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

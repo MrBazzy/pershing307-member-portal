@@ -1541,6 +1541,30 @@ export interface MemberDetailDegreeItem {
   notes?: string | null;
 }
 
+export interface DocumentAccessMemberItem {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string;
+  accessReason: string;
+}
+
+export interface DocumentAccessDomainItem {
+  id: string;
+  name: string;
+  slug: string;
+  frame: string;
+  accessLogic: string;
+  allowedRoleSlugs: string[];
+  minDegree?: number | null;
+  folderCount: number;
+  members: DocumentAccessMemberItem[];
+}
+
+export interface DocumentAccessReport {
+  domains: DocumentAccessDomainItem[];
+}
+
 export interface MemberDetailItem {
   id: string;
   firstName: string;
