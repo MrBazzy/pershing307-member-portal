@@ -540,7 +540,7 @@ router.get("/:id", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) =>
     sortOrder: folder.sortOrder,
     frame: folder.frame,
     domainId: folder.domainId ?? null,
-    domainSlug: folder.domainSlug ?? null,
+    domainSlug: effectiveFolder.domainSlug ?? null,
     subfolders: subfolders.map((s) => formatFolder(s as FolderRow, subCountMap.get(s.id) ?? 0)),
     createdAt: folder.createdAt.toISOString(),
     updatedAt: folder.updatedAt.toISOString(),
