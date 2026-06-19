@@ -162,12 +162,12 @@ export function UploadDocumentDialog({ open, onOpenChange, folderId, folderTitle
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md overflow-hidden">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Upload Document</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-1">
+        <form onSubmit={handleSubmit} className="space-y-4 py-1 min-w-0 w-full">
           <div className="space-y-1.5">
             <Label htmlFor="doc-title">
               Title <span className="text-destructive">*</span>
