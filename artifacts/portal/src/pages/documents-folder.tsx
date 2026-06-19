@@ -5,6 +5,7 @@ import {
   useListFolderDocuments,
   getListFolderDocumentsQueryKey,
   downloadDocument,
+  viewDocument,
   useUpdateDocumentStatus,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -90,8 +91,8 @@ export default function DocumentsFolderPage({ id }: Props) {
 
   const [uploadOpen, setUploadOpen] = useState(false);
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
-  const [viewer, setViewer] = useState<{ url: string; fileName: string; mimeType: string } | null>(null);
-  const apiBase = (import.meta.env.BASE_URL as string ?? "").replace(/\/$/, "");
+  const [viewingIds, setViewingIds] = useState<Set<string>>(new Set());
+  const [viewer, setViewer] = useState<{ objectUrl: string; fileName: string; mimeType: string } | null>(null);
   const [withdrawTarget, setWithdrawTarget] = useState<{ id: string; title: string } | null>(null);
 
   const isAccessDenied = (error as any)?.status === 403;
@@ -110,12 +111,22 @@ export default function DocumentsFolderPage({ id }: Props) {
     );
   }
 
-  function handleView(docId: string, fileName: string, mimeType: string) {
-    const url = `${apiBase}/api/documents/${docId}/view`;
-    setViewer({ url, fileName, mimeType });
+  async function handleView(docId: string, fileName: string, mimeType: string) {
+    if (viewingIds.has(docId)) return;
+    setViewingIds((prev) => new Set(prev).add(docId));
+    try {
+      const blob = await viewDocument(docId);
+      const objectUrl = URL.createObjectURL(blob);
+      setViewer({ objectUrl, fileName, mimeType });
+    } catch {
+      toast({ title: "Could not load document", variant: "destructive" });
+    } finally {
+      setViewingIds((prev) => { const n = new Set(prev); n.delete(docId); return n; });
+    }
   }
 
   function closeViewer() {
+    if (viewer) URL.revokeObjectURL(viewer.objectUrl);
     setViewer(null);
   }
 
@@ -392,10 +403,15 @@ export default function DocumentsFolderPage({ id }: Props) {
                                   size="sm"
                                   variant="outline"
                                   className="gap-1.5"
+                                  disabled={viewingIds.has(doc.id)}
                                   onClick={() => handleView(doc.id, doc.originalFileName, doc.mimeType)}
                                 >
-                                  <Eye className="h-3.5 w-3.5" />
-                                  <span className="hidden sm:inline">View</span>
+                                  {viewingIds.has(doc.id)
+                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    : <Eye className="h-3.5 w-3.5" />}
+                                  <span className="hidden sm:inline">
+                                    {viewingIds.has(doc.id) ? "Loading…" : "View"}
+                                  </span>
                                 </Button>
                               )}
                               <Button
@@ -451,15 +467,15 @@ export default function DocumentsFolderPage({ id }: Props) {
             {viewer?.mimeType.startsWith("image/") ? (
               <div className="w-full h-full flex items-center justify-center p-4 overflow-auto">
                 <img
-                  src={viewer.url}
+                  src={viewer.objectUrl}
                   alt={viewer.fileName}
                   className="max-w-full max-h-full object-contain"
                 />
               </div>
             ) : (
-              <iframe
-                src={viewer?.url}
-                title={viewer?.fileName ?? "Document"}
+              <embed
+                src={viewer?.objectUrl}
+                type={viewer?.mimeType ?? "application/pdf"}
                 className="w-full h-full border-0"
               />
             )}
