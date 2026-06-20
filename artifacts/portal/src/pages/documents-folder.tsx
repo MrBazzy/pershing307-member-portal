@@ -17,6 +17,9 @@ import {
   useUpdateDocumentFolder,
   useDeleteDocumentFolder,
   useCreateDocumentSubfolder,
+  useGetDocumentNoticeStatus,
+  getGetDocumentNoticeStatusQueryKey,
+  useAcceptDocumentNotice,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -50,6 +53,8 @@ import { UploadDocumentDialog } from "@/components/documents/upload-document-dia
 import {
   FolderOpen,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Folder,
   AlertCircle,
   FileText,
@@ -125,6 +130,22 @@ export default function DocumentsFolderPage({ id }: Props) {
   const updateFolder   = useUpdateDocumentFolder();
   const deleteSubfolder = useDeleteDocumentFolder();
   const createSubfolder = useCreateDocumentSubfolder();
+
+  const { data: noticeStatus } = useGetDocumentNoticeStatus({
+    query: { queryKey: getGetDocumentNoticeStatusQueryKey(), enabled: folder?.domainSlug === "general-documents" },
+  });
+  const acceptNotice = useAcceptDocumentNotice();
+  const noticeAccepted = noticeStatus?.accepted ?? false;
+  const [noticeExpanded, setNoticeExpanded] = useState(false);
+
+  function handleAcceptNotice() {
+    acceptNotice.mutate(undefined, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetDocumentNoticeStatusQueryKey() });
+        setNoticeExpanded(false);
+      },
+    });
+  }
 
   const [uploadOpen, setUploadOpen] = useState(false);
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
@@ -444,11 +465,34 @@ export default function DocumentsFolderPage({ id }: Props) {
 
             {/* Document Library Notice — General Documents only */}
             {folder.domainSlug === "general-documents" && (
-              <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
-                <div className="flex gap-3">
-                  <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                  <div className="space-y-2.5 text-sm text-amber-900">
-                    <p className="font-semibold text-amber-900">Document Library Notice</p>
+              <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800">
+                {/* Collapsed header (always visible after acceptance) */}
+                {noticeAccepted ? (
+                  <button
+                    type="button"
+                    onClick={() => setNoticeExpanded((v) => !v)}
+                    className="w-full flex items-center gap-2 px-4 py-3 text-left"
+                  >
+                    <Info className="h-4 w-4 text-amber-600 shrink-0" />
+                    <span className="text-sm font-semibold text-amber-900 dark:text-amber-200 flex-1">
+                      Document Library Notice
+                    </span>
+                    {noticeExpanded
+                      ? <ChevronUp className="h-4 w-4 text-amber-600 shrink-0" />
+                      : <ChevronDown className="h-4 w-4 text-amber-600 shrink-0" />}
+                  </button>
+                ) : (
+                  <div className="flex gap-3 p-4">
+                    <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                    <span className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                      Document Library Notice
+                    </span>
+                  </div>
+                )}
+
+                {/* Notice body — always shown when not accepted; shown when expanded after acceptance */}
+                {(!noticeAccepted || noticeExpanded) && (
+                  <div className={cn("px-4 pb-4 space-y-2.5 text-sm text-amber-900 dark:text-amber-200", noticeAccepted && "pt-0 border-t border-amber-200 dark:border-amber-800")}>
                     <p>
                       This Document Library exists to support the personal development of our
                       Brethren, to preserve the history and traditions of our Lodge, and to
@@ -483,11 +527,27 @@ export default function DocumentsFolderPage({ id }: Props) {
                       By contributing to this library, you help preserve and share knowledge
                       for the benefit of the Craft and future generations of Brethren.
                     </p>
-                    <p className="italic text-foreground/60">
+                    <p className="italic text-foreground/60 dark:text-amber-400/70">
                       Thank you for your care, discretion, and fraternal spirit.
                     </p>
+
+                    {/* Acceptance checkbox — only shown before acceptance */}
+                    {!noticeAccepted && (
+                      <label className="flex items-start gap-2.5 pt-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 h-4 w-4 rounded border-amber-400 accent-amber-700 cursor-pointer shrink-0"
+                          checked={acceptNotice.isPending}
+                          disabled={acceptNotice.isPending}
+                          onChange={handleAcceptNotice}
+                        />
+                        <span className="text-sm text-amber-900 dark:text-amber-200 leading-snug">
+                          I have read and understood the Document Library Notice.
+                        </span>
+                      </label>
+                    )}
                   </div>
-                </div>
+                )}
               </div>
             )}
 

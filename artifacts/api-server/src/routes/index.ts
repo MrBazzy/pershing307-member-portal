@@ -23,6 +23,7 @@ import documentDomainsRouter from "./document-domains";
 import reportsRouter from "./reports";
 import documentsRouter from "./documents";
 import documentReviewRouter from "./document-review";
+import documentNoticeRouter from "./document-notice";
 
 const router: IRouter = Router();
 
@@ -50,5 +51,6 @@ router.use("/document-domains", documentDomainsRouter);
 router.use("/reports", reportsRouter);
 router.use("/documents", documentsRouter);
 router.use("/document-review", documentReviewRouter);
+router.use("/document-notice", documentNoticeRouter);
 
 export default router;

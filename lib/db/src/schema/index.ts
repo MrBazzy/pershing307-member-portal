@@ -27,3 +27,4 @@ export * from "./passkey-credentials";
 export * from "./document-folders";
 export * from "./documents";
 export * from "./folder-access-matrix";
+export * from "./user-document-notice-acceptance";

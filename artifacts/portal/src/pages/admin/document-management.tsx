@@ -14,6 +14,7 @@ import {
   useListFolderDocuments,
   useUpdateDocument,
   useUpdateDocumentStatus,
+  useResetDocumentNoticeAcceptance,
   getListDocumentFoldersQueryKey,
   getGetDocumentFolderQueryKey,
   getListFolderDocumentsQueryKey,
@@ -504,6 +505,7 @@ export default function AdminDocumentManagementPage() {
   const updateFolder = useUpdateDocumentFolder();
   const deleteFolder = useDeleteDocumentFolder();
   const linkDomain = useLinkDocumentFolderDomain();
+  const resetNotice = useResetDocumentNoticeAcceptance();
 
   const allFolders = foldersData?.folders ?? [];
   const generalFolders = allFolders.filter((f) => f.frame !== "ritual");
@@ -525,6 +527,7 @@ export default function AdminDocumentManagementPage() {
   const [selectedFrame, setSelectedFrame] = useState<"general" | "ritual">("general");
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+  const [resetNoticeOpen, setResetNoticeOpen] = useState(false);
 
   function invalidateAll() {
     queryClient.invalidateQueries({ queryKey: getListDocumentFoldersQueryKey() });
@@ -619,6 +622,19 @@ export default function AdminDocumentManagementPage() {
     );
   }
 
+  function handleResetNotice() {
+    resetNotice.mutate(undefined, {
+      onSuccess: (data) => {
+        toast({ title: `Document Library Notice acceptance reset for ${data.usersReset} user${data.usersReset !== 1 ? "s" : ""}.` });
+        setResetNoticeOpen(false);
+      },
+      onError: () => {
+        toast({ title: "Failed to reset notice acceptance", variant: "destructive" });
+        setResetNoticeOpen(false);
+      },
+    });
+  }
+
   return (
     <AppLayout>
       <div className="p-6 max-w-4xl mx-auto">
@@ -694,6 +710,39 @@ export default function AdminDocumentManagementPage() {
                 ))}
               </div>
             </div>
+
+            {/* Document Notice Reset — PM Super only */}
+            {isPmSuper && (
+              <>
+                <Separator />
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+                      Document Library Notice
+                    </h2>
+                  </div>
+                  <Card className="border-card-border">
+                    <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Reset Acceptance</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Forces all members to read and accept the Document Library Notice again on their next visit to the General Documents folder.
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0"
+                        onClick={() => setResetNoticeOpen(true)}
+                      >
+                        Reset Notice Acceptance
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -823,6 +872,28 @@ export default function AdminDocumentManagementPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Reset Notice Confirmation */}
+      <AlertDialog open={resetNoticeOpen} onOpenChange={(o) => { if (!o) setResetNoticeOpen(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Document Library Notice acceptance?</AlertDialogTitle>
+            <AlertDialogDescription>
+              All members will be required to read and accept the Document Library Notice again on their next visit. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetNotice}
+              disabled={resetNotice.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {resetNotice.isPending ? "Resetting…" : "Reset"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>

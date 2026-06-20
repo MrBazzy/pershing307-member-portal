@@ -1,0 +1,161 @@
+DOCUMENT-NOTICE-001 — Collapsible Document Library Notice with Acceptance
+
+STEP 0 — SAFETY FIRST
+
+Before making changes:
+
+1. Create Replit checkpoint/snapshot.
+2. Create git tag:
+
+v3.9-before-document-notice-acceptance
+
+3. Confirm build passes.
+
+--------------------------------------------------
+GOAL
+--------------------------------------------------
+
+Improve the Document Library Notice on the Documents page.
+
+The notice is important, but it takes too much space on mobile.
+
+Required behavior:
+- Fully visible until accepted.
+- Collapsible after acceptance.
+- Always readable again when expanded.
+
+--------------------------------------------------
+BEHAVIOR
+--------------------------------------------------
+
+1. First visit / not yet accepted
+
+If the logged-in user has not yet accepted the Document Library Notice:
+
+- Show the full notice text.
+- Show checkbox:
+
+"I have read and understood the Document Library Notice."
+
+- Do not collapse the notice automatically.
+- The user must actively tick the checkbox.
+
+2. After acceptance
+
+Once the user ticks the checkbox:
+
+- Store acceptance for that user.
+- Collapse / roll up the notice.
+- Keep only the notice title visible.
+- Show a small triangle/chevron next to the title.
+
+3. Collapsed state
+
+When collapsed:
+
+Title:
+Document Library Notice
+
+Chevron points downward:
+
+▾
+
+Clicking the title or chevron expands the full notice.
+
+4. Expanded state after acceptance
+
+When expanded:
+
+- Show the full notice text again.
+- Chevron points upward:
+
+▴
+
+Clicking the title or chevron collapses it again.
+
+5. Persistence
+
+The accepted state must persist per user.
+
+If the user logs out and logs in again:
+- The notice remains collapsed.
+- User can still expand it manually.
+
+6. Mobile behavior
+
+On phones:
+- Notice should be readable.
+- Once accepted, collapsed notice should take minimal vertical space.
+- Chevron/tap target must be easy to click.
+
+--------------------------------------------------
+STORAGE
+--------------------------------------------------
+
+Store acceptance per user.
+
+Suggested field/table:
+- user_document_notice_acceptance
+or similar.
+
+Store:
+- userId
+- acceptedAt
+- noticeVersion
+
+Use a noticeVersion so that if the notice text changes materially later, administrators can require all users to accept it again.
+
+Initial version:
+document-notice-v1
+
+--------------------------------------------------
+ADMIN RESET OPTION
+--------------------------------------------------
+
+If simple, add in Configuration or Document Management:
+
+Reset Document Notice Acceptance
+
+This forces all users to accept the notice again.
+
+If not simple, skip this for now.
+
+--------------------------------------------------
+AUDIT LOGGING
+--------------------------------------------------
+
+Log:
+
+John Smith accepted the Document Library Notice.
+
+If reset is implemented:
+
+Peter Jones reset Document Library Notice acceptance for all users.
+
+--------------------------------------------------
+PRESERVE
+--------------------------------------------------
+
+Do not change:
+- Document access rules
+- Upload permissions
+- Review workflow
+- Folder structure
+- Domains & Access Control
+- Authentication
+
+--------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------
+
+1. New user sees full notice.
+2. New user cannot collapse it before accepting.
+3. User ticks checkbox.
+4. Notice collapses.
+5. Chevron remains visible.
+6. User can expand notice again.
+7. User can collapse notice again.
+8. Acceptance persists after logout/login.
+9. Mobile view uses much less space after acceptance.
+10. Audit log records acceptance.
+11. Build passes.

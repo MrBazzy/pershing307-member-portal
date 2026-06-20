@@ -10941,6 +10941,83 @@ export function useGetDocumentReviewCount<TData = Awaited<ReturnType<typeof getD
 }
 
 
+// ─── Document Notice ──────────────────────────────────────────────────────────
+
+export interface DocumentNoticeStatusResult {
+  accepted: boolean;
+  acceptedAt: string | null;
+  noticeVersion: string;
+}
+
+export interface DocumentNoticeResetResult {
+  reset: boolean;
+  usersReset: number;
+}
+
+export const getGetDocumentNoticeStatusUrl = () => `/api/document-notice/status`;
+
+export const getDocumentNoticeStatus = async (options?: RequestInit): Promise<DocumentNoticeStatusResult> => {
+  return customFetch<DocumentNoticeStatusResult>(getGetDocumentNoticeStatusUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetDocumentNoticeStatusQueryKey = () => [`/api/document-notice/status`] as const;
+
+export const getGetDocumentNoticeStatusQueryOptions = <TData = Awaited<ReturnType<typeof getDocumentNoticeStatus>>, TError = ErrorType<void>>(
+  options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof getDocumentNoticeStatus>>, TError, TData>; request?: SecondParameter<typeof customFetch> }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getGetDocumentNoticeStatusQueryKey();
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDocumentNoticeStatus>>> = ({ signal }) =>
+    getDocumentNoticeStatus({ signal, ...requestOptions });
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<Awaited<ReturnType<typeof getDocumentNoticeStatus>>, TError, TData> & { queryKey: QueryKey };
+};
+
+export function useGetDocumentNoticeStatus<TData = Awaited<ReturnType<typeof getDocumentNoticeStatus>>, TError = ErrorType<void>>(
+  options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof getDocumentNoticeStatus>>, TError, TData>; request?: SecondParameter<typeof customFetch> }
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDocumentNoticeStatusQueryOptions(options);
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const acceptDocumentNotice = async (options?: RequestInit): Promise<DocumentNoticeStatusResult> => {
+  return customFetch<DocumentNoticeStatusResult>(`/api/document-notice/accept`, {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const useAcceptDocumentNotice = <TError = ErrorType<void>, TContext = unknown>(
+  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof acceptDocumentNotice>>, TError, void, TContext>; request?: SecondParameter<typeof customFetch> }
+) => {
+  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
+  const mutationFn = async (): Promise<Awaited<ReturnType<typeof acceptDocumentNotice>>> => {
+    return acceptDocumentNotice(requestOptions);
+  };
+  return useMutation({ mutationFn, ...mutationOptions });
+};
+
+export const resetDocumentNoticeAcceptance = async (options?: RequestInit): Promise<DocumentNoticeResetResult> => {
+  return customFetch<DocumentNoticeResetResult>(`/api/document-notice/reset`, {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const useResetDocumentNoticeAcceptance = <TError = ErrorType<void>, TContext = unknown>(
+  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof resetDocumentNoticeAcceptance>>, TError, void, TContext>; request?: SecondParameter<typeof customFetch> }
+) => {
+  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
+  const mutationFn = async (): Promise<Awaited<ReturnType<typeof resetDocumentNoticeAcceptance>>> => {
+    return resetDocumentNoticeAcceptance(requestOptions);
+  };
+  return useMutation({ mutationFn, ...mutationOptions });
+};
+
+
 
 
 
