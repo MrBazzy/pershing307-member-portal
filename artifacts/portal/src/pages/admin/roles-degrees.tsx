@@ -252,12 +252,12 @@ function RolesTab() {
           invalidateRoles();
         },
         onError: (err) => {
-          const data = (err as { response?: { data?: { error?: string; assignedCount?: number } } })?.response?.data;
-          if (data?.assignedCount && data.assignedCount > 0) {
+          const body = (err as { data?: { error?: string; assignedCount?: number } })?.data;
+          if (body?.assignedCount && body.assignedCount > 0) {
             setDeleteTarget(null);
-            setForceConfirm({ role: target, count: data.assignedCount });
+            setForceConfirm({ role: target, count: body.assignedCount });
           } else {
-            toast({ title: data?.error ?? "An error occurred", variant: "destructive" });
+            toast({ title: body?.error ?? "An error occurred", variant: "destructive" });
             setDeleteTarget(null);
           }
         },
