@@ -2,7 +2,7 @@ import { ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import pershingPortrait from "@assets/JohnJPershing_1781792629576.jpg";
-import { useLogout, useGetDocumentReviewCount, getGetDocumentReviewCountQueryKey } from "@workspace/api-client-react";
+import { useLogout, useGetDocumentReviewCount, getGetDocumentReviewCountQueryKey, useGetBootstrapStatus } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -108,6 +108,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   });
   const reviewPendingCount = reviewCountData?.pendingCount ?? 0;
 
+  const { data: bootstrapStatus } = useGetBootstrapStatus();
+  const lodgeName = bootstrapStatus?.lodgeName ?? "Member Portal";
+
   const SidebarContent = ({ onNav }: { onNav?: () => void }) => (
     <>
       <div className="px-5 pt-5 pb-3 border-b border-sidebar-border">
@@ -123,7 +126,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             }}
           />
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-sidebar-foreground truncate leading-tight">Pershing No. 307</p>
+            <p className="text-xs font-semibold text-sidebar-foreground truncate leading-tight">{lodgeName}</p>
             <p className="text-[10px] text-sidebar-muted truncate leading-tight">Member Portal</p>
           </div>
         </div>
@@ -243,7 +246,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 filter: "grayscale(100%) contrast(1.2) brightness(1.05)",
               }}
             />
-            <span className="text-sm font-semibold text-foreground">Pershing No. 307</span>
+            <span className="text-sm font-semibold text-foreground">{lodgeName}</span>
           </div>
           <EnvBannerMobilePill />
         </header>

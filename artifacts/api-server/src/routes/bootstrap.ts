@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import { lodgesTable, configurationTable, rolesTable, protectedDomainsTable, usersTable, userRolesTable } from "@workspace/db/schema";
+import { eq, inArray } from "drizzle-orm";
 import { hashPassword, passwordSchema } from "../lib/password";
 import { writeAuditLog } from "../lib/audit";
 import { logger } from "../lib/logger";
@@ -55,8 +56,20 @@ const DEFAULT_CONFIG = [
 
 router.get("/status", async (_req, res) => {
   try {
-    const rows = await db.select({ id: lodgesTable.id }).from(lodgesTable).limit(1);
-    res.json({ bootstrapped: rows.length > 0 });
+    const rows = await db.select({ id: lodgesTable.id, name: lodgesTable.name, number: lodgesTable.number }).from(lodgesTable).limit(1);
+    if (rows.length === 0) {
+      return res.json({ bootstrapped: false });
+    }
+    const lodge = rows[0];
+    const configRows = await db.select({ key: configurationTable.key, value: configurationTable.value })
+      .from(configurationTable)
+      .where(eq(configurationTable.lodgeId, lodge.id));
+    const cfg = Object.fromEntries(configRows.map((r) => [r.key, r.value]));
+    res.json({
+      bootstrapped: true,
+      lodgeName: cfg["lodge_name"] ?? lodge.name,
+      lodgeNumber: cfg["lodge_number"] ?? lodge.number,
+    });
   } catch {
     res.json({ bootstrapped: false });
   }

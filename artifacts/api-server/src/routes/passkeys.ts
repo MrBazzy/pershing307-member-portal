@@ -7,7 +7,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 import { writeAuditLog, getClientIp } from "../lib/audit";
-import { getLodgeId } from "../lib/config";
+import { getLodgeId, getConfig } from "../lib/config";
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -20,7 +20,7 @@ const SITE_ADMIN_LEVEL = 80;
 
 const router = Router();
 
-function getWebAuthnConfig(req: { headers: { origin?: string } }) {
+async function getWebAuthnConfig(req: { headers: { origin?: string } }) {
   const origin = process.env.WEBAUTHN_RP_ORIGIN || req.headers.origin || "http://localhost";
   let rpId: string;
   try {
@@ -28,7 +28,7 @@ function getWebAuthnConfig(req: { headers: { origin?: string } }) {
   } catch {
     rpId = "localhost";
   }
-  const rpName = process.env.WEBAUTHN_RP_NAME || "Pershing No. 307";
+  const rpName = process.env.WEBAUTHN_RP_NAME || (await getConfig("lodge_name")) || "Member Portal";
   return { origin, rpId, rpName };
 }
 
@@ -62,7 +62,7 @@ router.get("/", requireAuth(), async (req, res) => {
 
 router.post("/registration/begin", requireAuth(), async (req, res) => {
   const userId = req.session!.userId!;
-  const { rpId, rpName, origin } = getWebAuthnConfig(req);
+  const { rpId, rpName, origin } = await getWebAuthnConfig(req);
 
   const users = await db
     .select({ email: usersTable.email, firstName: usersTable.firstName, lastName: usersTable.lastName })
@@ -199,7 +199,7 @@ router.delete("/:id", requireAuth(), async (req, res) => {
 });
 
 router.post("/authentication/begin", passkeyRateLimit, async (req, res) => {
-  const { rpId, origin } = getWebAuthnConfig(req);
+  const { rpId, origin } = await getWebAuthnConfig(req);
 
   const options = await generateAuthenticationOptions({
     rpID: rpId,

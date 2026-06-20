@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { AppLayout } from "@/components/layout/app-layout";
 import { cn } from "@/lib/utils";
 import { Landmark, Settings } from "lucide-react";
+import { useGetBootstrapStatus } from "@workspace/api-client-react";
 
 const ADMIN_TABS = [
   { href: "/admin/history", label: "History Sections" },
@@ -17,6 +18,8 @@ interface AdminHistoryLayoutProps {
 
 export function AdminHistoryLayout({ children }: AdminHistoryLayoutProps) {
   const [location] = useLocation();
+  const { data: bootstrapStatus } = useGetBootstrapStatus();
+  const lodgeName = bootstrapStatus?.lodgeName ?? "the Lodge";
 
   return (
     <AppLayout>
@@ -34,7 +37,7 @@ export function AdminHistoryLayout({ children }: AdminHistoryLayoutProps) {
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Edit and manage Heritage content for Pershing Lodge No. 307
+              Edit and manage Heritage content for {lodgeName}
             </p>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useGetBootstrapStatus } from "@workspace/api-client-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -234,7 +235,7 @@ export default function SetupPage() {
           <div className="flex items-center justify-center w-12 h-12 rounded-sm bg-primary mx-auto mb-3">
             <span className="text-primary-foreground font-serif font-bold text-lg">G</span>
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Welcome to Pershing No. 307</h1>
+          <h1 className="text-2xl font-bold text-foreground">Welcome to {bootstrapStatus?.lodgeName ?? "the Member Portal"}</h1>
           <p className="text-sm text-muted-foreground">Let's get your account set up.</p>
         </div>
 

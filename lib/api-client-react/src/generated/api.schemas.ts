@@ -11,6 +11,8 @@ export interface HealthStatus {
 
 export interface BootstrapStatus {
   bootstrapped: boolean;
+  lodgeName?: string;
+  lodgeNumber?: string;
 }
 
 export interface BootstrapInput {
