@@ -110,6 +110,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const { data: bootstrapStatus } = useGetBootstrapStatus();
   const lodgeName = bootstrapStatus?.lodgeName ?? "Member Portal";
+  const lodgeNumber = bootstrapStatus?.lodgeNumber;
 
   const SidebarContent = ({ onNav }: { onNav?: () => void }) => (
     <>
@@ -127,7 +128,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           />
           <div className="min-w-0">
             <p className="text-xs font-semibold text-sidebar-foreground truncate leading-tight">{lodgeName}</p>
-            <p className="text-[10px] text-sidebar-muted truncate leading-tight">Member Portal</p>
+            <p className="text-[10px] text-sidebar-muted truncate leading-tight">{lodgeNumber ? `No. ${lodgeNumber}` : "Member Portal"}</p>
           </div>
         </div>
         <EnvBannerSidebar />
@@ -246,7 +247,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 filter: "grayscale(100%) contrast(1.2) brightness(1.05)",
               }}
             />
-            <span className="text-sm font-semibold text-foreground">{lodgeName}</span>
+            <span className="text-sm font-semibold text-foreground">{lodgeName}{lodgeNumber ? ` No. ${lodgeNumber}` : ""}</span>
           </div>
           <EnvBannerMobilePill />
         </header>
