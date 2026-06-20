@@ -162,6 +162,8 @@ function RolesTab() {
   const [showCreate, setShowCreate] = useState(false);
   const [editRole, setEditRole] = useState<Role | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Role | null>(null);
+  const [forceConfirm, setForceConfirm] = useState<{ role: Role; count: number } | null>(null);
+  const [forceDeleting, setForceDeleting] = useState(false);
   const [createForm, setCreateForm] = useState<RoleFormState>(emptyRoleForm());
   const [editForm, setEditForm] = useState<RoleFormState>(emptyRoleForm());
 
@@ -240,8 +242,9 @@ function RolesTab() {
   function handleDelete() {
     if (!deleteTarget) return;
     const name = deleteTarget.name;
+    const target = deleteTarget;
     deleteRole.mutate(
-      { id: deleteTarget.id },
+      { id: target.id },
       {
         onSuccess: () => {
           toast({ title: `"${name}" deleted` });
@@ -249,11 +252,40 @@ function RolesTab() {
           invalidateRoles();
         },
         onError: (err) => {
-          toast({ title: extractError(err), variant: "destructive" });
-          setDeleteTarget(null);
+          const data = (err as { response?: { data?: { error?: string; assignedCount?: number } } })?.response?.data;
+          if (data?.assignedCount && data.assignedCount > 0) {
+            setDeleteTarget(null);
+            setForceConfirm({ role: target, count: data.assignedCount });
+          } else {
+            toast({ title: data?.error ?? "An error occurred", variant: "destructive" });
+            setDeleteTarget(null);
+          }
         },
       }
     );
+  }
+
+  async function handleForceDelete() {
+    if (!forceConfirm) return;
+    setForceDeleting(true);
+    try {
+      const res = await fetch(`/api/roles/${forceConfirm.role.id}?force=true`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        toast({ title: `"${forceConfirm.role.name}" deleted` });
+        invalidateRoles();
+        setForceConfirm(null);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast({ title: data.error ?? "Failed to delete role", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Failed to delete role", variant: "destructive" });
+    } finally {
+      setForceDeleting(false);
+    }
   }
 
   if (isLoading) {
@@ -378,6 +410,29 @@ function RolesTab() {
               onClick={handleDelete}
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Force Delete Confirm — shown when role has members assigned */}
+      <AlertDialog open={!!forceConfirm} onOpenChange={(o) => { if (!o && !forceDeleting) setForceConfirm(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Force delete "{forceConfirm?.role.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This role is currently assigned to <strong>{forceConfirm?.count} member{forceConfirm?.count === 1 ? "" : "s"}</strong>. Deleting it will immediately revoke this role from all of them. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={forceDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleForceDelete}
+              disabled={forceDeleting}
+            >
+              {forceDeleting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Delete and Revoke
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

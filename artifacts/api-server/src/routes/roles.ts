@@ -176,8 +176,14 @@ router.delete("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, 
     .where(eq(userRolesTable.roleId, role.id));
 
   if (assignedCount > 0) {
-    res.status(409).json({ error: `This role is currently assigned to ${assignedCount} member${assignedCount === 1 ? "" : "s"}. Revoke it from all members before deleting.` });
-    return;
+    if (req.query.force !== "true") {
+      res.status(409).json({
+        error: `This role is currently assigned to ${assignedCount} member${assignedCount === 1 ? "" : "s"}.`,
+        assignedCount,
+      });
+      return;
+    }
+    await db.delete(userRolesTable).where(eq(userRolesTable.roleId, role.id));
   }
 
   await db.delete(rolesTable).where(eq(rolesTable.id, role.id));
