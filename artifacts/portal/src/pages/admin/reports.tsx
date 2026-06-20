@@ -71,6 +71,13 @@ function MemberDetailRow({ member, index }: { member: MemberDetailItem; index: n
       <td className="px-3 py-2.5 text-muted-foreground text-xs whitespace-nowrap">
         {member.lastLoginAt ? format(parseISO(member.lastLoginAt), "MMM d, yyyy") : "—"}
       </td>
+      <td className="px-3 py-2.5 text-xs whitespace-nowrap">
+        {member.noticeAcceptedAt ? (
+          <span className="text-foreground">{format(parseISO(member.noticeAcceptedAt), "MMM d, yyyy")}</span>
+        ) : (
+          <span className="text-muted-foreground/50 italic">Not accepted</span>
+        )}
+      </td>
       <td className="px-3 py-2.5">
         {member.roles.length === 0 ? (
           <span className="text-xs text-muted-foreground/50 italic">None</span>
@@ -529,6 +536,7 @@ export default function AdminReportsPage() {
                         <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Date of Birth</th>
                         <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Joined</th>
                         <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Last Login</th>
+                        <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Notice Accepted</th>
                         <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Roles</th>
                         <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Degrees</th>
                       </tr>

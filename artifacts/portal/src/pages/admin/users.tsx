@@ -663,6 +663,19 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
                 <Separator />
 
                 <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Document Library Notice</p>
+                  {user.noticeAcceptedAt ? (
+                    <p className="text-xs text-foreground">
+                      Accepted on {format(new Date(user.noticeAcceptedAt), "MMM d, yyyy 'at' h:mm a")}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">Not yet accepted</p>
+                  )}
+                </div>
+
+                <Separator />
+
+                <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Security</p>
                   <Button
                     variant="outline" size="sm" className="w-full"

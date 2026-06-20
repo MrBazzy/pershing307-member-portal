@@ -8,6 +8,7 @@ import {
   protectedDomainsTable,
   documentFoldersTable,
   userDomainAccessTable,
+  userDocumentNoticeAcceptanceTable,
 } from "@workspace/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
@@ -56,16 +57,25 @@ router.get("/member-details", requireAuth(), requireRole(SITE_ADMIN_LEVEL), asyn
     .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
     .where(inArray(userRolesTable.userId, userIds));
 
-  const degreeRows = await db
-    .select({
-      userId: userDegreesTable.userId,
-      degree: userDegreesTable.degree,
-      conferredOn: userDegreesTable.conferredOn,
-      notes: userDegreesTable.notes,
-    })
-    .from(userDegreesTable)
-    .where(inArray(userDegreesTable.userId, userIds))
-    .orderBy(userDegreesTable.degree);
+  const [degreeRows, noticeRows] = await Promise.all([
+    db
+      .select({
+        userId: userDegreesTable.userId,
+        degree: userDegreesTable.degree,
+        conferredOn: userDegreesTable.conferredOn,
+        notes: userDegreesTable.notes,
+      })
+      .from(userDegreesTable)
+      .where(inArray(userDegreesTable.userId, userIds))
+      .orderBy(userDegreesTable.degree),
+    db
+      .select({
+        userId: userDocumentNoticeAcceptanceTable.userId,
+        acceptedAt: userDocumentNoticeAcceptanceTable.acceptedAt,
+      })
+      .from(userDocumentNoticeAcceptanceTable)
+      .where(inArray(userDocumentNoticeAcceptanceTable.userId, userIds)),
+  ]);
 
   const rolesMap = new Map<string, typeof roleRows>();
   for (const r of roleRows) {
@@ -79,6 +89,11 @@ router.get("/member-details", requireAuth(), requireRole(SITE_ADMIN_LEVEL), asyn
     degreesMap.get(d.userId)!.push(d);
   }
 
+  const noticeMap = new Map<string, Date>();
+  for (const n of noticeRows) {
+    if (!noticeMap.has(n.userId)) noticeMap.set(n.userId, n.acceptedAt);
+  }
+
   const members = users.map((u) => ({
     id: u.id,
     firstName: u.firstName,
@@ -89,6 +104,7 @@ router.get("/member-details", requireAuth(), requireRole(SITE_ADMIN_LEVEL), asyn
     dateOfBirth: u.dateOfBirth ?? null,
     createdAt: u.createdAt.toISOString(),
     lastLoginAt: u.lastLoginAt ? u.lastLoginAt.toISOString() : null,
+    noticeAcceptedAt: noticeMap.get(u.id)?.toISOString() ?? null,
     roles: (rolesMap.get(u.id) ?? [])
       .map((r) => ({ slug: r.slug, name: r.name, permissionLevel: r.permissionLevel }))
       .sort((a, b) => b.permissionLevel - a.permissionLevel),

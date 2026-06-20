@@ -13,6 +13,7 @@ import {
   twoFactorSettingsTable,
   passwordHistoryTable,
   auditLogsTable,
+  userDocumentNoticeAcceptanceTable,
 } from "@workspace/db/schema";
 import { eq, and, or, ilike, count, inArray, ne } from "drizzle-orm";
 import { writeAuditLog, getClientIp } from "../lib/audit";
@@ -128,11 +129,18 @@ router.get("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res
 
   const user = users[0];
 
-  const roles = await db
-    .select({ id: rolesTable.id, name: rolesTable.name, slug: rolesTable.slug, permissionLevel: rolesTable.permissionLevel })
-    .from(userRolesTable)
-    .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
-    .where(eq(userRolesTable.userId, user.id));
+  const [roles, noticeRow] = await Promise.all([
+    db
+      .select({ id: rolesTable.id, name: rolesTable.name, slug: rolesTable.slug, permissionLevel: rolesTable.permissionLevel })
+      .from(userRolesTable)
+      .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
+      .where(eq(userRolesTable.userId, user.id)),
+    db
+      .select({ acceptedAt: userDocumentNoticeAcceptanceTable.acceptedAt })
+      .from(userDocumentNoticeAcceptanceTable)
+      .where(eq(userDocumentNoticeAcceptanceTable.userId, user.id))
+      .limit(1),
+  ]);
 
   res.json({
     user: {
@@ -150,6 +158,7 @@ router.get("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res
       lastLoginAt: user.lastLoginAt,
       createdAt: user.createdAt,
       roles,
+      noticeAcceptedAt: noticeRow[0]?.acceptedAt?.toISOString() ?? null,
     },
     testResetEnabled: isTestResetEnabled(),
   });

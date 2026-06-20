@@ -237,6 +237,8 @@ export interface UserDetail {
   birthdayVisibility?: UserDetailBirthdayVisibility;
   createdAt: string;
   roles: RoleDetail[];
+  /** @nullable */
+  noticeAcceptedAt?: string | null;
 }
 
 export interface UserDetailResult {
@@ -1675,6 +1677,8 @@ export interface MemberDetailItem {
   lastLoginAt?: string | null;
   roles: MemberDetailRoleItem[];
   degrees: MemberDetailDegreeItem[];
+  /** @nullable */
+  noticeAcceptedAt?: string | null;
 }
 
 export interface MemberDetailReport {
