@@ -672,12 +672,17 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
   const [revokeInvOpen, setRevokeInvOpen] = useState(false);
 
   useEffect(() => {
+    setTab("overview");
     setMembershipStatusEdit("");
     setDobEdit("");
     setFirstNameEdit("");
     setLastNameEdit("");
     setEmailEdit("");
     setDeleteConfirmName("");
+    setDeleteOpen(false);
+    setRevokeInvOpen(false);
+    setPwdResetConfirmOpen(false);
+    setTempPasswordResult(null);
   }, [userId]);
 
   const { data, isLoading } = useGetUser(userId ?? "", {
