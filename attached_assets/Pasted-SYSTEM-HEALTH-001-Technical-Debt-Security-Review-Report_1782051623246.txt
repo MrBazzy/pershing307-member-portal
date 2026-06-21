@@ -1,0 +1,104 @@
+SYSTEM-HEALTH-001 — Technical Debt & Security Review Report
+
+STEP 0 — SAFETY FIRST
+
+Create checkpoint/snapshot.
+Create git tag:
+
+v3.9-before-technical-debt-review
+
+IMPORTANT:
+Do NOT change code.
+Do NOT delete files.
+Do NOT refactor.
+Do NOT modify database schema.
+
+This is a REPORT ONLY task.
+
+--------------------------------------------------
+GOAL
+--------------------------------------------------
+
+Perform a full codebase review after many recent feature changes.
+
+Identify loose ends, unused code, duplicate logic, legacy functionality, and possible security risks.
+
+--------------------------------------------------
+REVIEW AREAS
+--------------------------------------------------
+
+Check for:
+
+1. Unused React components
+2. Unused backend routes
+3. Unused services/utilities
+4. Unused database tables
+5. Unused database columns
+6. Duplicate permission logic
+7. Duplicate document access logic
+8. Duplicate domain/access matrix logic
+9. Duplicate role/degree logic
+10. Duplicate membership status logic
+11. Duplicate invitation logic
+12. Dead code
+13. Temporary test code
+14. TODO/FIXME comments
+15. Legacy “test user” logic
+16. Legacy invitation screens no longer needed
+17. Legacy membership status values
+18. Old domain access grants still affecting permissions
+19. Security bypass risks
+20. Inconsistent backend authorization checks
+21. Inconsistent audit logging
+22. Orphaned configuration settings
+
+--------------------------------------------------
+CLASSIFICATION
+--------------------------------------------------
+
+For every finding, classify as:
+
+- Critical
+- High
+- Medium
+- Low
+
+--------------------------------------------------
+REPORT FORMAT
+--------------------------------------------------
+
+For each finding, provide:
+
+- Finding title
+- Severity
+- Location/file
+- Description
+- Why it matters
+- Security or operational risk
+- Recommended fix
+- Whether it should be fixed before production
+
+--------------------------------------------------
+SPECIAL FOCUS
+--------------------------------------------------
+
+Pay special attention to:
+
+- Site Administrator bypass logic
+- PM Super Administrator protections
+- Past Master Protected domains
+- Document access matrix enforcement
+- Legacy domain access grants
+- Upload/review/download authorization
+- Membership status behavior
+- Invitation/member onboarding overlap
+- Delete Member vs Remove Test User logic
+- Audit trail completeness
+
+--------------------------------------------------
+OUTPUT
+--------------------------------------------------
+
+Provide a structured technical debt and security review report.
+
+Do not make changes.
