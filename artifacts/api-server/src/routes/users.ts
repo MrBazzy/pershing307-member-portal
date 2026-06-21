@@ -14,6 +14,18 @@ import {
   passwordHistoryTable,
   auditLogsTable,
   userDocumentNoticeAcceptanceTable,
+  documentFoldersTable,
+  eventCategoriesTable,
+  eventsTable,
+  historyDocumentsTable,
+  historyPageTable,
+  historySectionsTable,
+  historyTimelineTable,
+  lodgeYearsTable,
+  pershingBioTable,
+  roadmapItemsTable,
+  tracingBoardCategoriesTable,
+  tracingBoardEntriesTable,
 } from "@workspace/db/schema";
 import { eq, and, or, ilike, count, inArray, ne, desc, isNull, gt, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
@@ -438,13 +450,34 @@ router.delete("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, 
   }
 
   await db.transaction(async (tx) => {
+    // Null FK references where the deleted user was an actor/creator
     await tx.update(auditLogsTable).set({ actorId: null }).where(eq(auditLogsTable.actorId, targetId));
     await tx.update(invitationsTable).set({ revokedBy: null }).where(eq(invitationsTable.revokedBy, targetId));
     await tx.update(invitationsTable).set({ acceptedByUser: null }).where(eq(invitationsTable.acceptedByUser, targetId));
-    await tx.delete(invitationsTable).where(eq(invitationsTable.email, target.email));
-    await tx.delete(invitationsTable).where(eq(invitationsTable.invitedBy, targetId));
     await tx.update(userRolesTable).set({ grantedBy: null }).where(eq(userRolesTable.grantedBy, targetId));
     await tx.update(userDomainAccessTable).set({ grantedBy: null }).where(eq(userDomainAccessTable.grantedBy, targetId));
+    await tx.update(documentFoldersTable).set({ createdBy: null }).where(eq(documentFoldersTable.createdBy, targetId));
+    await tx.update(eventCategoriesTable).set({ createdBy: null }).where(eq(eventCategoriesTable.createdBy, targetId));
+    await tx.update(eventCategoriesTable).set({ lastModifiedBy: null }).where(eq(eventCategoriesTable.lastModifiedBy, targetId));
+    await tx.update(eventsTable).set({ createdBy: null }).where(eq(eventsTable.createdBy, targetId));
+    await tx.update(eventsTable).set({ lastModifiedBy: null }).where(eq(eventsTable.lastModifiedBy, targetId));
+    await tx.update(eventsTable).set({ organizerId: null }).where(eq(eventsTable.organizerId, targetId));
+    await tx.update(historyDocumentsTable).set({ createdBy: null }).where(eq(historyDocumentsTable.createdBy, targetId));
+    await tx.update(historyPageTable).set({ updatedBy: null }).where(eq(historyPageTable.updatedBy, targetId));
+    await tx.update(historySectionsTable).set({ createdBy: null }).where(eq(historySectionsTable.createdBy, targetId));
+    await tx.update(historyTimelineTable).set({ createdBy: null }).where(eq(historyTimelineTable.createdBy, targetId));
+    await tx.update(lodgeYearsTable).set({ createdBy: null }).where(eq(lodgeYearsTable.createdBy, targetId));
+    await tx.update(pershingBioTable).set({ updatedBy: null }).where(eq(pershingBioTable.updatedBy, targetId));
+    await tx.update(protectedDomainsTable).set({ createdBy: null }).where(eq(protectedDomainsTable.createdBy, targetId));
+    await tx.update(roadmapItemsTable).set({ createdBy: null }).where(eq(roadmapItemsTable.createdBy, targetId));
+    await tx.update(tracingBoardCategoriesTable).set({ createdBy: null }).where(eq(tracingBoardCategoriesTable.createdBy, targetId));
+    await tx.update(tracingBoardCategoriesTable).set({ lastModifiedBy: null }).where(eq(tracingBoardCategoriesTable.lastModifiedBy, targetId));
+    await tx.update(tracingBoardEntriesTable).set({ createdBy: null }).where(eq(tracingBoardEntriesTable.createdBy, targetId));
+    await tx.update(tracingBoardEntriesTable).set({ lastModifiedBy: null }).where(eq(tracingBoardEntriesTable.lastModifiedBy, targetId));
+    // Delete rows directly owned by the member
+    await tx.delete(userDocumentNoticeAcceptanceTable).where(eq(userDocumentNoticeAcceptanceTable.userId, targetId));
+    await tx.delete(invitationsTable).where(eq(invitationsTable.email, target.email));
+    await tx.delete(invitationsTable).where(eq(invitationsTable.invitedBy, targetId));
     await tx.delete(userRolesTable).where(eq(userRolesTable.userId, targetId));
     await tx.delete(userDomainAccessTable).where(eq(userDomainAccessTable.userId, targetId));
     await tx.delete(userDegreesTable).where(eq(userDegreesTable.userId, targetId));
