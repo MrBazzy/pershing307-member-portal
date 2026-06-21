@@ -14,7 +14,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, User, Shield, ChevronRight, Loader2, KeyRound, Lock } from "lucide-react";
-import { PasswordStrength } from "@/components/password-strength";
+import { PasswordRequirements } from "@/components/password-requirements";
+import { useAppPolicy, DEFAULT_PASSWORD_POLICY } from "@/lib/usePasswordPolicy";
 
 const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
 
@@ -90,6 +91,8 @@ export default function SetupPage() {
   });
 
   const forcedNewPassword = forcedPasswordForm.watch("newPassword");
+  const { data: appPolicy } = useAppPolicy();
+  const policy = appPolicy?.passwordPolicy ?? DEFAULT_PASSWORD_POLICY;
 
   // --- Forced-reset: full page reload on success ---
   // window.location.replace is used deliberately instead of setLocation or
@@ -204,7 +207,7 @@ export default function SetupPage() {
                       <FormControl>
                         <PasswordInput {...field} autoComplete="new-password" />
                       </FormControl>
-                      <PasswordStrength password={forcedNewPassword} />
+                      <PasswordRequirements password={forcedNewPassword} policy={policy} showHistoryNote />
                       <FormMessage />
                     </FormItem>
                   )} />

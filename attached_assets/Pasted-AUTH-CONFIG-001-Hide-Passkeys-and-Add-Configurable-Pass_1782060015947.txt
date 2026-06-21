@@ -1,0 +1,192 @@
+AUTH-CONFIG-001 — Hide Passkeys and Add Configurable Password Policy
+
+STEP 0 — SAFETY FIRST
+
+Before making changes:
+
+1. Create Replit checkpoint/snapshot.
+2. Create git tag:
+
+v3.9-before-auth-config-cleanup
+
+3. Confirm build passes.
+
+--------------------------------------------------
+PART 1 — HIDE PASSKEYS FOR NOW
+--------------------------------------------------
+
+GOAL:
+
+Keep the existing Passkey/WebAuthn implementation installed, but hide it from users until the portal runs on stable TDA and PRD domains.
+
+Do NOT remove:
+- passkey database tables
+- passkey registrations
+- backend passkey routes
+- WebAuthn services
+- RP-ID configuration
+- audit history
+
+Add Configuration setting:
+
+Enable Passkeys
+
+Default:
+Disabled
+
+When disabled, hide:
+- Passkey login button
+- Register Passkey button
+- Passkey management screens
+- Passkey onboarding prompts
+
+When enabled:
+- Existing passkey functionality becomes visible again.
+
+Add note in Configuration → Authentication:
+
+Passkeys are currently disabled. The functionality remains installed and can be enabled after migration to stable TDA and PRD domains.
+
+--------------------------------------------------
+PART 2 — CONFIGURABLE PASSWORD POLICY
+--------------------------------------------------
+
+GOAL:
+
+Allow administrators to configure the password policy from:
+
+Management → Configuration → Authentication
+
+Add configurable fields:
+
+1. Minimum password length
+Default: 12
+Allowed range: 8–32
+
+2. Require uppercase letter
+Default: enabled
+
+3. Require lowercase letter
+Default: enabled
+
+4. Require number
+Default: enabled
+
+5. Require symbol / special character
+Default: enabled
+
+6. Prevent password reuse
+Default: enabled
+
+7. Password history count
+Default: 5
+Allowed range: 0–12
+
+--------------------------------------------------
+PASSWORD VALIDATION
+--------------------------------------------------
+
+Backend password validation must use the configured policy.
+
+Apply to:
+- onboarding password creation
+- password reset
+- change password
+- admin temporary password if applicable
+
+If the policy changes, validation must immediately use the new policy.
+
+--------------------------------------------------
+ONBOARDING SCREEN
+--------------------------------------------------
+
+On the onboarding/password creation screen, display the current password requirements dynamically.
+
+Example:
+
+Your password must contain:
+- At least 12 characters
+- One uppercase letter
+- One lowercase letter
+- One number
+- One special character
+- Must not match your last 5 passwords
+
+If administrator changes the policy, this text must automatically change.
+
+Example:
+
+If symbols are disabled, remove:
+- One special character
+
+If minimum length changes to 10, show:
+- At least 10 characters
+
+--------------------------------------------------
+LIVE PASSWORD FEEDBACK
+--------------------------------------------------
+
+If feasible, show live validation while the user types:
+
+✓ Minimum length met
+✓ Uppercase letter
+✓ Lowercase letter
+✓ Number
+✓ Special character
+
+Do not show the actual password in logs.
+
+--------------------------------------------------
+SECURITY
+--------------------------------------------------
+
+Never log:
+- passwords
+- temporary passwords
+- password reset tokens
+
+Audit only:
+- password policy changed
+- password changed
+- password reset completed
+
+--------------------------------------------------
+AUDIT LOGGING
+--------------------------------------------------
+
+Log password policy changes clearly:
+
+Example:
+
+John Smith changed minimum password length from 12 to 14.
+
+John Smith disabled special-character requirement.
+
+John Smith changed password history count from 5 to 8.
+
+--------------------------------------------------
+PRESERVE
+--------------------------------------------------
+
+Do not change:
+- existing password hashes
+- login flow
+- 2FA
+- sessions
+- document permissions
+- roles/degrees
+
+--------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------
+
+1. Passkey UI is hidden when disabled.
+2. Passkey functionality remains in the backend.
+3. Passkeys can be re-enabled from Configuration.
+4. Password policy is configurable.
+5. Backend enforces configured password policy.
+6. Onboarding screen shows current password rules.
+7. Password reset screen shows current password rules.
+8. Change password screen shows current password rules.
+9. Audit log records password policy changes.
+10. Build passes.

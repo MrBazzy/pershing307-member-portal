@@ -12,7 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { Loader2, CheckCircle, AlertCircle, UserPlus } from "lucide-react";
 import { useState } from "react";
-import { PasswordStrength } from "@/components/password-strength";
+import { PasswordRequirements } from "@/components/password-requirements";
+import { useAppPolicy, DEFAULT_PASSWORD_POLICY } from "@/lib/usePasswordPolicy";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const schema = z.object({
@@ -66,6 +67,8 @@ export default function AcceptInvitationPage() {
   });
 
   const watchedPassword = form.watch("password");
+  const { data: appPolicy } = useAppPolicy();
+  const policy = appPolicy?.passwordPolicy ?? DEFAULT_PASSWORD_POLICY;
 
   if (!token) {
     return (
@@ -182,7 +185,7 @@ export default function AcceptInvitationPage() {
                     data-testid="input-password"
                   />
                 </FormControl>
-                <PasswordStrength password={watchedPassword} />
+                <PasswordRequirements password={watchedPassword} policy={policy} showHistoryNote />
                 <FormMessage />
               </FormItem>
             )}

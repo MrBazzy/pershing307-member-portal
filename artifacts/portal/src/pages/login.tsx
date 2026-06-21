@@ -18,6 +18,7 @@ import { Link } from "wouter";
 import { Loader2, Shield, Fingerprint } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { startAuthentication } from "@simplewebauthn/browser";
+import { useAppPolicy } from "@/lib/usePasswordPolicy";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -57,6 +58,8 @@ export default function LoginPage() {
   }, []);
 
   const [passkeyPending, setPasskeyPending] = useState(false);
+  const { data: appPolicy } = useAppPolicy();
+  const passkeysEnabled = appPolicy?.passkeysEnabled ?? false;
 
   const login = useLogin();
   const verifyTwoFactor = useVerifyTwoFactor();
@@ -356,28 +359,32 @@ export default function LoginPage() {
         </form>
       </Form>
 
-      <div className="relative my-5">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-border" />
-        </div>
-        <div className="relative flex justify-center text-xs">
-          <span className="bg-card px-2 text-muted-foreground">or</span>
-        </div>
-      </div>
+      {passkeysEnabled && (
+        <>
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-card px-2 text-muted-foreground">or</span>
+            </div>
+          </div>
 
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full"
-        disabled={passkeyPending}
-        onClick={handlePasskeyLogin}
-        data-testid="button-passkey-login"
-      >
-        {passkeyPending
-          ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          : <Fingerprint className="h-4 w-4 mr-2" />}
-        Sign in with Passkey
-      </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={passkeyPending}
+            onClick={handlePasskeyLogin}
+            data-testid="button-passkey-login"
+          >
+            {passkeyPending
+              ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              : <Fingerprint className="h-4 w-4 mr-2" />}
+            Sign in with Passkey
+          </Button>
+        </>
+      )}
     </AuthLayout>
   );
 }

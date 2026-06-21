@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { EnvBannerSidebar, EnvBannerMobilePill } from "@/components/ui/env-banner";
 import { VISITOR_LEVEL, MEMBER_LEVEL, ADMIN_LEVEL } from "@/lib/roles";
+import { useAppPolicy } from "@/lib/usePasswordPolicy";
 
 interface NavItem {
   href: string;
@@ -63,6 +64,8 @@ export function AppLayout({ children }: AppLayoutProps) {
   const isVisitorOrAbove = level >= VISITOR_LEVEL;
   const isMemberOrAbove = level >= MEMBER_LEVEL;
   const isAdmin = level >= ADMIN_LEVEL;
+  const { data: appPolicy } = useAppPolicy();
+  const passkeysEnabled = appPolicy?.passkeysEnabled ?? false;
 
   const handleLogout = () => {
     logout.mutate(undefined, {
@@ -179,7 +182,9 @@ export function AppLayout({ children }: AppLayoutProps) {
               <NavLink item={{ href: "/settings/profile", label: "Profile", icon: UserCircle }} onNav={onNav} />
             )}
             <NavLink item={{ href: "/settings/2fa", label: "Two-Factor Auth", icon: Shield }} onNav={onNav} />
-            <NavLink item={{ href: "/settings/passkeys", label: "Passkeys", icon: Fingerprint }} onNav={onNav} />
+            {passkeysEnabled && (
+              <NavLink item={{ href: "/settings/passkeys", label: "Passkeys", icon: Fingerprint }} onNav={onNav} />
+            )}
           </>
         )}
 

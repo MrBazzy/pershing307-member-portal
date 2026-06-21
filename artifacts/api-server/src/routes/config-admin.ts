@@ -30,6 +30,14 @@ const CONFIG_METADATA: Record<string, { description: string; isReadOnly: boolean
   reset_expiry_hours: { description: "Hours before a password reset link expires (default: 1)", isReadOnly: false },
   require_2fa_roles: { description: "Comma-separated role slugs that must have 2FA enabled (e.g. site-administrator,pm-super-administrator)", isReadOnly: false },
   inactive_after_months: { description: "Months of inactivity before a member is automatically set to Inactive. Set to 0 to disable (default: 0)", isReadOnly: false },
+  passkeys_enabled: { description: "Enable passkey (WebAuthn) login and management. Disable until the portal is running on stable TDA and PRD domains.", isReadOnly: false },
+  password_min_length: { description: "Minimum password length (default: 12, range: 8–32)", isReadOnly: false },
+  password_require_uppercase: { description: "Require at least one uppercase letter in passwords (default: true)", isReadOnly: false },
+  password_require_lowercase: { description: "Require at least one lowercase letter in passwords (default: true)", isReadOnly: false },
+  password_require_number: { description: "Require at least one number in passwords (default: true)", isReadOnly: false },
+  password_require_symbol: { description: "Require at least one special character in passwords (default: true)", isReadOnly: false },
+  password_prevent_reuse: { description: "Prevent users from reusing recent passwords (default: true)", isReadOnly: false },
+  password_history_count: { description: "Number of previous passwords to remember for reuse prevention (default: 5, range: 0–12)", isReadOnly: false },
 };
 
 type KeyValidator = (v: string) => string | null;
@@ -76,6 +84,40 @@ const KEY_VALIDATORS: Record<string, KeyValidator> = {
   inactive_after_months: (v) => {
     const n = parseInt(v, 10);
     if (isNaN(n) || n < 0) return "Must be 0 (disabled) or a positive integer (months)";
+    return null;
+  },
+  passkeys_enabled: (v) => {
+    if (v !== "true" && v !== "false") return "Must be true or false";
+    return null;
+  },
+  password_min_length: (v) => {
+    const n = parseInt(v, 10);
+    if (isNaN(n) || n < 8 || n > 32) return "Must be between 8 and 32";
+    return null;
+  },
+  password_require_uppercase: (v) => {
+    if (v !== "true" && v !== "false") return "Must be true or false";
+    return null;
+  },
+  password_require_lowercase: (v) => {
+    if (v !== "true" && v !== "false") return "Must be true or false";
+    return null;
+  },
+  password_require_number: (v) => {
+    if (v !== "true" && v !== "false") return "Must be true or false";
+    return null;
+  },
+  password_require_symbol: (v) => {
+    if (v !== "true" && v !== "false") return "Must be true or false";
+    return null;
+  },
+  password_prevent_reuse: (v) => {
+    if (v !== "true" && v !== "false") return "Must be true or false";
+    return null;
+  },
+  password_history_count: (v) => {
+    const n = parseInt(v, 10);
+    if (isNaN(n) || n < 0 || n > 12) return "Must be between 0 and 12";
     return null;
   },
 };
@@ -241,13 +283,15 @@ router.put("/:key", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, re
   const actorId = req.session!.userId!;
   const lodgeId = await getLodgeId();
 
+  const oldValue = await getConfig(key);
   await setConfig(key, result.data.value);
 
+  const isPasswordPolicyKey = key.startsWith("password_") || key === "passkeys_enabled";
   await writeAuditLog({
     lodgeId,
     actorId,
-    action: "CONFIG_CHANGED",
-    detail: { key, value: result.data.value },
+    action: isPasswordPolicyKey ? "PASSWORD_POLICY_CHANGED" : "CONFIG_CHANGED",
+    detail: { key, value: result.data.value, oldValue: oldValue ?? undefined },
     ipAddress: getClientIp(req),
   });
 

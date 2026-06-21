@@ -7,7 +7,7 @@ import { generateSecureToken } from "../lib/crypto";
 import { writeAuditLog, getClientIp } from "../lib/audit";
 import { sendEmail, invitationEmailHtml } from "../lib/email";
 import { getConfig, getConfigNumber, getLodgeId } from "../lib/config";
-import { hashPassword, passwordSchema } from "../lib/password";
+import { hashPassword, getPasswordPolicy, validatePasswordAgainstPolicy } from "../lib/password";
 import { recordPasswordHistory } from "../lib/password-history";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
@@ -235,9 +235,10 @@ router.post("/accept", async (req, res) => {
     return;
   }
 
-  const passwordCheck = passwordSchema.safeParse(password);
-  if (!passwordCheck.success) {
-    res.status(400).json({ error: "Password does not meet the requirements.", code: "PASSWORD_INVALID", issues: passwordCheck.error.issues });
+  const policy = await getPasswordPolicy();
+  const policyErrors = validatePasswordAgainstPolicy(password, policy);
+  if (policyErrors.length > 0) {
+    res.status(400).json({ error: policyErrors[0], code: "PASSWORD_INVALID" });
     return;
   }
 

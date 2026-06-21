@@ -16,7 +16,8 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { startRegistration } from "@simplewebauthn/browser";
-import { Fingerprint, Trash2, Loader2, Plus, ShieldCheck, Info } from "lucide-react";
+import { Fingerprint, Trash2, Loader2, Plus, ShieldCheck, Info, ShieldOff } from "lucide-react";
+import { useAppPolicy } from "@/lib/usePasswordPolicy";
 import { formatDistanceToNow } from "date-fns";
 
 function transportLabel(transports: string[] | null | undefined): string {
@@ -38,7 +39,37 @@ export default function PasskeysPage() {
   const [registering, setRegistering] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const { data: appPolicy } = useAppPolicy();
+  const passkeysEnabled = appPolicy?.passkeysEnabled ?? false;
+
   const { data, isLoading } = useListMyPasskeys();
+
+  if (!passkeysEnabled) {
+    return (
+      <AppLayout>
+        <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+          <div className="flex items-start gap-3">
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted shrink-0 mt-0.5">
+              <ShieldOff className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold text-foreground">Passkeys</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Passkey authentication is not currently enabled on this portal.
+              </p>
+            </div>
+          </div>
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              Passkeys are disabled pending migration to stable TDA and PRD domains. A site administrator can enable them
+              under <strong>Management → Configuration → Authentication</strong>.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </AppLayout>
+    );
+  }
   const passkeys = data?.passkeys ?? [];
 
   const invalidate = () =>

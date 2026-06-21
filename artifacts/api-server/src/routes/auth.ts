@@ -4,7 +4,7 @@ import { rateLimit } from "express-rate-limit";
 import { db } from "@workspace/db";
 import { usersTable, userRolesTable, rolesTable, twoFactorSettingsTable, passwordResetTokensTable } from "@workspace/db/schema";
 import { eq, and, gt } from "drizzle-orm";
-import { hashPassword, verifyPassword, passwordSchema } from "../lib/password";
+import { hashPassword, verifyPassword, passwordSchema, getPasswordPolicy, validatePasswordAgainstPolicy } from "../lib/password";
 import { generateSecureToken } from "../lib/crypto";
 import { writeAuditLog, getClientIp } from "../lib/audit";
 import { sendEmail, passwordResetEmailHtml } from "../lib/email";
@@ -16,6 +16,14 @@ import twoFactorRouter from "./two-factor";
 import speakeasy from "speakeasy";
 
 const router = Router();
+
+router.get("/app-policy", async (_req, res) => {
+  const [policy, passkeysVal] = await Promise.all([
+    getPasswordPolicy(),
+    getConfig("passkeys_enabled"),
+  ]);
+  res.json({ passkeysEnabled: passkeysVal === "true", passwordPolicy: policy });
+});
 
 function makeRateLimit(max: number, windowMs: number, errorMessage: string) {
   return rateLimit({
@@ -61,12 +69,12 @@ const forgotPasswordSchema = z.object({
 
 const resetPasswordSchema = z.object({
   token: z.string().min(1),
-  password: passwordSchema,
+  password: z.string().min(1, "Password is required"),
 });
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1),
-  newPassword: passwordSchema,
+  newPassword: z.string().min(1, "New password is required"),
 });
 
 const profileUpdateSchema = z.object({
@@ -418,6 +426,13 @@ router.post("/change-password", requireAuth(), async (req, res) => {
 
   const { currentPassword, newPassword } = result.data;
 
+  const policy = await getPasswordPolicy();
+  const policyErrors = validatePasswordAgainstPolicy(newPassword, policy);
+  if (policyErrors.length > 0) {
+    res.status(400).json({ error: policyErrors[0] });
+    return;
+  }
+
   const users = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   const user = users[0];
   if (!user) {
@@ -436,7 +451,9 @@ router.post("/change-password", requireAuth(), async (req, res) => {
     return;
   }
 
-  const usedBefore = await checkPasswordHistory(userId, newPassword);
+  const usedBefore = policy.preventReuse
+    ? await checkPasswordHistory(userId, newPassword, policy.historyCount)
+    : false;
   if (usedBefore) {
     const lodgeId = await getLodgeId();
     await writeAuditLog({ lodgeId, actorId: userId, actorEmail: user.email, action: "PASSWORD_HISTORY_VIOLATION", targetType: "user", targetId: userId, ipAddress: getClientIp(req) });
@@ -556,7 +573,16 @@ router.post("/reset-password", resetPasswordRateLimit, async (req, res) => {
   const usersRow = await db.select().from(usersTable).where(eq(usersTable.id, resetToken.userId)).limit(1);
   const user = usersRow[0];
 
-  const usedBefore = await checkPasswordHistory(resetToken.userId, password);
+  const policy = await getPasswordPolicy();
+  const policyErrors = validatePasswordAgainstPolicy(password, policy);
+  if (policyErrors.length > 0) {
+    res.status(400).json({ error: policyErrors[0] });
+    return;
+  }
+
+  const usedBefore = policy.preventReuse
+    ? await checkPasswordHistory(resetToken.userId, password, policy.historyCount)
+    : false;
   if (usedBefore) {
     const lodgeId = await getLodgeId();
     await writeAuditLog({ lodgeId, actorId: resetToken.userId, actorEmail: user?.email, action: "PASSWORD_HISTORY_VIOLATION", targetType: "user", targetId: resetToken.userId, ipAddress: getClientIp(req) });

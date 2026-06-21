@@ -46,7 +46,10 @@ import {
   Send,
   CheckCircle2,
   XCircle,
+  Fingerprint,
+  KeyRound,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 const updateSchema = z.object({ value: z.string() });
 type UpdateValues = z.infer<typeof updateSchema>;
@@ -491,6 +494,146 @@ function SmtpDiagnosticsPanel({ result }: { result: SmtpTestState }) {
   );
 }
 
+function ConfigToggleRow({
+  configKey,
+  label,
+  description,
+  currentValue,
+  onSave,
+}: {
+  configKey: string;
+  label: string;
+  description: string;
+  currentValue: string | null;
+  onSave: (key: string, value: string) => Promise<void>;
+}) {
+  const [saving, setSaving] = useState(false);
+  const isEnabled = (currentValue ?? "true") === "true";
+
+  const handleToggle = async (checked: boolean) => {
+    setSaving(true);
+    try {
+      await onSave(configKey, checked ? "true" : "false");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="py-3.5 flex items-center justify-between gap-4">
+      <div className="space-y-0.5 flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-medium">{label}</span>
+          <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono text-muted-foreground">
+            {configKey}
+          </code>
+        </div>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {saving && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+        <Switch checked={isEnabled} onCheckedChange={handleToggle} disabled={saving} />
+      </div>
+    </div>
+  );
+}
+
+function ConfigNumberRangeRow({
+  configKey,
+  label,
+  description,
+  currentValue,
+  defaultValue,
+  min,
+  max,
+  unit,
+  onSave,
+}: {
+  configKey: string;
+  label: string;
+  description: string;
+  currentValue: string | null;
+  defaultValue: number;
+  min: number;
+  max: number;
+  unit?: string;
+  onSave: (key: string, value: string) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [inputVal, setInputVal] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+
+  const displayValue = currentValue !== null ? parseInt(currentValue, 10) : defaultValue;
+
+  const startEditing = () => {
+    setInputVal(currentValue ?? String(defaultValue));
+    setErr(null);
+    setEditing(true);
+  };
+
+  const handleSave = async () => {
+    const n = parseInt(inputVal, 10);
+    if (isNaN(n) || n < min || n > max) {
+      setErr(`Must be between ${min} and ${max}`);
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSave(configKey, String(n));
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="py-3.5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-0.5 flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium">{label}</span>
+            <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono text-muted-foreground">
+              {configKey}
+            </code>
+          </div>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+        {!editing && (
+          <Button size="sm" variant="outline" onClick={startEditing} className="shrink-0">
+            Edit
+          </Button>
+        )}
+      </div>
+      {editing ? (
+        <div className="mt-2 space-y-1">
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              min={min}
+              max={max}
+              value={inputVal}
+              onChange={(e) => { setInputVal(e.target.value); setErr(null); }}
+              className="w-24 h-8 text-sm"
+              autoFocus
+            />
+            {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
+            <Button size="sm" onClick={handleSave} disabled={saving} className="h-8">
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing(false)} className="h-8">
+              Cancel
+            </Button>
+          </div>
+          {err && <p className="text-xs text-destructive">{err}</p>}
+        </div>
+      ) : (
+        <p className="mt-1 text-sm font-mono text-foreground">{displayValue}{unit ? ` ${unit}` : ""}</p>
+      )}
+    </div>
+  );
+}
+
 function SendTestEmailSection() {
   const { toast } = useToast();
   const testSmtp = useTestSmtp();
@@ -645,6 +788,17 @@ export default function AdminConfigPage() {
     ["inactive_after_months"].includes(c.key)
   );
 
+  const passkeysEntry = config.find((c) => c.key === "passkeys_enabled") ?? null;
+  const passkeysEnabledValue = passkeysEntry?.value ?? "false";
+  const pwMinLength = config.find((c) => c.key === "password_min_length") ?? null;
+  const pwRequireUppercase = config.find((c) => c.key === "password_require_uppercase") ?? null;
+  const pwRequireLowercase = config.find((c) => c.key === "password_require_lowercase") ?? null;
+  const pwRequireNumber = config.find((c) => c.key === "password_require_number") ?? null;
+  const pwRequireSymbol = config.find((c) => c.key === "password_require_symbol") ?? null;
+  const pwPreventReuse = config.find((c) => c.key === "password_prevent_reuse") ?? null;
+  const pwHistoryCount = config.find((c) => c.key === "password_history_count") ?? null;
+  const preventReuseEnabled = (pwPreventReuse?.value ?? "true") === "true";
+
   const handleSave = async (key: string, value: string) => {
     return new Promise<void>((resolve, reject) => {
       updateMutation.mutate(
@@ -778,6 +932,108 @@ export default function AdminConfigPage() {
                 currentValue={config.find((c) => c.key === "inactive_after_months")?.value ?? null}
                 onSave={handleSave}
               />
+            </div>
+
+            <div className="border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md px-4">
+              <div className="py-3 flex items-center gap-1.5">
+                <Fingerprint className="h-3.5 w-3.5 text-muted-foreground" />
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  Authentication
+                </h2>
+              </div>
+              <Separator />
+
+              <div className="pt-1 pb-2">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest pt-2 pb-1">
+                  Passkeys
+                </p>
+                <div className="divide-y">
+                  <ConfigToggleRow
+                    configKey="passkeys_enabled"
+                    label="Enable Passkeys"
+                    description="Allow members to sign in and register using passkeys (WebAuthn / Face ID / Touch ID). Keep disabled until the portal runs on stable TDA and PRD domains."
+                    currentValue={passkeysEnabledValue}
+                    onSave={handleSave}
+                  />
+                  {passkeysEnabledValue !== "true" && (
+                    <div className="pb-3">
+                      <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                        Passkeys are currently disabled. The functionality remains installed and can be enabled after migration to stable TDA and PRD domains.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="pt-1 pb-3">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest pt-2 pb-1 flex items-center gap-1.5">
+                  <KeyRound className="h-3 w-3" />
+                  Password Policy
+                </p>
+                <div className="divide-y">
+                  <ConfigNumberRangeRow
+                    configKey="password_min_length"
+                    label="Minimum Length"
+                    description="Minimum number of characters required (range: 8–32)"
+                    currentValue={pwMinLength?.value ?? null}
+                    defaultValue={12}
+                    min={8}
+                    max={32}
+                    unit="characters"
+                    onSave={handleSave}
+                  />
+                  <ConfigToggleRow
+                    configKey="password_require_uppercase"
+                    label="Require Uppercase Letter"
+                    description="Password must contain at least one uppercase letter (A–Z)"
+                    currentValue={pwRequireUppercase?.value ?? null}
+                    onSave={handleSave}
+                  />
+                  <ConfigToggleRow
+                    configKey="password_require_lowercase"
+                    label="Require Lowercase Letter"
+                    description="Password must contain at least one lowercase letter (a–z)"
+                    currentValue={pwRequireLowercase?.value ?? null}
+                    onSave={handleSave}
+                  />
+                  <ConfigToggleRow
+                    configKey="password_require_number"
+                    label="Require Number"
+                    description="Password must contain at least one digit (0–9)"
+                    currentValue={pwRequireNumber?.value ?? null}
+                    onSave={handleSave}
+                  />
+                  <ConfigToggleRow
+                    configKey="password_require_symbol"
+                    label="Require Special Character"
+                    description="Password must contain at least one non-alphanumeric character"
+                    currentValue={pwRequireSymbol?.value ?? null}
+                    onSave={handleSave}
+                  />
+                  <ConfigToggleRow
+                    configKey="password_prevent_reuse"
+                    label="Prevent Password Reuse"
+                    description="Prevent members from reusing recent passwords"
+                    currentValue={pwPreventReuse?.value ?? null}
+                    onSave={handleSave}
+                  />
+                  {preventReuseEnabled && (
+                    <ConfigNumberRangeRow
+                      configKey="password_history_count"
+                      label="Password History Count"
+                      description="Number of previous passwords to remember and block from reuse (range: 0–12)"
+                      currentValue={pwHistoryCount?.value ?? null}
+                      defaultValue={5}
+                      min={0}
+                      max={12}
+                      unit="passwords"
+                      onSave={handleSave}
+                    />
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 space-y-1">

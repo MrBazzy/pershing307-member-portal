@@ -12,7 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { useState } from "react";
-import { PasswordStrength } from "@/components/password-strength";
+import { PasswordRequirements } from "@/components/password-requirements";
+import { useAppPolicy, DEFAULT_PASSWORD_POLICY } from "@/lib/usePasswordPolicy";
 
 const schema = z.object({
   password: z.string().min(12, "Password must be at least 12 characters"),
@@ -39,6 +40,8 @@ export default function ResetPasswordPage() {
   });
 
   const watchedPassword = form.watch("password");
+  const { data: appPolicy } = useAppPolicy();
+  const policy = appPolicy?.passwordPolicy ?? DEFAULT_PASSWORD_POLICY;
 
   if (!token) {
     return (
@@ -114,7 +117,7 @@ export default function ResetPasswordPage() {
                     data-testid="input-password"
                   />
                 </FormControl>
-                <PasswordStrength password={watchedPassword} />
+                <PasswordRequirements password={watchedPassword} policy={policy} showHistoryNote />
                 <FormMessage />
               </FormItem>
             )}
