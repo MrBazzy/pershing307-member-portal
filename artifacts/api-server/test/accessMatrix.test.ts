@@ -57,6 +57,26 @@ async function seedMatrixFixtures(): Promise<MatrixFixtures> {
   if (!lodge) throw new Error("No lodge configured — cannot run access-matrix tests.");
   const lodgeId = lodge.id;
 
+  // Clean up any stale fixtures from a previous failed run before inserting fresh ones.
+  const staleUsers = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(inArray(usersTable.email, [MAT_ADMIN_EMAIL, MAT_MEMBER_EMAIL]));
+  if (staleUsers.length > 0) {
+    const staleIds = staleUsers.map((u) => u.id);
+    // Delete audit_logs before users to satisfy the FK constraint.
+    await db.delete(auditLogsTable).where(inArray(auditLogsTable.actorId, staleIds));
+    await db.delete(userRolesTable).where(inArray(userRolesTable.userId, staleIds));
+    await db.delete(usersTable).where(inArray(usersTable.id, staleIds));
+  }
+  const staleRoles = await db
+    .select({ id: rolesTable.id })
+    .from(rolesTable)
+    .where(inArray(rolesTable.slug, [MAT_ADMIN_SLUG, MAT_MEMBER_SLUG]));
+  if (staleRoles.length > 0) {
+    await db.delete(rolesTable).where(inArray(rolesTable.id, staleRoles.map((r) => r.id)));
+  }
+
   const hash = await hashPassword(TEST_PASSWORD);
 
   const adminRoleId  = crypto.randomUUID();
@@ -161,7 +181,7 @@ describe("GET /api/document-domains/:id/access-matrix", () => {
   let fx: MatrixFixtures;
 
   beforeAll(async () => { fx = await seedMatrixFixtures(); });
-  afterAll(async () => { await teardownMatrixFixtures(fx); });
+  afterAll(async () => { if (fx) await teardownMatrixFixtures(fx); });
 
   it("returns 401 when unauthenticated", async () => {
     const res = await request(app).get(`/api/document-domains/${fx.generalDomainId}/access-matrix`);
@@ -215,7 +235,7 @@ describe("PUT /api/document-domains/:id/access-matrix", () => {
     adminAgent = await loginAgent(app, fx.adminEmail, fx.password);
     memberAgent = await loginAgent(app, fx.memberEmail, fx.password);
   });
-  afterAll(async () => { await teardownMatrixFixtures(fx); });
+  afterAll(async () => { if (fx) await teardownMatrixFixtures(fx); });
 
   it("returns 401 when unauthenticated", async () => {
     const res = await request(app)
@@ -359,7 +379,7 @@ describe("Matrix enforcement — GET /api/documents, download, view", () => {
     if (testDocId) {
       await db.delete(documentsTable).where(eq(documentsTable.id, testDocId));
     }
-    await teardownMatrixFixtures(fx);
+    if (fx) await teardownMatrixFixtures(fx);
   });
 
   it("returns 403 on GET /documents?folderId= when member lacks matrix view access", async () => {
@@ -420,7 +440,7 @@ describe("Matrix enforcement — GET /api/document-folders", () => {
   let fx: MatrixFixtures;
 
   beforeAll(async () => { fx = await seedMatrixFixtures(); });
-  afterAll(async () => { await teardownMatrixFixtures(fx); });
+  afterAll(async () => { if (fx) await teardownMatrixFixtures(fx); });
 
   it("hides general-documents from member when view access is restricted to a role they lack", async () => {
     // Replace with secretary-only view; the test member has no secretary role
