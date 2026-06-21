@@ -6,3 +6,4 @@
 - [Pershing307 Document Matrix Bypass Patterns](pershing307-matrix-bypass.md) — recurring patterns where hardcoded isAdmin checks bypass the access matrix; what was fixed and the rule for future routes.
 - [Pershing307 Domain Governance](pershing307-domain-governance.md) — DOMAIN-GOVERNANCE-001: domainProtectionLevel field, enforcement patterns, test fixture conventions.
 - [Pershing307 Member Management Redesign](pershing307-members-management.md) — create/delete flow, pre-created user invitation accept, 7-tab detail sheet.
+- [Drizzle nullable FK null-set bug](drizzle-nullable-fk-null-set.md) — Drizzle v0.45.2 silently no-ops .set({col:null}) on nullable FK cols; use raw sql`` template instead.
