@@ -452,8 +452,8 @@ router.delete("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, 
   await db.transaction(async (tx) => {
     // Null FK references where the deleted user was an actor/creator
     await tx.update(auditLogsTable).set({ actorId: null }).where(eq(auditLogsTable.actorId, targetId));
-    await tx.update(invitationsTable).set({ revokedBy: null }).where(eq(invitationsTable.revokedBy, targetId));
-    await tx.update(invitationsTable).set({ acceptedByUser: null }).where(eq(invitationsTable.acceptedByUser, targetId));
+    await tx.execute(sql`UPDATE invitations SET revoked_by = NULL WHERE revoked_by = ${targetId}`);
+    await tx.execute(sql`UPDATE invitations SET accepted_by_user = NULL WHERE accepted_by_user = ${targetId}`);
     await tx.update(userRolesTable).set({ grantedBy: null }).where(eq(userRolesTable.grantedBy, targetId));
     await tx.update(userDomainAccessTable).set({ grantedBy: null }).where(eq(userDomainAccessTable.grantedBy, targetId));
     await tx.update(documentFoldersTable).set({ createdBy: null }).where(eq(documentFoldersTable.createdBy, targetId));
@@ -475,9 +475,9 @@ router.delete("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, 
     await tx.update(tracingBoardEntriesTable).set({ createdBy: null }).where(eq(tracingBoardEntriesTable.createdBy, targetId));
     await tx.update(tracingBoardEntriesTable).set({ lastModifiedBy: null }).where(eq(tracingBoardEntriesTable.lastModifiedBy, targetId));
     // Delete rows directly owned by the member
-    await tx.delete(userDocumentNoticeAcceptanceTable).where(eq(userDocumentNoticeAcceptanceTable.userId, targetId));
-    await tx.delete(invitationsTable).where(eq(invitationsTable.email, target.email));
-    await tx.delete(invitationsTable).where(eq(invitationsTable.invitedBy, targetId));
+    await tx.execute(sql`DELETE FROM user_document_notice_acceptance WHERE user_id = ${targetId}`);
+    await tx.execute(sql`DELETE FROM invitations WHERE email = ${target.email}`);
+    await tx.execute(sql`DELETE FROM invitations WHERE invited_by = ${targetId}`);
     await tx.delete(userRolesTable).where(eq(userRolesTable.userId, targetId));
     await tx.delete(userDomainAccessTable).where(eq(userDomainAccessTable.userId, targetId));
     await tx.delete(userDegreesTable).where(eq(userDegreesTable.userId, targetId));
