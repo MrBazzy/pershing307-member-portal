@@ -559,8 +559,17 @@ export default function AdminUsersPage() {
                       </td>
                       <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{user.email}</td>
                       <td className="px-4 py-3">
-                        <Badge variant={user.isActive ? "default" : "outline"} className={cn(!user.isActive && "text-muted-foreground")}>
-                          {user.isActive ? "Active" : "Inactive"}
+                        <Badge
+                          variant={user.isActive ? "default" : "outline"}
+                          className={cn(
+                            !user.isActive && user.membershipStatus !== "pending"
+                              ? "text-muted-foreground"
+                              : !user.isActive
+                              ? "text-amber-700 dark:text-amber-400 border-amber-400/50"
+                              : ""
+                          )}
+                        >
+                          {user.isActive ? "Active" : user.membershipStatus === "pending" ? "Pending" : "Inactive"}
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground text-xs hidden lg:table-cell">
@@ -849,7 +858,9 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
                         ? <Badge variant="outline" className="text-destructive border-destructive/30">Locked</Badge>
                         : user.isActive
                           ? <Badge>Active</Badge>
-                          : <Badge variant="outline" className="text-muted-foreground">Inactive</Badge>}
+                          : user.membershipStatus === "pending"
+                            ? <Badge variant="outline" className="text-amber-700 dark:text-amber-400 border-amber-400/50">Pending</Badge>
+                            : <Badge variant="outline" className="text-muted-foreground">Inactive</Badge>}
                     </StatusCard>
                     <StatusCard label="Email">
                       <Badge variant={user.emailVerified ? "default" : "outline"} className={cn(!user.emailVerified && "text-muted-foreground")}>
