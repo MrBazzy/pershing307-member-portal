@@ -241,48 +241,69 @@ router.post("/accept", async (req, res) => {
     return;
   }
 
-  const existingUser = await db
-    .select({ id: usersTable.id })
+  const existingUsers = await db
+    .select({ id: usersTable.id, passwordHash: usersTable.passwordHash })
     .from(usersTable)
     .where(and(eq(usersTable.lodgeId, lodgeId), eq(usersTable.email, invitation.email)))
     .limit(1);
-
-  if (existingUser.length > 0) {
-    res.status(409).json({ error: "An account with this email already exists. Please sign in instead.", code: "USER_EXISTS" });
-    return;
-  }
 
   const passwordHash = await hashPassword(password);
   const ip = getClientIp(req);
 
   let user: typeof usersTable.$inferSelect;
-  try {
-    [user] = await db
-      .insert(usersTable)
-      .values({
-        lodgeId,
-        email: invitation.email,
-        emailVerified: true,
+
+  if (existingUsers.length > 0) {
+    const existingUser = existingUsers[0];
+    if (existingUser.passwordHash !== null) {
+      res.status(409).json({ error: "An account with this email already exists. Please sign in instead.", code: "USER_EXISTS" });
+      return;
+    }
+    const [updated] = await db
+      .update(usersTable)
+      .set({
         passwordHash,
-        firstName: invitation.firstName,
-        lastName: invitation.lastName,
+        emailVerified: true,
         isActive: true,
         membershipStatus: "active",
         mustChangePassword: false,
         profileSetupRequired: true,
         passwordChangedAt: new Date(),
+        updatedAt: new Date(),
       })
+      .where(eq(usersTable.id, existingUser.id))
       .returning();
-  } catch (err) {
-    if ((err as { code?: string })?.code === "23505") {
-      res.status(409).json({ error: "An account with this email already exists. Please sign in instead.", code: "USER_EXISTS" });
-      return;
+    user = updated;
+  } else {
+    try {
+      [user] = await db
+        .insert(usersTable)
+        .values({
+          lodgeId,
+          email: invitation.email,
+          emailVerified: true,
+          passwordHash,
+          firstName: invitation.firstName,
+          lastName: invitation.lastName,
+          isActive: true,
+          membershipStatus: "active",
+          mustChangePassword: false,
+          profileSetupRequired: true,
+          passwordChangedAt: new Date(),
+        })
+        .returning();
+    } catch (err) {
+      if ((err as { code?: string })?.code === "23505") {
+        res.status(409).json({ error: "An account with this email already exists. Please sign in instead.", code: "USER_EXISTS" });
+        return;
+      }
+      throw err;
     }
-    throw err;
   }
 
   if (invitation.roleId) {
-    await db.insert(userRolesTable).values({ userId: user.id, roleId: invitation.roleId, grantedBy: invitation.invitedBy });
+    await db.insert(userRolesTable)
+      .values({ userId: user.id, roleId: invitation.roleId, grantedBy: invitation.invitedBy })
+      .onConflictDoNothing();
   }
 
   await db
@@ -377,6 +398,65 @@ router.get("/:id/link", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req
   const link = `${baseUrl}/accept-invitation?token=${inv.token}`;
 
   res.json({ link });
+});
+
+router.post("/:id/send", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const invitationId = String(req.params.id);
+  const actorId = req.session!.userId!;
+  const lodgeId = await getLodgeId();
+
+  const invitations = await db
+    .select()
+    .from(invitationsTable)
+    .where(and(eq(invitationsTable.id, invitationId), eq(invitationsTable.lodgeId, lodgeId!)))
+    .limit(1);
+
+  if (invitations.length === 0) {
+    res.status(404).json({ error: "Invitation not found" });
+    return;
+  }
+
+  const invitation = invitations[0];
+
+  if (invitation.acceptedAt) {
+    res.status(400).json({ error: "This invitation has already been accepted." });
+    return;
+  }
+  if (invitation.revokedAt) {
+    res.status(400).json({ error: "This invitation has been revoked." });
+    return;
+  }
+  if (invitation.expiresAt <= new Date()) {
+    res.status(400).json({ error: "This invitation has expired. Please create a new invitation." });
+    return;
+  }
+
+  const smtpOk = isSmtpConfigured();
+
+  if (smtpOk) {
+    const baseUrl = process.env.APP_BASE_URL ?? "http://localhost:3000";
+    const inviteUrl = `${baseUrl}/accept-invitation?token=${invitation.token}`;
+    const lodgeName = (await getConfig("lodge_name")) ?? "Member Portal";
+    const expiryDays = Math.max(1, Math.ceil((invitation.expiresAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
+
+    await sendEmail({
+      to: invitation.email,
+      subject: `You have been invited to join ${lodgeName}`,
+      html: invitationEmailHtml({ firstName: invitation.firstName, lodgeName, inviteUrl, expiryDays }),
+    });
+  }
+
+  await writeAuditLog({
+    lodgeId,
+    actorId,
+    action: "INVITATION_SENT",
+    targetType: "invitation",
+    targetId: invitationId,
+    detail: { email: invitation.email },
+    ipAddress: getClientIp(req),
+  });
+
+  res.json({ success: true, smtpConfigured: smtpOk });
 });
 
 router.delete("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {

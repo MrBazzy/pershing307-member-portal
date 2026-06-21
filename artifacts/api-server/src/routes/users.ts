@@ -15,10 +15,12 @@ import {
   auditLogsTable,
   userDocumentNoticeAcceptanceTable,
 } from "@workspace/db/schema";
-import { eq, and, or, ilike, count, inArray, ne, desc } from "drizzle-orm";
+import { eq, and, or, ilike, count, inArray, ne, desc, isNull, gt } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { writeAuditLog, getClientIp } from "../lib/audit";
-import { getLodgeId, getConfig } from "../lib/config";
+import { getLodgeId, getConfig, getConfigNumber } from "../lib/config";
+import { generateSecureToken } from "../lib/crypto";
+import { sendEmail, invitationEmailHtml } from "../lib/email";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 import { invalidateUserSessions, markSessionsAsForceLogout } from "../lib/sessions";
@@ -31,6 +33,80 @@ const SITE_ADMIN_LEVEL = 80;
 const PM_SUPER_ADMIN_LEVEL = 90;
 
 const PRIVILEGED_ROLE_SLUGS = new Set(["site-administrator", "pm-super-administrator"]);
+
+function isSmtpConfigured(): boolean {
+  return !!(process.env.SMTP_PASS && process.env.SMTP_HOST);
+}
+
+router.post("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const schema = z.object({
+    email: z.string().email(),
+    firstName: z.string().min(1).max(100).trim(),
+    lastName: z.string().min(1).max(100).trim(),
+    membershipStatus: z.string().optional().default("pending"),
+  });
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: "Invalid request", issues: result.error.issues });
+    return;
+  }
+
+  const actorId = req.session!.userId!;
+  const lodgeId = await getLodgeId();
+  if (!lodgeId) {
+    res.status(500).json({ error: "Lodge not configured" });
+    return;
+  }
+
+  const { email, firstName, lastName, membershipStatus } = result.data;
+  const normalizedEmail = email.toLowerCase().trim();
+
+  const existing = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(and(eq(usersTable.lodgeId, lodgeId), eq(usersTable.email, normalizedEmail)))
+    .limit(1);
+
+  if (existing.length > 0) {
+    res.status(409).json({ error: "A member with this email address already exists" });
+    return;
+  }
+
+  const [user] = await db
+    .insert(usersTable)
+    .values({
+      lodgeId,
+      email: normalizedEmail,
+      emailVerified: false,
+      firstName,
+      lastName,
+      isActive: false,
+      membershipStatus: membershipStatus ?? "pending",
+    })
+    .returning();
+
+  await writeAuditLog({
+    lodgeId,
+    actorId,
+    action: "MEMBER_CREATED",
+    targetType: "user",
+    targetId: user.id,
+    detail: { email: normalizedEmail, firstName, lastName, membershipStatus },
+    ipAddress: getClientIp(req),
+  });
+
+  res.status(201).json({
+    user: {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      membershipStatus: user.membershipStatus,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+    },
+  });
+});
 
 const listQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(1000).default(50),
@@ -160,6 +236,8 @@ router.get("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res
       createdAt: user.createdAt,
       roles,
       noticeAcceptedAt: noticeRow[0]?.acceptedAt?.toISOString() ?? null,
+      lockedUntil: user.lockedUntil?.toISOString() ?? null,
+      isBootstrapAdmin: user.isBootstrapAdmin,
     },
     testResetEnabled: isTestResetEnabled(),
   });
@@ -255,6 +333,127 @@ router.patch("/:id/activate", requireAuth(), requireRole(SITE_ADMIN_LEVEL), asyn
   });
 
   res.json({ success: true });
+});
+
+router.delete("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const targetId = String(req.params.id);
+  const actorId = req.session!.userId!;
+  const actorLevel = req.userPermissionLevel ?? 0;
+  const lodgeId = await getLodgeId();
+
+  if (targetId === actorId) {
+    await writeAuditLog({
+      lodgeId,
+      actorId,
+      action: "DELETE_BLOCKED",
+      targetType: "user",
+      targetId,
+      detail: { reason: "self_delete" },
+      ipAddress: getClientIp(req),
+    });
+    res.status(400).json({ error: "You cannot delete your own account." });
+    return;
+  }
+
+  const users = await db
+    .select({
+      id: usersTable.id,
+      email: usersTable.email,
+      firstName: usersTable.firstName,
+      lastName: usersTable.lastName,
+      isBootstrapAdmin: usersTable.isBootstrapAdmin,
+    })
+    .from(usersTable)
+    .where(and(eq(usersTable.id, targetId), eq(usersTable.lodgeId, lodgeId!)))
+    .limit(1);
+
+  if (users.length === 0) {
+    res.status(404).json({ error: "Member not found" });
+    return;
+  }
+
+  const target = users[0];
+
+  if (target.isBootstrapAdmin) {
+    await writeAuditLog({
+      lodgeId,
+      actorId,
+      action: "DELETE_BLOCKED",
+      targetType: "user",
+      targetId,
+      detail: { reason: "bootstrap_admin", name: `${target.firstName} ${target.lastName}` },
+      ipAddress: getClientIp(req),
+    });
+    res.status(403).json({ error: "The bootstrap administrator account cannot be deleted." });
+    return;
+  }
+
+  const targetRoles = await db
+    .select({ slug: rolesTable.slug })
+    .from(userRolesTable)
+    .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
+    .where(eq(userRolesTable.userId, targetId));
+
+  const targetIsPmSuper = targetRoles.some((r) => r.slug === "pm-super-administrator");
+
+  if (targetIsPmSuper && actorLevel < PM_SUPER_ADMIN_LEVEL) {
+    await writeAuditLog({
+      lodgeId,
+      actorId,
+      action: "DELETE_BLOCKED",
+      targetType: "user",
+      targetId,
+      detail: { reason: "insufficient_permission", name: `${target.firstName} ${target.lastName}` },
+      ipAddress: getClientIp(req),
+    });
+    res.status(403).json({ error: "Only a PM Super Administrator may delete another PM Super Administrator." });
+    return;
+  }
+
+  if (targetIsPmSuper) {
+    const allPmSupers = await db
+      .select({ userId: userRolesTable.userId })
+      .from(userRolesTable)
+      .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
+      .where(eq(rolesTable.slug, "pm-super-administrator"));
+
+    const remaining = allPmSupers.filter((r) => r.userId !== targetId);
+    if (remaining.length === 0) {
+      res.status(400).json({ error: "Cannot delete the last PM Super Administrator." });
+      return;
+    }
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.update(auditLogsTable).set({ actorId: null }).where(eq(auditLogsTable.actorId, targetId));
+    await tx.update(invitationsTable).set({ revokedBy: null }).where(eq(invitationsTable.revokedBy, targetId));
+    await tx.update(invitationsTable).set({ acceptedByUser: null }).where(eq(invitationsTable.acceptedByUser, targetId));
+    await tx.delete(invitationsTable).where(eq(invitationsTable.email, target.email));
+    await tx.delete(invitationsTable).where(eq(invitationsTable.invitedBy, targetId));
+    await tx.update(userRolesTable).set({ grantedBy: null }).where(eq(userRolesTable.grantedBy, targetId));
+    await tx.update(userDomainAccessTable).set({ grantedBy: null }).where(eq(userDomainAccessTable.grantedBy, targetId));
+    await tx.delete(userRolesTable).where(eq(userRolesTable.userId, targetId));
+    await tx.delete(userDomainAccessTable).where(eq(userDomainAccessTable.userId, targetId));
+    await tx.delete(userDegreesTable).where(eq(userDegreesTable.userId, targetId));
+    await tx.delete(passwordResetTokensTable).where(eq(passwordResetTokensTable.userId, targetId));
+    await tx.delete(twoFactorSettingsTable).where(eq(twoFactorSettingsTable.userId, targetId));
+    await tx.delete(passwordHistoryTable).where(eq(passwordHistoryTable.userId, targetId));
+    await tx.delete(usersTable).where(eq(usersTable.id, targetId));
+  });
+
+  await invalidateUserSessions(targetId);
+
+  await writeAuditLog({
+    lodgeId,
+    actorId,
+    action: "MEMBER_DELETED",
+    targetType: "user",
+    targetId,
+    detail: { email: target.email, name: `${target.firstName} ${target.lastName}` },
+    ipAddress: getClientIp(req),
+  });
+
+  res.json({ success: true, message: `${target.firstName} ${target.lastName} has been deleted.` });
 });
 
 router.post("/:id/reset-password", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
@@ -1130,6 +1329,139 @@ const TIMELINE_INVITATION_ACTIONS = [
   "INVITATION_ACCEPTED",
   "INVITATION_REVOKED",
 ];
+
+router.get("/:id/invitations", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const targetId = String(req.params.id);
+  const lodgeId = await getLodgeId();
+
+  const members = await db
+    .select({ email: usersTable.email })
+    .from(usersTable)
+    .where(and(eq(usersTable.id, targetId), eq(usersTable.lodgeId, lodgeId!)))
+    .limit(1);
+
+  if (members.length === 0) {
+    res.status(404).json({ error: "Member not found" });
+    return;
+  }
+
+  const { email } = members[0];
+  const inviter = alias(usersTable, "inviter");
+
+  const invitations = await db
+    .select({
+      id: invitationsTable.id,
+      email: invitationsTable.email,
+      firstName: invitationsTable.firstName,
+      lastName: invitationsTable.lastName,
+      expiresAt: invitationsTable.expiresAt,
+      acceptedAt: invitationsTable.acceptedAt,
+      revokedAt: invitationsTable.revokedAt,
+      createdAt: invitationsTable.createdAt,
+      invitedByFirstName: inviter.firstName,
+      invitedByLastName: inviter.lastName,
+      invitedByEmail: inviter.email,
+    })
+    .from(invitationsTable)
+    .leftJoin(inviter, eq(invitationsTable.invitedBy, inviter.id))
+    .where(and(eq(invitationsTable.lodgeId, lodgeId!), eq(invitationsTable.email, email)))
+    .orderBy(desc(invitationsTable.createdAt));
+
+  res.json({ invitations });
+});
+
+router.post("/:id/invitations", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const targetId = String(req.params.id);
+  const actorId = req.session!.userId!;
+  const lodgeId = await getLodgeId();
+  if (!lodgeId) {
+    res.status(500).json({ error: "Lodge not configured" });
+    return;
+  }
+
+  const members = await db
+    .select({
+      id: usersTable.id,
+      email: usersTable.email,
+      firstName: usersTable.firstName,
+      lastName: usersTable.lastName,
+      passwordHash: usersTable.passwordHash,
+      isActive: usersTable.isActive,
+    })
+    .from(usersTable)
+    .where(and(eq(usersTable.id, targetId), eq(usersTable.lodgeId, lodgeId)))
+    .limit(1);
+
+  if (members.length === 0) {
+    res.status(404).json({ error: "Member not found" });
+    return;
+  }
+
+  const target = members[0];
+
+  if (target.isActive && target.passwordHash) {
+    res.status(400).json({ error: "This member already has an active account and does not need an invitation." });
+    return;
+  }
+
+  const pendingInvite = await db
+    .select({ id: invitationsTable.id })
+    .from(invitationsTable)
+    .where(
+      and(
+        eq(invitationsTable.lodgeId, lodgeId),
+        eq(invitationsTable.email, target.email),
+        isNull(invitationsTable.acceptedAt),
+        isNull(invitationsTable.revokedAt),
+        gt(invitationsTable.expiresAt, new Date())
+      )
+    )
+    .limit(1);
+
+  if (pendingInvite.length > 0) {
+    res.status(409).json({ error: "A pending invitation already exists for this member." });
+    return;
+  }
+
+  const expiryDays = await getConfigNumber("invite_expiry_days", 7);
+  const token = generateSecureToken();
+  const expiresAt = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000);
+
+  const [invitation] = await db
+    .insert(invitationsTable)
+    .values({
+      lodgeId,
+      email: target.email,
+      firstName: target.firstName,
+      lastName: target.lastName,
+      token,
+      invitedBy: actorId,
+      expiresAt,
+    })
+    .returning();
+
+  await writeAuditLog({
+    lodgeId,
+    actorId,
+    action: "INVITATION_CREATED",
+    targetType: "invitation",
+    targetId: invitation.id,
+    detail: { email: target.email, firstName: target.firstName, lastName: target.lastName },
+    ipAddress: getClientIp(req),
+  });
+
+  res.status(201).json({
+    invitation: {
+      id: invitation.id,
+      email: invitation.email,
+      firstName: invitation.firstName,
+      lastName: invitation.lastName,
+      expiresAt: invitation.expiresAt,
+      createdAt: invitation.createdAt,
+    },
+    smtpConfigured: isSmtpConfigured(),
+  });
+});
 
 router.get("/:id/timeline", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const userId = String(req.params.id);

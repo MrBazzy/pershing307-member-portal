@@ -5,3 +5,4 @@
 - [Pershing307 Document Domains](pershing307-document-domains.md) — DOCUMENT-DOMAINS-001: domain access system, seeded domains, frame split, PM_SUPER_LEVEL.
 - [Pershing307 Document Matrix Bypass Patterns](pershing307-matrix-bypass.md) — recurring patterns where hardcoded isAdmin checks bypass the access matrix; what was fixed and the rule for future routes.
 - [Pershing307 Domain Governance](pershing307-domain-governance.md) — DOMAIN-GOVERNANCE-001: domainProtectionLevel field, enforcement patterns, test fixture conventions.
+- [Pershing307 Member Management Redesign](pershing307-members-management.md) — create/delete flow, pre-created user invitation accept, 7-tab detail sheet.
