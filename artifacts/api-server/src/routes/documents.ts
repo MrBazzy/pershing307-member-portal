@@ -26,6 +26,7 @@ const objectStorageService = new ObjectStorageService();
 
 const MEMBER_LEVEL = 20;
 const SITE_ADMIN_LEVEL = 80;
+const PM_SUPER_LEVEL = 90;
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20 MB
 
 const ALLOWED_EXTENSIONS = new Set([
@@ -270,9 +271,10 @@ router.get("/", requireAuth(), async (req, res) => {
     ))
     .orderBy(asc(documentsTable.createdAt));
 
-  // Filter by visibility — approvers (canApprove) and admins see all statuses; others see only published
-  const isAdmin = level >= SITE_ADMIN_LEVEL;
-  const visible = docs.filter((d) => isAdmin || folderPerms.canApprove || d.status === "published");
+  // Filter by visibility — managers (canManage) and approvers (canApprove) see all statuses;
+  // others see only published. Use effective permissions so past_master_protected domains
+  // are enforced strictly through the matrix.
+  const visible = docs.filter((d) => folderPerms.canManage || folderPerms.canApprove || d.status === "published");
 
   // Fetch uploaders in bulk
   const uploaderIds = [...new Set(visible.map((d) => d.uploaderId).filter(Boolean) as string[])];
@@ -304,23 +306,44 @@ router.get("/:id/download", requireAuth(), async (req, res) => {
     .then((r) => r[0] ?? null);
   if (!doc) { res.status(404).json({ error: "Not found" }); return; }
 
-  const { maxPermLevel: level } = await getUserVisibilityContext(userId);
-  const isAdmin = level >= SITE_ADMIN_LEVEL;
   const isUploader = doc.uploaderId === userId;
 
-  // Fetch matrix perms once; admins get a static all-true object to avoid the DB round-trip
-  const folderPerms = isAdmin
-    ? { canView: true, canUpload: true, canApprove: true, canManage: true }
-    : await getEffectivePermissions(userId, doc.folderId, lodgeId);
+  // Always evaluate through the matrix — the matrix handles the admin bypass internally,
+  // skipping it for past_master_protected domains when the user is a Site Admin (< 90).
+  const folderPerms = await getEffectivePermissions(userId, doc.folderId, lodgeId);
 
-  if (!folderPerms.canView) { res.status(403).json({ error: "Access denied" }); return; }
+  if (!folderPerms.canView) {
+    // Audit denied download attempts on past_master_protected domains
+    const { maxPermLevel: level } = await getUserVisibilityContext(userId);
+    if (level >= SITE_ADMIN_LEVEL && level < PM_SUPER_LEVEL) {
+      const folder = await db
+        .select({ domainProtectionLevel: protectedDomainsTable.domainProtectionLevel, domainSlug: protectedDomainsTable.slug })
+        .from(documentFoldersTable)
+        .leftJoin(protectedDomainsTable, eq(documentFoldersTable.domainId, protectedDomainsTable.id))
+        .where(eq(documentFoldersTable.id, doc.folderId))
+        .then((r) => r[0] ?? null);
+      if (folder?.domainProtectionLevel === "past_master_protected") {
+        const actor = await db.select({ email: usersTable.email })
+          .from(usersTable).where(eq(usersTable.id, userId)).then((r) => r[0] ?? null);
+        writeAuditLog({
+          lodgeId, actorId: userId, actorEmail: actor?.email ?? "",
+          action: "DOCUMENT_ACCESS_DENIED",
+          targetType: "document", targetId: doc.id,
+          detail: { documentTitle: doc.title, folderId: doc.folderId, domainSlug: folder.domainSlug, domainProtectionLevel: folder.domainProtectionLevel, via: "download" },
+          ipAddress: getClientIp(req), userAgent: req.headers["user-agent"] ?? null,
+        }).catch(() => {});
+      }
+    }
+    res.status(403).json({ error: "Access denied" }); return;
+  }
 
-  // Visibility by status: deleted/archived = admin only; pending/rejected = approver or uploader
+  // Visibility by status: deleted/archived = manager only; pending/rejected = approver or uploader.
+  // Use effective permissions so past_master_protected domains are enforced through the matrix.
   let canSeeDoc: boolean;
   switch (doc.status) {
     case "deleted":
     case "archived":
-      canSeeDoc = isAdmin;
+      canSeeDoc = folderPerms.canManage;
       break;
     case "published":
       canSeeDoc = true;
@@ -330,7 +353,7 @@ router.get("/:id/download", requireAuth(), async (req, res) => {
       canSeeDoc = folderPerms.canApprove || isUploader;
       break;
     default:
-      canSeeDoc = isAdmin;
+      canSeeDoc = folderPerms.canManage;
   }
 
   if (!canSeeDoc) { res.status(403).json({ error: "Access denied" }); return; }
@@ -398,23 +421,44 @@ router.get("/:id/view", requireAuth(), async (req, res) => {
     .then((r) => r[0] ?? null);
   if (!doc) { res.status(404).json({ error: "Not found" }); return; }
 
-  const { maxPermLevel: level } = await getUserVisibilityContext(userId);
-  const isAdmin = level >= SITE_ADMIN_LEVEL;
   const isUploader = doc.uploaderId === userId;
 
-  // Fetch matrix perms once; admins get a static all-true object to avoid the DB round-trip
-  const folderPerms = isAdmin
-    ? { canView: true, canUpload: true, canApprove: true, canManage: true }
-    : await getEffectivePermissions(userId, doc.folderId, lodgeId);
+  // Always evaluate through the matrix — the matrix handles the admin bypass internally,
+  // skipping it for past_master_protected domains when the user is a Site Admin (< 90).
+  const folderPerms = await getEffectivePermissions(userId, doc.folderId, lodgeId);
 
-  if (!folderPerms.canView) { res.status(403).json({ error: "Access denied" }); return; }
+  if (!folderPerms.canView) {
+    // Audit denied view attempts on past_master_protected domains
+    const { maxPermLevel: level } = await getUserVisibilityContext(userId);
+    if (level >= SITE_ADMIN_LEVEL && level < PM_SUPER_LEVEL) {
+      const folder = await db
+        .select({ domainProtectionLevel: protectedDomainsTable.domainProtectionLevel, domainSlug: protectedDomainsTable.slug })
+        .from(documentFoldersTable)
+        .leftJoin(protectedDomainsTable, eq(documentFoldersTable.domainId, protectedDomainsTable.id))
+        .where(eq(documentFoldersTable.id, doc.folderId))
+        .then((r) => r[0] ?? null);
+      if (folder?.domainProtectionLevel === "past_master_protected") {
+        const actor = await db.select({ email: usersTable.email })
+          .from(usersTable).where(eq(usersTable.id, userId)).then((r) => r[0] ?? null);
+        writeAuditLog({
+          lodgeId, actorId: userId, actorEmail: actor?.email ?? "",
+          action: "DOCUMENT_ACCESS_DENIED",
+          targetType: "document", targetId: doc.id,
+          detail: { documentTitle: doc.title, folderId: doc.folderId, domainSlug: folder.domainSlug, domainProtectionLevel: folder.domainProtectionLevel, via: "view" },
+          ipAddress: getClientIp(req), userAgent: req.headers["user-agent"] ?? null,
+        }).catch(() => {});
+      }
+    }
+    res.status(403).json({ error: "Access denied" }); return;
+  }
 
-  // Visibility by status: deleted/archived = admin only; pending/rejected = approver or uploader
+  // Visibility by status: deleted/archived = manager only; pending/rejected = approver or uploader.
+  // Use effective permissions so past_master_protected domains are enforced through the matrix.
   let canSeeDoc: boolean;
   switch (doc.status) {
     case "deleted":
     case "archived":
-      canSeeDoc = isAdmin;
+      canSeeDoc = folderPerms.canManage;
       break;
     case "published":
       canSeeDoc = true;
@@ -424,7 +468,7 @@ router.get("/:id/view", requireAuth(), async (req, res) => {
       canSeeDoc = folderPerms.canApprove || isUploader;
       break;
     default:
-      canSeeDoc = isAdmin;
+      canSeeDoc = folderPerms.canManage;
   }
 
   if (!canSeeDoc) { res.status(403).json({ error: "Access denied" }); return; }

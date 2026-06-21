@@ -26,6 +26,7 @@ import {
 import type { FolderAccessRow } from "./folderAccess";
 
 const SITE_ADMIN_LEVEL = 80;
+const PM_SUPER_LEVEL = 90;
 const MEMBER_LEVEL = 20;
 
 export type EffectivePermissions = {
@@ -278,7 +279,11 @@ async function resolveRootFolder(
 
 /**
  * Returns effective permissions for a user on a folder.
- * Admins (≥ SITE_ADMIN_LEVEL) always receive all permissions.
+ *
+ * PM Super Admins (≥ 90) always receive all permissions regardless of domain type.
+ * Site Admins (80–89) bypass the matrix for standard domains but are evaluated
+ * strictly through the matrix for past_master_protected domains.
+ *
  * Uses the matrix when available; falls back to legacy domain logic otherwise.
  */
 export async function getEffectivePermissions(
@@ -288,9 +293,6 @@ export async function getEffectivePermissions(
 ): Promise<EffectivePermissions> {
   const { maxPermLevel: level, roleSlugs, maxDegree } = await getUserVisibilityContext(userId);
 
-  if (level >= SITE_ADMIN_LEVEL) {
-    return { canView: true, canUpload: true, canApprove: true, canManage: true };
-  }
   if (level < MEMBER_LEVEL) {
     return { canView: false, canUpload: false, canApprove: false, canManage: false };
   }
@@ -298,6 +300,16 @@ export async function getEffectivePermissions(
   const rootFolder = await resolveRootFolder(folderId, lodgeId);
   if (!rootFolder) {
     return { canView: false, canUpload: false, canApprove: false, canManage: false };
+  }
+
+  // PM Super Admins always bypass the matrix.
+  // Site Admins bypass the matrix only for standard (non-protected) domains.
+  if (level >= SITE_ADMIN_LEVEL) {
+    const isPastMasterProtected = rootFolder.domainProtectionLevel === "past_master_protected";
+    if (!isPastMasterProtected || level >= PM_SUPER_LEVEL) {
+      return { canView: true, canUpload: true, canApprove: true, canManage: true };
+    }
+    // Site Admin on a past_master_protected domain — fall through to matrix evaluation.
   }
 
   const matrixRows = await db
@@ -330,6 +342,8 @@ export async function getEffectivePermissions(
 /**
  * Variant that accepts a pre-fetched user context — useful when computing
  * permissions for multiple folders to avoid repeated DB calls.
+ *
+ * Applies the same past_master_protected bypass rule as getEffectivePermissions.
  */
 export async function getEffectivePermissionsWithContext(
   userContext: { maxPermLevel: number; roleSlugs: string[]; maxDegree: number },
@@ -340,9 +354,6 @@ export async function getEffectivePermissionsWithContext(
 ): Promise<EffectivePermissions> {
   const { maxPermLevel: level, roleSlugs, maxDegree } = userContext;
 
-  if (level >= SITE_ADMIN_LEVEL) {
-    return { canView: true, canUpload: true, canApprove: true, canManage: true };
-  }
   if (level < MEMBER_LEVEL) {
     return { canView: false, canUpload: false, canApprove: false, canManage: false };
   }
@@ -358,6 +369,16 @@ export async function getEffectivePermissionsWithContext(
     cur = parent;
   }
   const rootFolder = cur;
+
+  // PM Super Admins always bypass the matrix.
+  // Site Admins bypass the matrix only for standard (non-protected) domains.
+  if (level >= SITE_ADMIN_LEVEL) {
+    const isPastMasterProtected = rootFolder.domainProtectionLevel === "past_master_protected";
+    if (!isPastMasterProtected || level >= PM_SUPER_LEVEL) {
+      return { canView: true, canUpload: true, canApprove: true, canManage: true };
+    }
+    // Site Admin on a past_master_protected domain — fall through to matrix evaluation.
+  }
 
   const matrixRows = allMatrixRows.filter((r) => r.folderId === rootFolder.id);
   if (matrixRows.length > 0) {

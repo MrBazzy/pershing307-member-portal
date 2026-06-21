@@ -342,6 +342,7 @@ type FolderRow = {
   accessPolicy: unknown;
   domainId: string | null;
   domainSlug: string | null;
+  domainProtectionLevel: string | null;
   frame: string;
   isSystemRoot: boolean;
   sortOrder: number;
@@ -365,6 +366,7 @@ const folderColumns = {
   createdAt: documentFoldersTable.createdAt,
   updatedAt: documentFoldersTable.updatedAt,
   domainSlug: protectedDomainsTable.slug,
+  domainProtectionLevel: protectedDomainsTable.domainProtectionLevel,
   domainAccessLogic: protectedDomainsTable.accessLogic,
   domainAllowedRoleSlugs: protectedDomainsTable.allowedRoleSlugs,
   domainMinDegree: protectedDomainsTable.minDegree,
@@ -539,6 +541,22 @@ router.get("/:id", requireAuth(), requireRole(MEMBER_LEVEL), async (req, res) =>
   // Matrix-based access gate (falls back to legacy domain logic when no matrix rows exist)
   const effectivePerms = await getEffectivePermissions(userId, folder.id, lodgeId);
   if (!effectivePerms.canView) {
+    // Audit denied access attempts for past_master_protected domains
+    if (level >= SITE_ADMIN_LEVEL && level < PM_SUPER_LEVEL && folder.domainProtectionLevel === "past_master_protected") {
+      const actor = await db.select({ email: usersTable.email })
+        .from(usersTable).where(eq(usersTable.id, userId)).then((r) => r[0] ?? null);
+      writeAuditLog({
+        lodgeId,
+        actorId: userId,
+        actorEmail: actor?.email ?? "",
+        action: "DOCUMENT_ACCESS_DENIED",
+        targetType: "folder",
+        targetId: folder.id,
+        detail: { folderTitle: folder.title, domainSlug: folder.domainSlug, domainProtectionLevel: folder.domainProtectionLevel },
+        ipAddress: getClientIp(req),
+        userAgent: req.headers["user-agent"] ?? null,
+      }).catch(() => {});
+    }
     res.status(403).json({ error: "Access denied" });
     return;
   }
@@ -623,18 +641,35 @@ router.get("/:id/documents", requireAuth(), requireRole(MEMBER_LEVEL), async (re
   // Matrix-based access gate (falls back to legacy domain logic when no matrix rows exist)
   const viewPerms = await getEffectivePermissions(userId, folder.id, lodgeId);
   if (!viewPerms.canView) {
+    // Audit denied access attempts for past_master_protected domains
+    if (level >= SITE_ADMIN_LEVEL && level < PM_SUPER_LEVEL && folder.domainProtectionLevel === "past_master_protected") {
+      const actor = await db.select({ email: usersTable.email })
+        .from(usersTable).where(eq(usersTable.id, userId)).then((r) => r[0] ?? null);
+      writeAuditLog({
+        lodgeId,
+        actorId: userId,
+        actorEmail: actor?.email ?? "",
+        action: "DOCUMENT_ACCESS_DENIED",
+        targetType: "folder",
+        targetId: folder.id,
+        detail: { folderTitle: folder.title, domainSlug: folder.domainSlug, domainProtectionLevel: folder.domainProtectionLevel },
+        ipAddress: getClientIp(req),
+        userAgent: req.headers["user-agent"] ?? null,
+      }).catch(() => {});
+    }
     res.status(403).json({ error: "Access denied" }); return;
   }
 
-  const isAdmin = level >= SITE_ADMIN_LEVEL;
   const docs = await db
     .select()
     .from(documentsTable)
     .where(and(eq(documentsTable.folderId, folder.id), eq(documentsTable.lodgeId, lodgeId)))
     .orderBy(asc(documentsTable.createdAt));
 
-  // Approvers (canApprove) and admins see all statuses; others see only published
-  const visible = docs.filter((d) => isAdmin || viewPerms.canApprove || d.status === "published");
+  // Approvers (canApprove) and managers (canManage) see all statuses; others see only published.
+  // Use effective permissions instead of a raw level check so that past_master_protected
+  // domains are enforced strictly through the matrix.
+  const visible = docs.filter((d) => viewPerms.canManage || viewPerms.canApprove || d.status === "published");
 
   const uploaderIds = [...new Set(visible.map((d) => d.uploaderId).filter(Boolean) as string[])];
   const uploaderMap = new Map<string, { firstName: string; lastName: string }>();

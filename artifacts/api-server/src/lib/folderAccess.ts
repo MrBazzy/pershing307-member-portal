@@ -15,6 +15,7 @@ export type FolderAccessRow = {
   accessPolicy: unknown;
   domainId: string | null;
   domainSlug: string | null;
+  domainProtectionLevel: string | null;
   domainAccessLogic: DomainAccessLogic | null;
   domainAllowedRoleSlugs: string[] | null;
   domainMinDegree: number | null;
@@ -30,6 +31,7 @@ export const folderAccessColumns = {
   accessPolicy: documentFoldersTable.accessPolicy,
   domainId: documentFoldersTable.domainId,
   domainSlug: protectedDomainsTable.slug,
+  domainProtectionLevel: protectedDomainsTable.domainProtectionLevel,
   domainAccessLogic: protectedDomainsTable.accessLogic,
   domainAllowedRoleSlugs: protectedDomainsTable.allowedRoleSlugs,
   domainMinDegree: protectedDomainsTable.minDegree,

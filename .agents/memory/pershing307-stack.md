@@ -74,8 +74,19 @@ After adding new routes, restart the API server workflow to pick up new route fi
 The portal fetches folder documents via `GET /document-folders/:id/documents`
 (in `document-folders.ts`), NOT `GET /documents?folderId=` (`documents.ts`).
 Both routes have their own visibility filter. Any change to who sees what
-must be applied to **both** files. Current rule: non-admins see only `published`;
-admins see all statuses.
+must be applied to **both** files.
+Current rule: `folderPerms.canManage || folderPerms.canApprove` see all statuses;
+others see only `published`. Uses effective matrix perms — NOT a raw level check.
+
+## Site Admin bypass — past_master_protected (DOCUMENT-ACCESS-BUG-002)
+`matrixPermissions.ts` constant `PM_SUPER_LEVEL = 90`.
+- Standard domains: Site Admin (80) still gets bypass (full access without matrix entry).
+- past_master_protected domains: bypass is SKIPPED for level < 90; must have explicit matrix row.
+- All 4 access paths enforce this: folder listing, GET /folders/:id, GET /folders/:id/documents,
+  GET /documents/:id/view, GET /documents/:id/download.
+- Denied access for Site Admin on past_master_protected → writes DOCUMENT_ACCESS_DENIED audit log.
+- `documents.ts` also needs `PM_SUPER_LEVEL = 90` constant (alongside `SITE_ADMIN_LEVEL = 80`).
+- Acceptance tests: `test/documentAccessBypass.test.ts` (10 tests). Total suite: 258.
 
 ## Rich Text / History Management
 - Rich text editor: TipTap (@tiptap/react @tiptap/pm @tiptap/starter-kit @tiptap/extension-underline @tiptap/extension-link @tiptap/extension-placeholder)
