@@ -55,6 +55,7 @@ export default function SetupPage() {
   const { toast } = useToast();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const { data: bootstrapStatus } = useGetBootstrapStatus();
 
 
   /**
@@ -235,7 +236,7 @@ export default function SetupPage() {
           <div className="flex items-center justify-center w-12 h-12 rounded-sm bg-primary mx-auto mb-3">
             <span className="text-primary-foreground font-serif font-bold text-lg">G</span>
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Welcome to {bootstrapStatus?.lodgeName ?? "the Member Portal"}</h1>
+          <h1 className="text-2xl font-bold text-foreground">Welcome to {(bootstrapStatus as any)?.lodgeName ?? "the Member Portal"}</h1>
           <p className="text-sm text-muted-foreground">Let's get your account set up.</p>
         </div>
 
