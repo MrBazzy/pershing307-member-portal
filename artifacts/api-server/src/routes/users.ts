@@ -15,7 +15,8 @@ import {
   auditLogsTable,
   userDocumentNoticeAcceptanceTable,
 } from "@workspace/db/schema";
-import { eq, and, or, ilike, count, inArray, ne } from "drizzle-orm";
+import { eq, and, or, ilike, count, inArray, ne, desc } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { writeAuditLog, getClientIp } from "../lib/audit";
 import { getLodgeId, getConfig } from "../lib/config";
 import { requireAuth } from "../middlewares/requireAuth";
@@ -1109,6 +1110,89 @@ router.patch("/:id/date-of-birth", requireAuth(), requireRole(SITE_ADMIN_LEVEL),
   });
 
   res.json({ success: true });
+});
+
+const TIMELINE_SELF_ACTIONS = [
+  "LOGIN",
+  "LOGIN_2FA",
+  "PASSWORD_CHANGED",
+  "PASSWORD_RESET_REQUESTED",
+  "PASSWORD_RESET_COMPLETED",
+  "PASSWORD_CHANGED_AFTER_RESET",
+  "PASSKEY_REGISTERED",
+  "PASSKEY_REMOVED",
+  "2FA_ENROLLED",
+  "2FA_DISABLED",
+];
+
+const TIMELINE_INVITATION_ACTIONS = [
+  "INVITATION_CREATED",
+  "INVITATION_ACCEPTED",
+  "INVITATION_REVOKED",
+];
+
+router.get("/:id/timeline", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
+  const userId = String(req.params.id);
+  const lodgeId = await getLodgeId();
+  if (!lodgeId) {
+    res.status(500).json({ error: "Lodge not configured" });
+    return;
+  }
+
+  const userRows = await db
+    .select({ email: usersTable.email, createdAt: usersTable.createdAt })
+    .from(usersTable)
+    .where(and(eq(usersTable.id, userId), eq(usersTable.lodgeId, lodgeId)))
+    .limit(1);
+
+  if (userRows.length === 0) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const { email: userEmail, createdAt: userCreatedAt } = userRows[0];
+
+  const invRows = await db
+    .select({ id: invitationsTable.id })
+    .from(invitationsTable)
+    .where(and(eq(invitationsTable.lodgeId, lodgeId), ilike(invitationsTable.email, userEmail)));
+
+  const invitationIds = invRows.map((r) => r.id);
+
+  const actorAlias = alias(usersTable, "actor");
+
+  const orClauses = [
+    and(eq(auditLogsTable.targetType, "user"), eq(auditLogsTable.targetId, userId)),
+    and(eq(auditLogsTable.actorId, userId), inArray(auditLogsTable.action, TIMELINE_SELF_ACTIONS)),
+    ...(invitationIds.length > 0
+      ? [and(
+          eq(auditLogsTable.targetType, "invitation"),
+          inArray(auditLogsTable.targetId, invitationIds),
+          inArray(auditLogsTable.action, TIMELINE_INVITATION_ACTIONS),
+        )]
+      : []),
+  ];
+
+  const events = await db
+    .select({
+      id: auditLogsTable.id,
+      action: auditLogsTable.action,
+      actorId: auditLogsTable.actorId,
+      actorEmail: auditLogsTable.actorEmail,
+      actorFirstName: actorAlias.firstName,
+      actorLastName: actorAlias.lastName,
+      targetType: auditLogsTable.targetType,
+      targetId: auditLogsTable.targetId,
+      detail: auditLogsTable.detail,
+      createdAt: auditLogsTable.createdAt,
+    })
+    .from(auditLogsTable)
+    .leftJoin(actorAlias, eq(auditLogsTable.actorId, actorAlias.id))
+    .where(and(eq(auditLogsTable.lodgeId, lodgeId), or(...orClauses)))
+    .orderBy(desc(auditLogsTable.createdAt))
+    .limit(200);
+
+  res.json({ events, userCreatedAt });
 });
 
 export default router;

@@ -1,0 +1,452 @@
+MEMBERS-MANAGEMENT-001 — Integrated Member Lifecycle & Invitation Management
+
+STEP 0 — SAFETY FIRST
+
+Before making changes:
+
+1. Create Replit checkpoint/snapshot.
+2. Create git tag:
+
+v3.9-before-member-management-redesign
+
+3. Confirm build passes.
+
+--------------------------------------------------
+GOAL
+--------------------------------------------------
+
+Redesign Member Management so that:
+
+- Members can be created before invitations are sent.
+- Invitations become part of Member Management.
+- Member details become easier to manage.
+- Delete Member replaces Remove Test User.
+- Invitation status becomes visible and traceable.
+- Member history becomes visible through a timeline.
+
+--------------------------------------------------
+CURRENT PROBLEM
+--------------------------------------------------
+
+The current member side panel is becoming too small.
+
+The portal now contains:
+
+- member information
+- invitation information
+- roles
+- degrees
+- security information
+- onboarding status
+- member history
+
+This no longer fits logically in a small sidebar.
+
+--------------------------------------------------
+NEW MEMBER DETAIL LAYOUT
+--------------------------------------------------
+
+Replace the current member sidebar with:
+
+Management
+→ Members
+→ [Member Name]
+
+Use a dedicated Member Detail page or a large responsive drawer.
+
+--------------------------------------------------
+SECTION 1 — CURRENT STATUS
+--------------------------------------------------
+
+Create a Current Status card.
+
+Show:
+
+Account Status
+- Active
+- Inactive
+- Locked
+
+Membership Status
+- Visitor
+- Candidate
+- Entered Apprentice
+- Fellowcraft
+- Master Mason
+- Past Master
+- Other future statuses
+
+Invitation Status
+- Not Invited
+- Invitation Created
+- Invitation Sent
+- Invitation Accepted
+- Invitation Expired
+- Invitation Revoked
+
+Dates:
+
+- Invitation Created
+- Invitation Sent
+- Invitation Accepted
+- Invitation Expiry
+- Joined Date
+- Last Login
+
+Email Status:
+- Verified
+- Not Verified
+
+--------------------------------------------------
+SECTION 2 — MEMBER DATA
+--------------------------------------------------
+
+Editable:
+
+- First Name
+- Last Name
+- Email Address
+- Date of Birth
+
+Move Membership Status to Current Status.
+
+--------------------------------------------------
+SECTION 3 — ROLES & DEGREES
+--------------------------------------------------
+
+Show and manage:
+
+Roles:
+- Member
+- Secretary
+- Treasurer
+- Junior Warden
+- Senior Warden
+- Worshipful Master
+- Site Administrator
+- PM Super Administrator
+
+Degrees:
+- Entered Apprentice
+- Fellowcraft
+- Master Mason
+- Past Master
+
+If feasible:
+- Degree assignment history
+
+--------------------------------------------------
+SECTION 4 — INVITATIONS
+--------------------------------------------------
+
+Integrate Invitations into Member Management.
+
+Do NOT remove the invitation system.
+
+Keep:
+- invitation tokens
+- invitation links
+- invitation validation
+
+Move operations into the member page.
+
+Buttons:
+
+Create Invitation
+Send Invitation
+Resend Invitation
+Revoke Invitation
+
+Show:
+
+- invitation status badge
+- creation date
+- sent date
+- acceptance date
+- expiry date
+
+--------------------------------------------------
+SECTION 5 — CREATE MEMBER WITHOUT INVITATION
+--------------------------------------------------
+
+Add:
+
+Create Member
+
+Administrator can create a member profile without sending an invitation.
+
+Status:
+
+Not Invited
+
+This allows:
+
+- preparing members in advance
+- importing members
+- creating test users
+- completing information before onboarding
+
+No email should be sent automatically.
+
+Invitation can be sent later.
+
+--------------------------------------------------
+SECTION 6 — SECURITY
+--------------------------------------------------
+
+Show:
+
+Password Status
+
+Buttons:
+
+- Reset Password
+- Force Password Change
+- Deactivate User
+
+Show:
+
+- Passkey status
+- Number of registered passkeys
+- 2FA status
+
+Allow revocation if already supported.
+
+--------------------------------------------------
+SECTION 7 — DANGER ZONE
+--------------------------------------------------
+
+Replace:
+
+Remove Test User
+
+with:
+
+Delete Member
+
+Delete Member becomes the single supported delete action.
+
+--------------------------------------------------
+DELETE MEMBER BEHAVIOR
+--------------------------------------------------
+
+Show warning:
+
+You are about to delete a member account.
+
+This action may remove account access and associated member records.
+
+Are you absolutely sure?
+
+Require confirmation.
+
+Administrator must type:
+
+First Name + Last Name
+
+Example:
+
+Type:
+John Smith
+
+before Delete button becomes active.
+
+--------------------------------------------------
+DELETE RESTRICTIONS
+--------------------------------------------------
+
+Do NOT allow deletion of:
+
+- bootstrap administrator
+- currently logged-in user
+
+Site Administrator may NOT delete:
+
+- PM Super Administrator
+
+Only PM Super Administrator may delete another PM Super Administrator.
+
+--------------------------------------------------
+TEST MEMBERS
+--------------------------------------------------
+
+If Test Member functionality exists:
+
+Keep:
+
+Test Member badge
+
+But remove:
+
+Remove Test User
+
+Delete Member now handles both normal and test accounts.
+
+--------------------------------------------------
+SECTION 8 — MEMBER TIMELINE
+--------------------------------------------------
+
+Add a Member Timeline section at the bottom of the Member Detail page.
+
+Purpose:
+
+Provide a complete chronological history of important member lifecycle events.
+
+Display newest first.
+
+Examples:
+
+12 Jan 2026
+Member created by John Smith
+
+12 Jan 2026
+Invitation created
+
+12 Jan 2026
+Invitation sent
+
+15 Jan 2026
+Invitation accepted
+
+15 Jan 2026
+First login
+
+22 Feb 2026
+Degree changed to Fellowcraft
+
+01 Apr 2026
+Role Treasurer granted
+
+14 Jun 2026
+Password reset by Site Administrator
+
+20 Jun 2026
+Passkey registered
+
+--------------------------------------------------
+TIMELINE EVENTS
+--------------------------------------------------
+
+Include whenever available:
+
+Account Events
+- Member created
+- Member activated
+- Member deactivated
+- Member deleted
+
+Invitation Events
+- Invitation created
+- Invitation sent
+- Invitation resent
+- Invitation accepted
+- Invitation expired
+- Invitation revoked
+
+Authentication Events
+- First login
+- Last login
+- Password reset
+- Password changed
+- Passkey added
+- Passkey removed
+- 2FA enabled
+- 2FA disabled
+
+Role Events
+- Role granted
+- Role revoked
+
+Degree Events
+- Degree granted
+- Degree revoked
+
+Membership Events
+- Membership status changed
+
+--------------------------------------------------
+UI REQUIREMENTS
+--------------------------------------------------
+
+Display:
+
+- Date and time
+- Event description
+- User who performed the action (if applicable)
+
+Example:
+
+21 Jun 2026 19:42
+
+Role Treasurer granted by Peter Jones
+
+Allow scrolling for long histories.
+
+Mobile friendly.
+
+--------------------------------------------------
+AUDIT LOG INTEGRATION
+--------------------------------------------------
+
+Where possible, derive timeline information from existing audit logs.
+
+Avoid creating duplicate storage if the information already exists.
+
+--------------------------------------------------
+AUDIT LOGGING
+--------------------------------------------------
+
+Log:
+
+Member created
+
+Invitation created
+
+Invitation sent
+
+Invitation resent
+
+Invitation revoked
+
+Member activated
+
+Member deactivated
+
+Member deleted
+
+Blocked delete attempt
+
+Use first and last names.
+
+--------------------------------------------------
+PRESERVE
+--------------------------------------------------
+
+Do not change:
+
+- authentication
+- passkeys
+- 2FA
+- document permissions
+- access matrix
+- domains
+- audit log architecture
+
+--------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------
+
+1. Member detail page is no longer cramped.
+2. Invitation status is clearly visible.
+3. Admin can create member without invitation.
+4. Admin can send invitation later.
+5. Admin can resend invitation.
+6. Admin can revoke invitation.
+7. Invitation dates are visible.
+8. Delete Member replaces Remove Test User.
+9. Delete requires strong confirmation.
+10. PM Super Admin protections remain intact.
+11. Member Timeline displays lifecycle events.
+12. Timeline updates automatically.
+13. All sensitive actions are audited.
+14. Build passes.

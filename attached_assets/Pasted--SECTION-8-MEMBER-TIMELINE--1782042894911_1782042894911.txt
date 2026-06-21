@@ -1,0 +1,120 @@
+--------------------------------------------------
+SECTION 8 — MEMBER TIMELINE
+--------------------------------------------------
+
+Add a Member Timeline section at the bottom of the Member Detail page.
+
+Purpose:
+
+Provide a complete chronological history of important member lifecycle events.
+
+Display newest first.
+
+Examples:
+
+12 Jan 2026
+Member created by John Smith
+
+12 Jan 2026
+Invitation created
+
+12 Jan 2026
+Invitation sent
+
+15 Jan 2026
+Invitation accepted
+
+15 Jan 2026
+First login
+
+22 Feb 2026
+Degree changed to Fellowcraft
+
+01 Apr 2026
+Role Treasurer granted
+
+14 Jun 2026
+Password reset by Site Administrator
+
+20 Jun 2026
+Passkey registered
+
+--------------------------------------------------
+TIMELINE EVENTS
+--------------------------------------------------
+
+Include whenever available:
+
+Account Events
+- Member created
+- Member activated
+- Member deactivated
+- Member deleted
+
+Invitation Events
+- Invitation created
+- Invitation sent
+- Invitation resent
+- Invitation accepted
+- Invitation expired
+- Invitation revoked
+
+Authentication Events
+- First login
+- Last login
+- Password reset
+- Password changed
+- Passkey added
+- Passkey removed
+- 2FA enabled
+- 2FA disabled
+
+Role Events
+- Role granted
+- Role revoked
+
+Degree Events
+- Degree granted
+- Degree revoked
+
+Membership Events
+- Membership status changed
+
+--------------------------------------------------
+UI REQUIREMENTS
+--------------------------------------------------
+
+Display:
+
+- Date and time
+- Event description
+- User who performed the action (if applicable)
+
+Example:
+
+21 Jun 2026 19:42
+
+Role Treasurer granted by Peter Jones
+
+Allow scrolling for long histories.
+
+Mobile friendly.
+
+--------------------------------------------------
+AUDIT LOG INTEGRATION
+--------------------------------------------------
+
+Where possible, derive timeline information from existing audit logs.
+
+Avoid creating duplicate storage if the information already exists.
+
+--------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------
+
+1. Member timeline is visible on the Member Detail page.
+2. Timeline shows key lifecycle events.
+3. Timeline is ordered chronologically.
+4. Timeline remains readable on mobile devices.
+5. Timeline automatically updates when new events occur.
+6. Build passes.

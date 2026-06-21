@@ -28,11 +28,202 @@ import { useAuth } from "@/hooks/use-auth";
 import { formatDistanceToNow, format } from "date-fns";
 import {
   Users, UserX, UserCheck, Plus, Trash2, Search, ChevronLeft, ChevronRight, Loader2,
-  AlertTriangle, KeyRound, Copy, Check, Cake, Fingerprint,
+  AlertTriangle, KeyRound, Copy, Check, Cake, Fingerprint, History,
+  LogIn, Shield, Award, UserCog, Mail, Key, Lock, Unlock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 50;
+
+type TimelineEvent = {
+  id: string;
+  action: string;
+  actorId: string | null;
+  actorEmail: string | null;
+  actorFirstName: string | null;
+  actorLastName: string | null;
+  targetType: string | null;
+  targetId: string | null;
+  detail: Record<string, unknown> | null;
+  createdAt: string;
+};
+
+async function getUserTimeline(userId: string): Promise<{ events: TimelineEvent[]; userCreatedAt: string }> {
+  const res = await fetch(`/api/users/${userId}/timeline`, { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to load timeline");
+  return res.json();
+}
+
+function getEventLabel(action: string, detail: Record<string, unknown> | null): string {
+  const d = detail ?? {};
+  switch (action) {
+    case "LOGIN": return "Signed in";
+    case "LOGIN_2FA": return "Signed in with two-factor authentication";
+    case "USER_ACTIVATED": return "Account activated";
+    case "USER_DEACTIVATED": return "Account deactivated";
+    case "MEMBERSHIP_STATUS_CHANGED": return d.to ? `Membership status changed to ${d.to}` : "Membership status changed";
+    case "INVITATION_CREATED": return "Invitation created";
+    case "INVITATION_ACCEPTED": return "Invitation accepted";
+    case "INVITATION_REVOKED": return "Invitation revoked";
+    case "PASSWORD_RESET_REQUESTED": return "Password reset requested";
+    case "PASSWORD_RESET_COMPLETED": return "Password reset";
+    case "PASSWORD_CHANGED": return "Password changed";
+    case "PASSWORD_CHANGED_AFTER_RESET": return "Password changed after reset";
+    case "PASSWORD_RESET_BY_ADMIN": return "Password reset by administrator";
+    case "PASSKEY_REGISTERED": return d.label ? `Passkey registered: ${d.label}` : "Passkey registered";
+    case "PASSKEY_REMOVED": return d.label ? `Passkey removed: ${d.label}` : "Passkey removed";
+    case "PASSKEY_REVOKED_BY_ADMIN": return d.label ? `Passkey revoked: ${d.label}` : "Passkey revoked by administrator";
+    case "2FA_ENROLLED": return "Two-factor authentication enabled";
+    case "2FA_DISABLED": return "Two-factor authentication disabled";
+    case "ROLE_GRANTED": return d.roleName ? `Role ${d.roleName} granted` : "Role granted";
+    case "ROLE_REVOKED": return d.roleName ? `Role ${d.roleName} revoked` : "Role revoked";
+    case "DEGREE_RECORDED": return d.degreeName ? `${d.degreeName} degree recorded` : "Degree recorded";
+    case "DEGREE_REMOVED": return d.degreeName ? `${d.degreeName} degree removed` : "Degree removed";
+    case "USER_NAME_UPDATED": return "Name updated";
+    case "USER_EMAIL_UPDATED": return "Email address updated";
+    case "DOB_UPDATED": return "Date of birth updated";
+    case "DOMAIN_ACCESS_GRANTED": return "Document domain access granted";
+    case "DOMAIN_ACCESS_REVOKED": return "Document domain access revoked";
+    default: return action.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+}
+
+function getEventIcon(action: string) {
+  if (action === "LOGIN" || action === "LOGIN_2FA") return <LogIn className="h-3 w-3" />;
+  if (action.startsWith("ROLE_")) return <Shield className="h-3 w-3" />;
+  if (action.startsWith("DEGREE_")) return <Award className="h-3 w-3" />;
+  if (action.startsWith("INVITATION_")) return <Mail className="h-3 w-3" />;
+  if (action.startsWith("PASSKEY_") || action.startsWith("2FA_")) return <Key className="h-3 w-3" />;
+  if (action.startsWith("PASSWORD_")) return <Lock className="h-3 w-3" />;
+  if (action === "USER_ACTIVATED") return <Unlock className="h-3 w-3" />;
+  if (action === "USER_DEACTIVATED") return <Lock className="h-3 w-3" />;
+  return <UserCog className="h-3 w-3" />;
+}
+
+function getEventDotColor(action: string): string {
+  if (action === "LOGIN" || action === "LOGIN_2FA") return "bg-blue-500";
+  if (action.startsWith("ROLE_")) return "bg-violet-500";
+  if (action.startsWith("DEGREE_")) return "bg-amber-500";
+  if (action.startsWith("INVITATION_")) return "bg-emerald-500";
+  if (action.startsWith("PASSKEY_") || action.startsWith("2FA_")) return "bg-sky-500";
+  if (action.startsWith("PASSWORD_")) return "bg-orange-500";
+  if (action === "USER_ACTIVATED") return "bg-green-500";
+  if (action === "USER_DEACTIVATED") return "bg-red-500";
+  return "bg-muted-foreground";
+}
+
+function UserMemberTimeline({ userId, userCreatedAt }: { userId: string; userCreatedAt: string | undefined }) {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["user-timeline", userId],
+    queryFn: () => getUserTimeline(userId),
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+
+  const createdAtEvent: TimelineEvent | null = userCreatedAt
+    ? {
+        id: "__created__",
+        action: "__MEMBER_CREATED__",
+        actorId: null,
+        actorEmail: null,
+        actorFirstName: null,
+        actorLastName: null,
+        targetType: "user",
+        targetId: userId,
+        detail: null,
+        createdAt: userCreatedAt,
+      }
+    : null;
+
+  const allEvents: TimelineEvent[] = [...(data?.events ?? [])];
+  if (createdAtEvent) {
+    const createdAt = createdAtEvent.createdAt;
+    const alreadyHasCreated = allEvents.some(
+      (e) => e.action === "USER_ACTIVATED" && Math.abs(new Date(e.createdAt).getTime() - new Date(createdAt).getTime()) < 5000
+    );
+    if (!alreadyHasCreated) {
+      allEvents.push(createdAtEvent);
+      allEvents.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3 pt-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex gap-3">
+            <div className="flex flex-col items-center">
+              <Skeleton className="h-5 w-5 rounded-full" />
+              {i < 4 && <Skeleton className="w-px h-8 mt-1" />}
+            </div>
+            <div className="pb-4 space-y-1 flex-1">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-destructive py-4">
+        <AlertTriangle className="h-4 w-4 shrink-0" />
+        Failed to load timeline.
+      </div>
+    );
+  }
+
+  if (allEvents.length === 0) {
+    return (
+      <div className="text-center py-10">
+        <History className="h-7 w-7 text-muted-foreground mx-auto mb-2" />
+        <p className="text-xs text-muted-foreground">No timeline events yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <div className="absolute left-[9px] top-2 bottom-2 w-px bg-border" aria-hidden="true" />
+      <ul className="space-y-0">
+        {allEvents.map((event, idx) => {
+          const isLast = idx === allEvents.length - 1;
+          const actorName = event.actorId && event.actorId !== userId
+            ? [event.actorFirstName, event.actorLastName].filter(Boolean).join(" ") || event.actorEmail
+            : null;
+          const label = event.action === "__MEMBER_CREATED__"
+            ? "Account created"
+            : getEventLabel(event.action, event.detail);
+          const dotColor = event.action === "__MEMBER_CREATED__" ? "bg-green-500" : getEventDotColor(event.action);
+
+          return (
+            <li key={event.id} className={cn("flex gap-3", !isLast && "pb-4")}>
+              <div className="flex flex-col items-center shrink-0 z-10">
+                <div className={cn("h-[18px] w-[18px] rounded-full flex items-center justify-center text-white shrink-0", dotColor)}>
+                  {event.action === "__MEMBER_CREATED__"
+                    ? <UserCog className="h-2.5 w-2.5" />
+                    : <span className="text-white">{getEventIcon(event.action)}</span>
+                  }
+                </div>
+              </div>
+              <div className="flex-1 min-w-0 pb-0.5">
+                <p className="text-[11px] text-muted-foreground tabular-nums">
+                  {format(new Date(event.createdAt), "d MMM yyyy, HH:mm")}
+                </p>
+                <p className="text-sm font-medium leading-snug mt-0.5">{label}</p>
+                {actorName && (
+                  <p className="text-[11px] text-muted-foreground mt-0.5">by {actorName}</p>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
 
 function AdminPasskeysPanel({ userId, onRevoked }: { userId: string | null; onRevoked: () => void }) {
   const { toast } = useToast();
@@ -379,6 +570,9 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
               <TabsList className="w-full">
                 <TabsTrigger value="info" className="flex-1">Info</TabsTrigger>
                 <TabsTrigger value="degrees" className="flex-1">Degrees</TabsTrigger>
+                <TabsTrigger value="timeline" className="flex-1">
+                  <History className="h-3.5 w-3.5 mr-1.5" />Timeline
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="info" className="space-y-5 pt-4">
@@ -811,6 +1005,12 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
                     Record Degree
                   </Button>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="timeline" className="pt-4">
+                {userId && (
+                  <UserMemberTimeline userId={userId} userCreatedAt={user.createdAt} />
+                )}
               </TabsContent>
             </Tabs>
 

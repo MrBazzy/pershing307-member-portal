@@ -1,0 +1,174 @@
+MEMBERS-ONBOARDING-001 — Create Member First, Invite Later
+
+STEP 0 — SAFETY FIRST
+
+Before making changes:
+
+1. Create Replit checkpoint/snapshot.
+2. Create git tag:
+
+v3.9-before-member-onboarding-redesign
+
+3. Confirm build passes.
+
+--------------------------------------------------
+GOAL
+--------------------------------------------------
+
+Improve member onboarding.
+
+Administrators should be able to create a member record first, complete all details, and send the invitation later when ready.
+
+--------------------------------------------------
+REQUIRED BEHAVIOR
+--------------------------------------------------
+
+In Management → Members, add:
+
+Create Member
+
+The administrator can enter:
+
+- First name
+- Last name
+- Email
+- Date of birth
+- Membership status
+- Roles
+- Degrees
+- Notes / profile details if available
+
+The member should be created with status:
+
+Not Invited
+
+or
+
+Draft Member
+
+No invitation email is sent automatically.
+
+--------------------------------------------------
+SEND INVITATION LATER
+--------------------------------------------------
+
+On the member detail page, add:
+
+Send Invitation
+
+When clicked:
+
+- create secure invitation token
+- send invitation email to registered email address
+- update invitation status to Sent
+- store sentAt timestamp
+
+Also allow:
+
+- Resend Invitation
+- Revoke Invitation
+
+--------------------------------------------------
+TEST MEMBERS
+--------------------------------------------------
+
+This allows administrators to create fake/test members without sending invitations.
+
+Add optional checkbox:
+
+Test Member
+
+If enabled:
+- clearly mark the account as test data
+- exclude from production-style reports if already supported
+- allow deletion by administrator
+
+--------------------------------------------------
+DELETE MEMBER
+--------------------------------------------------
+
+Replace/remove:
+
+Remove Test User
+
+with:
+
+Delete Member
+
+Before deletion, show strong confirmation:
+
+You are about to delete this member.
+
+This action may remove the member account and related test data.
+Are you absolutely sure?
+
+Require confirmation.
+
+Preferred confirmation:
+Administrator must type the member’s full name.
+
+Example:
+
+Type "John Smith" to confirm deletion.
+
+--------------------------------------------------
+DELETE RULES
+--------------------------------------------------
+
+Only allow deletion by:
+
+- Site Administrator
+- PM Super Administrator
+
+Do not allow deletion of:
+
+- bootstrap admin
+- currently logged-in user
+- PM Super Administrator unless deleted by another PM Super Administrator
+
+If deletion is risky because the user has audit logs, documents, or historical records:
+
+Prefer soft delete/anonymize or deactivate instead.
+
+Ask Replit to explain the chosen approach.
+
+--------------------------------------------------
+AUDIT LOGGING
+--------------------------------------------------
+
+Log:
+
+- Member created
+- Member marked as test member
+- Invitation sent
+- Invitation resent
+- Invitation revoked
+- Member deleted
+- Delete attempt blocked
+
+Use first and last names.
+
+--------------------------------------------------
+INVITATIONS FEATURE
+--------------------------------------------------
+
+Do not remove the invitation system yet.
+
+Instead:
+- integrate invitation actions into Members
+- keep invitation tokens internally
+- optionally hide the separate Invitations menu later if all functions exist in Members
+
+--------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------
+
+1. Admin can create member without sending invite.
+2. Admin can later send invite.
+3. Member receives invitation email.
+4. Test member can be created.
+5. Delete Member replaces Remove Test User.
+6. Delete requires strong confirmation.
+7. Audit log records all actions.
+8. Existing invitation links still work.
+9. Build passes.
