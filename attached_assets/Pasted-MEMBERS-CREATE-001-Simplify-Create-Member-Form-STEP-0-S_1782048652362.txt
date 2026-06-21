@@ -1,0 +1,104 @@
+MEMBERS-CREATE-001 — Simplify Create Member Form
+
+STEP 0 — SAFETY FIRST
+
+Create checkpoint/snapshot.
+Create git tag:
+
+v3.9-before-create-member-form-cleanup
+
+Confirm build passes.
+
+--------------------------------------------------
+ISSUE
+--------------------------------------------------
+
+The Create Member form currently includes a Membership Status dropdown with values such as:
+
+- Pending
+- Visitor
+- Candidate
+- Entered Apprentice
+- Fellow Craft
+- Master Mason
+- Past Master
+
+This is confusing and unnecessary during initial member creation.
+
+Degrees and roles are already managed after the member has been created.
+
+--------------------------------------------------
+REQUIRED CHANGE
+--------------------------------------------------
+
+Simplify the Create Member form.
+
+Only ask for:
+
+1. First Name
+2. Last Name
+3. Email Address
+
+Do not ask for:
+
+- Membership Status
+- Role
+- Degree
+- Date of Birth
+- Birthday visibility
+- Invitation status
+
+These can be managed later from the Member Detail page.
+
+--------------------------------------------------
+DEFAULTS AFTER CREATION
+--------------------------------------------------
+
+When a member is created:
+
+- Account status: Not Invited
+- Invitation status: Not Invited
+- Roles: none by default, unless the application requires Member role
+- Degrees: none
+- Email verified: false
+- Active: false or pending, depending on current onboarding design
+
+Do not send an invitation automatically.
+
+--------------------------------------------------
+AFTER CREATION
+--------------------------------------------------
+
+After the member is created, open the Member Detail page.
+
+From there the administrator can:
+
+- assign roles
+- assign degrees
+- update status
+- add date of birth
+- send invitation
+- manage security
+- delete member if needed
+
+--------------------------------------------------
+AUDIT LOGGING
+--------------------------------------------------
+
+Log:
+
+John Smith created member Peter Jones.
+
+No invitation sent.
+
+--------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------
+
+1. Create Member form only has First Name, Last Name and Email Address.
+2. Member can be created without role or degree.
+3. No invitation is sent automatically.
+4. Member appears with Invitation Status: Not Invited.
+5. Member Detail page opens after creation.
+6. Roles and Degrees can be assigned afterwards.
+7. Build passes.

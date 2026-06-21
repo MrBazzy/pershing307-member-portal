@@ -76,7 +76,7 @@ async function getUserTimeline(userId: string): Promise<{ events: TimelineEvent[
   return res.json();
 }
 
-async function createMemberApi(data: { firstName: string; lastName: string; email: string; membershipStatus?: string }): Promise<{ user: { id: string; email: string; firstName: string; lastName: string } }> {
+async function createMemberApi(data: { firstName: string; lastName: string; email: string }): Promise<{ user: { id: string; email: string; firstName: string; lastName: string } }> {
   const res = await fetch("/api/users", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -404,11 +404,10 @@ function CreateMemberDialog({ open, onClose, onCreated }: {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [membershipStatus, setMembershipStatus] = useState("pending");
   const [isPending, setIsPending] = useState(false);
 
   const handleClose = () => {
-    setFirstName(""); setLastName(""); setEmail(""); setMembershipStatus("pending");
+    setFirstName(""); setLastName(""); setEmail("");
     onClose();
   };
 
@@ -417,7 +416,7 @@ function CreateMemberDialog({ open, onClose, onCreated }: {
     if (!firstName.trim() || !lastName.trim() || !email.trim()) return;
     setIsPending(true);
     try {
-      const result = await createMemberApi({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), membershipStatus });
+      const result = await createMemberApi({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim() });
       queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
       toast({ title: "Member created", description: `${result.user.firstName} ${result.user.lastName} has been added.` });
       handleClose();
@@ -452,21 +451,6 @@ function CreateMemberDialog({ open, onClose, onCreated }: {
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Email Address</label>
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@example.com" required data-testid="input-create-email" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Membership Status</label>
-            <Select value={membershipStatus} onValueChange={setMembershipStatus}>
-              <SelectTrigger data-testid="select-create-membership-status"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="visitor">Visitor</SelectItem>
-                <SelectItem value="candidate">Candidate</SelectItem>
-                <SelectItem value="entered-apprentice">Entered Apprentice</SelectItem>
-                <SelectItem value="fellow-craft">Fellow Craft</SelectItem>
-                <SelectItem value="master-mason">Master Mason</SelectItem>
-                <SelectItem value="past-master">Past Master</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose} disabled={isPending}>Cancel</Button>
