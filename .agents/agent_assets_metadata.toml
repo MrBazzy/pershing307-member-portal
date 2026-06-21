@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "DfqTsvp_K_Isx-yBCOGuR"
+uri = "file://Pershing307_Member_Portal_Manual.docx"
+type = "word_document"
+title = "Pershing No. 307 — Member Portal Manual (Word)"
