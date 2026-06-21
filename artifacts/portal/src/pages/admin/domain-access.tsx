@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetDocumentDomainAccessMatrix,
@@ -35,8 +36,10 @@ import {
   X,
   History,
   User,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PM_SUPER_LEVEL } from "@/lib/roles";
 
 // ROLE_ROWS is now built dynamically from the /roles API — see useListRoles in the component.
 
@@ -202,6 +205,7 @@ function MatrixRow({
   localSet,
   onToggle,
   isHeader,
+  disabled,
 }: {
   label: string;
   subjectType: "role" | "degree";
@@ -209,6 +213,7 @@ function MatrixRow({
   localSet: Set<string>;
   onToggle: (key: string) => void;
   isHeader?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <tr className={cn("border-b border-border last:border-0", isHeader && "bg-muted/20")}>
@@ -222,7 +227,8 @@ function MatrixRow({
           <td key={perm.key} className="py-2.5 px-3 text-center">
             <Checkbox
               checked={checked}
-              onCheckedChange={() => onToggle(entryKey)}
+              onCheckedChange={disabled ? undefined : () => onToggle(entryKey)}
+              disabled={disabled}
               className="mx-auto"
             />
           </td>
@@ -304,10 +310,15 @@ function formatDateTime(iso: string): string {
 export default function DomainAccessPage({ id }: { id: string }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  const level = user?.roles?.reduce((max, r) => Math.max(max, r.permissionLevel), 0) ?? 0;
+  const isPmSuper = level >= PM_SUPER_LEVEL;
 
   const { data: domainsData } = useListDocumentDomains();
   const domain = domainsData?.domains.find((d) => d.id === id) ?? null;
+  const isLocked = domain?.domainProtectionLevel === "past_master_protected" && !isPmSuper;
 
   const { data: rolesData } = useListRoles();
   const { data: degreesData } = useListDegreeDefinitions();
@@ -480,7 +491,7 @@ export default function DomainAccessPage({ id }: { id: string }) {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {hasDefaults && (
+            {!isLocked && hasDefaults && (
               <Button
                 variant="outline"
                 size="sm"
@@ -491,7 +502,7 @@ export default function DomainAccessPage({ id }: { id: string }) {
                 Reset to defaults
               </Button>
             )}
-            {isDirty && (
+            {!isLocked && isDirty && (
               <>
                 <Button
                   variant="ghost"
@@ -515,13 +526,22 @@ export default function DomainAccessPage({ id }: { id: string }) {
           </div>
         </div>
 
-        {/* Warning banner */}
-        <div className="flex items-start gap-2.5 p-3 rounded-md bg-amber-500/10 border border-amber-500/30 mb-6">
-          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-          <p className="text-sm text-amber-800 dark:text-amber-200">
-            <strong>Changes to this access matrix immediately affect all users with the selected roles or degrees.</strong>
-          </p>
-        </div>
+        {/* Warning / locked banner */}
+        {isLocked ? (
+          <div className="flex items-start gap-2.5 p-3 rounded-md bg-amber-500/10 border border-amber-500/30 mb-6">
+            <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              <strong>Past Master Protected.</strong> Only a PM Super Administrator may modify this access matrix.
+            </p>
+          </div>
+        ) : (
+          <div className="flex items-start gap-2.5 p-3 rounded-md bg-amber-500/10 border border-amber-500/30 mb-6">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              <strong>Changes to this access matrix immediately affect all users with the selected roles or degrees.</strong>
+            </p>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="space-y-3">
@@ -565,6 +585,7 @@ export default function DomainAccessPage({ id }: { id: string }) {
                         subjectKey={row.subjectKey}
                         localSet={localSet}
                         onToggle={handleToggle}
+                        disabled={isLocked}
                       />
                     ))}
                   </tbody>
@@ -601,6 +622,7 @@ export default function DomainAccessPage({ id }: { id: string }) {
                         subjectKey={row.subjectKey}
                         localSet={localSet}
                         onToggle={handleToggle}
+                        disabled={isLocked}
                       />
                     ))}
                   </tbody>
@@ -608,8 +630,8 @@ export default function DomainAccessPage({ id }: { id: string }) {
               </div>
             </div>
 
-            {/* Footer action bar (visible when dirty) */}
-            {isDirty && (
+            {/* Footer action bar (visible when dirty and not locked) */}
+            {!isLocked && isDirty && (
               <div className="flex items-center justify-between gap-3 p-3 rounded-md bg-muted/40 border border-border">
                 <p className="text-sm text-muted-foreground">You have unsaved changes.</p>
                 <div className="flex items-center gap-2">

@@ -1480,6 +1480,7 @@ export interface DocumentDomainItem {
   slug: string;
   frame: DocumentDomainItemFrame;
   description?: string | null;
+  domainProtectionLevel?: string | null;
   accessLogic: DocumentDomainItemAccessLogic;
   allowedRoleSlugs: string[];
   minDegree?: number | null;
@@ -1527,6 +1528,7 @@ export interface DocumentDomainCreateInput {
   frame?: DocumentDomainCreateInputFrame;
   /** @maxLength 1000 */
   description?: string | null;
+  domainProtectionLevel?: string;
   accessLogic: DocumentDomainCreateInputAccessLogic;
   allowedRoleSlugs?: string[];
   /**
@@ -1544,6 +1546,7 @@ export interface DocumentDomainUpdateInput {
   name?: string;
   /** @maxLength 1000 */
   description?: string | null;
+  domainProtectionLevel?: string;
 }
 
 export type DocumentDomainAccessUpdateInputAccessLogic = typeof DocumentDomainAccessUpdateInputAccessLogic[keyof typeof DocumentDomainAccessUpdateInputAccessLogic];

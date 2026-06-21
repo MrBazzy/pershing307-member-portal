@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
-import { protectedDomainsTable, usersTable, userDomainAccessTable, documentFoldersTable } from "@workspace/db/schema";
-import type { DomainAccessLogic, DomainFrame } from "@workspace/db/schema";
+import { protectedDomainsTable, usersTable, userDomainAccessTable, documentFoldersTable, userRolesTable, rolesTable } from "@workspace/db/schema";
+import type { DomainAccessLogic, DomainFrame, DomainProtectionLevel } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
@@ -20,14 +20,15 @@ const SITE_ADMIN_LEVEL = 80;
 const PM_SUPER_LEVEL = 90;
 
 const ACCESS_LOGIC_VALUES = ["role_only", "degree_only", "role_or_degree", "role_and_degree"] as const;
-
 const FRAME_VALUES = ["general", "ritual"] as const;
+const PROTECTION_LEVEL_VALUES = ["standard", "past_master_protected"] as const;
 
 const createDomainSchema = z.object({
   name: z.string().min(1).max(200),
   slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "Slug must be lowercase letters, numbers, and hyphens only"),
   frame: z.enum(FRAME_VALUES).optional().default("general"),
   description: z.string().max(1000).nullable().optional(),
+  domainProtectionLevel: z.enum(PROTECTION_LEVEL_VALUES).optional().default("standard"),
   accessLogic: z.enum(ACCESS_LOGIC_VALUES),
   allowedRoleSlugs: z.array(z.string()).optional().default([]),
   minDegree: z.number().int().min(1).max(3).nullable().optional(),
@@ -36,6 +37,7 @@ const createDomainSchema = z.object({
 const updateDomainSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   description: z.string().max(1000).nullable().optional(),
+  domainProtectionLevel: z.enum(PROTECTION_LEVEL_VALUES).optional(),
 });
 
 const updateAccessSchema = z.object({
@@ -44,6 +46,15 @@ const updateAccessSchema = z.object({
   minDegree: z.number().int().min(1).max(3).nullable().optional(),
 });
 
+async function getUserLevel(userId: string): Promise<number> {
+  const rows = await db
+    .select({ permissionLevel: rolesTable.permissionLevel })
+    .from(userRolesTable)
+    .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
+    .where(eq(userRolesTable.userId, userId));
+  return rows.reduce((max, r) => Math.max(max, r.permissionLevel), 0);
+}
+
 function formatDomain(d: typeof protectedDomainsTable.$inferSelect) {
   return {
     id: d.id,
@@ -51,6 +62,7 @@ function formatDomain(d: typeof protectedDomainsTable.$inferSelect) {
     slug: d.slug,
     frame: (d.frame ?? "general") as DomainFrame,
     description: d.description ?? null,
+    domainProtectionLevel: (d.domainProtectionLevel ?? "standard") as DomainProtectionLevel,
     accessLogic: d.accessLogic as DomainAccessLogic,
     allowedRoleSlugs: (d.allowedRoleSlugs as string[]) ?? [],
     minDegree: d.minDegree ?? null,
@@ -90,7 +102,7 @@ router.get("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res
 });
 
 // ── POST /document-domains ─────────────────────────────────────────────────────
-router.post("/", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, res) => {
+router.post("/", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const userId = req.session!.userId!;
   const lodgeId = await getLodgeId();
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
@@ -98,7 +110,39 @@ router.post("/", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, res) =>
   const parsed = createDomainSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() }); return; }
 
-  const { name, slug, frame, description, accessLogic, allowedRoleSlugs, minDegree } = parsed.data;
+  const { name, slug, frame, description, domainProtectionLevel, accessLogic, allowedRoleSlugs, minDegree } = parsed.data;
+
+  const actor = await db
+    .select({ firstName: usersTable.firstName, lastName: usersTable.lastName, email: usersTable.email })
+    .from(usersTable)
+    .where(eq(usersTable.id, userId))
+    .then((r) => r[0] ?? null);
+  const actorName = actor ? `${actor.firstName} ${actor.lastName}`.trim() : "Admin";
+
+  // Only PM Super Admin may create a past_master_protected domain
+  if (domainProtectionLevel === "past_master_protected") {
+    const userLevel = await getUserLevel(userId);
+    if (userLevel < PM_SUPER_LEVEL) {
+      await writeAuditLog({
+        lodgeId,
+        actorId: userId,
+        actorEmail: actor?.email ?? "",
+        action: "DOMAIN_PROTECTION_BLOCKED",
+        targetType: "domain",
+        targetId: null,
+        detail: {
+          domainName: name,
+          attemptedAction: "create_past_master_protected_domain",
+          actorName,
+          reason: "Only a PM Super Administrator may create Past Master protected domains.",
+        },
+        ipAddress: getClientIp(req),
+        userAgent: req.headers["user-agent"] ?? null,
+      });
+      res.status(403).json({ error: "Only a PM Super Administrator may manage Past Master protected domains." });
+      return;
+    }
+  }
 
   // Check slug uniqueness
   const existing = await db
@@ -108,13 +152,6 @@ router.post("/", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, res) =>
     .then((r) => r[0] ?? null);
   if (existing) { res.status(409).json({ error: "A domain with this slug already exists" }); return; }
 
-  const actor = await db
-    .select({ firstName: usersTable.firstName, lastName: usersTable.lastName, email: usersTable.email })
-    .from(usersTable)
-    .where(eq(usersTable.id, userId))
-    .then((r) => r[0] ?? null);
-  const actorName = actor ? `${actor.firstName} ${actor.lastName}`.trim() : "Admin";
-
   const [created] = await db
     .insert(protectedDomainsTable)
     .values({
@@ -123,6 +160,7 @@ router.post("/", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, res) =>
       slug,
       frame: frame ?? "general",
       description: description ?? null,
+      domainProtectionLevel: domainProtectionLevel ?? "standard",
       accessLogic,
       allowedRoleSlugs: allowedRoleSlugs ?? [],
       minDegree: minDegree ?? null,
@@ -130,6 +168,7 @@ router.post("/", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, res) =>
     })
     .returning();
 
+  const isProtected = (domainProtectionLevel ?? "standard") === "past_master_protected";
   await writeAuditLog({
     lodgeId,
     actorId: userId,
@@ -137,7 +176,15 @@ router.post("/", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, res) =>
     action: "DOMAIN_CREATED",
     targetType: "domain",
     targetId: created.id,
-    detail: { domainName: name, accessLogic, actorName },
+    detail: {
+      domainName: name,
+      accessLogic,
+      domainProtectionLevel: domainProtectionLevel ?? "standard",
+      actorName,
+      summary: isProtected
+        ? `${actorName} created domain "${name}" and marked it as Past Master Protected.`
+        : `${actorName} created domain "${name}".`,
+    },
     ipAddress: getClientIp(req),
     userAgent: req.headers["user-agent"] ?? null,
   });
@@ -146,7 +193,7 @@ router.post("/", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, res) =>
 });
 
 // ── PATCH /document-domains/:id ───────────────────────────────────────────────
-router.patch("/:id", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, res) => {
+router.patch("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const userId = req.session!.userId!;
   const lodgeId = await getLodgeId();
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
@@ -168,9 +215,40 @@ router.patch("/:id", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, res
     .then((r) => r[0] ?? null);
   const actorName = actor ? `${actor.firstName} ${actor.lastName}`.trim() : "Admin";
 
+  const userLevel = await getUserLevel(userId);
+
+  // Block Site Admin from modifying a past_master_protected domain
+  if (domain.domainProtectionLevel === "past_master_protected" && userLevel < PM_SUPER_LEVEL) {
+    await writeAuditLog({
+      lodgeId,
+      actorId: userId,
+      actorEmail: actor?.email ?? "",
+      action: "DOMAIN_PROTECTION_BLOCKED",
+      targetType: "domain",
+      targetId: domain.id,
+      detail: {
+        domainName: domain.name,
+        attemptedAction: "edit_details",
+        actorName,
+        summary: `${actorName} attempted to update "${domain.name}" but was denied because the domain is Past Master Protected.`,
+      },
+      ipAddress: getClientIp(req),
+      userAgent: req.headers["user-agent"] ?? null,
+    });
+    res.status(403).json({ error: "Only a PM Super Administrator may manage Past Master protected domains." });
+    return;
+  }
+
+  // Only PM Super Admin may change the protection level
+  if (parsed.data.domainProtectionLevel !== undefined && userLevel < PM_SUPER_LEVEL) {
+    res.status(403).json({ error: "Only a PM Super Administrator may change the protection level of a domain." });
+    return;
+  }
+
   const updates: Partial<typeof protectedDomainsTable.$inferInsert> = { updatedAt: new Date() };
   if (parsed.data.name !== undefined) updates.name = parsed.data.name;
   if (parsed.data.description !== undefined) updates.description = parsed.data.description;
+  if (parsed.data.domainProtectionLevel !== undefined) updates.domainProtectionLevel = parsed.data.domainProtectionLevel;
 
   const [updated] = await db
     .update(protectedDomainsTable)
@@ -189,6 +267,7 @@ router.patch("/:id", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, res
       domainName: updated.name,
       changes: parsed.data,
       actorName,
+      summary: `${actorName} updated domain "${updated.name}".`,
     },
     ipAddress: getClientIp(req),
     userAgent: req.headers["user-agent"] ?? null,
@@ -198,7 +277,7 @@ router.patch("/:id", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, res
 });
 
 // ── PATCH /document-domains/:id/access ────────────────────────────────────────
-router.patch("/:id/access", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, res) => {
+router.patch("/:id/access", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const userId = req.session!.userId!;
   const lodgeId = await getLodgeId();
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
@@ -220,6 +299,29 @@ router.patch("/:id/access", requireAuth(), requireRole(PM_SUPER_LEVEL), async (r
     .then((r) => r[0] ?? null);
   const actorName = actor ? `${actor.firstName} ${actor.lastName}`.trim() : "Admin";
 
+  const userLevel = await getUserLevel(userId);
+
+  if (domain.domainProtectionLevel === "past_master_protected" && userLevel < PM_SUPER_LEVEL) {
+    await writeAuditLog({
+      lodgeId,
+      actorId: userId,
+      actorEmail: actor?.email ?? "",
+      action: "DOMAIN_PROTECTION_BLOCKED",
+      targetType: "domain",
+      targetId: domain.id,
+      detail: {
+        domainName: domain.name,
+        attemptedAction: "edit_access_rules",
+        actorName,
+        summary: `${actorName} attempted to update "${domain.name}" but was denied because the domain is Past Master Protected.`,
+      },
+      ipAddress: getClientIp(req),
+      userAgent: req.headers["user-agent"] ?? null,
+    });
+    res.status(403).json({ error: "Only a PM Super Administrator may manage Past Master protected domains." });
+    return;
+  }
+
   const [updated] = await db
     .update(protectedDomainsTable)
     .set({
@@ -231,7 +333,6 @@ router.patch("/:id/access", requireAuth(), requireRole(PM_SUPER_LEVEL), async (r
     .where(eq(protectedDomainsTable.id, domain.id))
     .returning();
 
-  // Human-readable summary for audit detail
   const slugsList = (parsed.data.allowedRoleSlugs ?? (domain.allowedRoleSlugs as string[]) ?? [])
     .map((s) => s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()))
     .join(", ");
@@ -317,18 +418,41 @@ router.put("/:id/access-matrix", requireAuth(), requireRole(SITE_ADMIN_LEVEL), a
     .then((r) => r[0] ?? null);
   if (!domain) { res.status(404).json({ error: "Domain not found" }); return; }
 
-  const existing = await getMatrixForDomain(domain.id, lodgeId);
-  if (!existing) {
-    res.status(404).json({ error: "No system root folder linked to this domain" });
-    return;
-  }
-
   const actor = await db
     .select({ firstName: usersTable.firstName, lastName: usersTable.lastName, email: usersTable.email })
     .from(usersTable)
     .where(eq(usersTable.id, userId))
     .then((r) => r[0] ?? null);
   const actorName = actor ? `${actor.firstName} ${actor.lastName}`.trim() : "Admin";
+
+  const userLevel = await getUserLevel(userId);
+
+  if (domain.domainProtectionLevel === "past_master_protected" && userLevel < PM_SUPER_LEVEL) {
+    await writeAuditLog({
+      lodgeId,
+      actorId: userId,
+      actorEmail: actor?.email ?? "",
+      action: "DOMAIN_PROTECTION_BLOCKED",
+      targetType: "domain",
+      targetId: domain.id,
+      detail: {
+        domainName: domain.name,
+        attemptedAction: "modify_access_matrix",
+        actorName,
+        summary: `${actorName} attempted to update access matrix for "${domain.name}" but was denied because the domain is Past Master Protected.`,
+      },
+      ipAddress: getClientIp(req),
+      userAgent: req.headers["user-agent"] ?? null,
+    });
+    res.status(403).json({ error: "Only a PM Super Administrator may manage Past Master protected domains." });
+    return;
+  }
+
+  const existing = await getMatrixForDomain(domain.id, lodgeId);
+  if (!existing) {
+    res.status(404).json({ error: "No system root folder linked to this domain" });
+    return;
+  }
 
   // Diff old vs new for per-change audit entries
   const oldSet = new Set(existing.rows.map((r) => `${r.subjectType}:${r.subjectKey}:${r.permission}`));
@@ -338,15 +462,12 @@ router.put("/:id/access-matrix", requireAuth(), requireRole(SITE_ADMIN_LEVEL), a
   const granted = newEntries.filter((e) => !oldSet.has(`${e.subjectType}:${e.subjectKey}:${e.permission}`));
   const revoked = existing.rows.filter((r) => !newSet.has(`${r.subjectType}:${r.subjectKey}:${r.permission}`));
 
-  // Perform the full replace and mark folder initialized so the seeder
-  // never overwrites admin-configured permissions on a subsequent request.
   const newRows = await replaceMatrixForFolder(existing.folderId, lodgeId, newEntries);
   await db
     .update(documentFoldersTable)
     .set({ matrixInitialized: true })
     .where(eq(documentFoldersTable.id, existing.folderId));
 
-  // Audit: individual grant/revoke rows
   for (const entry of granted) {
     await writeAuditLog({
       lodgeId,
@@ -386,7 +507,6 @@ router.put("/:id/access-matrix", requireAuth(), requireRole(SITE_ADMIN_LEVEL), a
     });
   }
 
-  // Audit: summary row
   await writeAuditLog({
     lodgeId,
     actorId: userId,
@@ -418,7 +538,7 @@ router.put("/:id/access-matrix", requireAuth(), requireRole(SITE_ADMIN_LEVEL), a
 });
 
 // ── DELETE /document-domains/:id ──────────────────────────────────────────────
-router.delete("/:id", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, res) => {
+router.delete("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const userId = req.session!.userId!;
   const lodgeId = await getLodgeId();
   if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
@@ -437,6 +557,29 @@ router.delete("/:id", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, re
     .then((r) => r[0] ?? null);
   const actorName = actor ? `${actor.firstName} ${actor.lastName}`.trim() : "Admin";
 
+  const userLevel = await getUserLevel(userId);
+
+  if (domain.domainProtectionLevel === "past_master_protected" && userLevel < PM_SUPER_LEVEL) {
+    await writeAuditLog({
+      lodgeId,
+      actorId: userId,
+      actorEmail: actor?.email ?? "",
+      action: "DOMAIN_PROTECTION_BLOCKED",
+      targetType: "domain",
+      targetId: domain.id,
+      detail: {
+        domainName: domain.name,
+        attemptedAction: "delete",
+        actorName,
+        summary: `${actorName} attempted to delete "${domain.name}" but was denied because the domain is Past Master Protected.`,
+      },
+      ipAddress: getClientIp(req),
+      userAgent: req.headers["user-agent"] ?? null,
+    });
+    res.status(403).json({ error: "Only a PM Super Administrator may manage Past Master protected domains." });
+    return;
+  }
+
   // Remove explicit user grants for this domain (FK, no cascade)
   await db
     .delete(userDomainAccessTable)
@@ -452,7 +595,12 @@ router.delete("/:id", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, re
     action: "DOMAIN_UPDATED",
     targetType: "domain",
     targetId: domain.id,
-    detail: { domainName: domain.name, deleted: true, actorName },
+    detail: {
+      domainName: domain.name,
+      deleted: true,
+      actorName,
+      summary: `${actorName} deleted domain "${domain.name}".`,
+    },
     ipAddress: getClientIp(req),
     userAgent: req.headers["user-agent"] ?? null,
   });

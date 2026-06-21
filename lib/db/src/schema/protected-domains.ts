@@ -4,6 +4,7 @@ import { usersTable } from "./users";
 
 export type DomainAccessLogic = "role_only" | "degree_only" | "role_or_degree" | "role_and_degree";
 export type DomainFrame = "general" | "ritual";
+export type DomainProtectionLevel = "standard" | "past_master_protected";
 
 export const protectedDomainsTable = pgTable("protected_domains", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -12,6 +13,7 @@ export const protectedDomainsTable = pgTable("protected_domains", {
   slug: text("slug").notNull(),
   description: text("description"),
   frame: text("frame").notNull().$type<DomainFrame>().default("general"),
+  domainProtectionLevel: text("domain_protection_level").notNull().$type<DomainProtectionLevel>().default("standard"),
   accessLogic: text("access_logic").notNull().$type<DomainAccessLogic>().default("role_only"),
   allowedRoleSlugs: jsonb("allowed_role_slugs").$type<string[]>().default([]),
   minDegree: integer("min_degree"),

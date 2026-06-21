@@ -1,0 +1,212 @@
+DOMAIN-GOVERNANCE-001 — Protected Past Master Domain Controls
+
+STEP 0 — SAFETY FIRST
+
+Before making changes:
+
+1. Create Replit checkpoint/snapshot.
+2. Create git tag:
+
+v3.9-before-domain-governance-protection
+
+3. Confirm build passes.
+
+--------------------------------------------------
+CURRENT STATUS
+--------------------------------------------------
+
+Confirmed working:
+
+1. Site Administrator cannot grant himself or others the PM Super Administrator role.
+2. PM Super Administrator role is not available in the Site Administrator role dropdown.
+3. Site Administrator can see document domains/files in Document Management but cannot open restricted files.
+4. This behavior must be preserved.
+
+--------------------------------------------------
+GOAL
+--------------------------------------------------
+
+Allow Site Administrators to manage all normal domains.
+
+Protect Past Master domains from modification by Site Administrators.
+
+--------------------------------------------------
+DOMAIN PROTECTION LEVEL
+--------------------------------------------------
+
+Add a field:
+
+domainProtectionLevel
+
+Allowed values:
+
+- standard
+- past_master_protected
+
+Default:
+
+standard
+
+--------------------------------------------------
+STANDARD DOMAIN
+--------------------------------------------------
+
+Examples:
+
+- General Documents
+- Meeting Minutes
+- Secretary Documents
+- Treasury Documents
+- Worshipful Master Documents
+- Entered Apprentice Ritual
+- Fellowcraft Ritual
+- Master Mason Ritual
+
+For standard domains:
+
+Site Administrator may:
+
+- Edit Access
+- Edit Details
+- Delete
+- Manage access matrix
+
+PM Super Administrator may:
+
+- Edit Access
+- Edit Details
+- Delete
+- Manage access matrix
+
+--------------------------------------------------
+PAST MASTER PROTECTED DOMAIN
+--------------------------------------------------
+
+Examples:
+
+- Past Master Ritual
+- Past Master Documents
+- Past Master Archive
+- Any future Past Master protected area
+
+For past_master_protected domains:
+
+Only PM Super Administrator may:
+
+- Edit Access
+- Edit Details
+- Delete
+- Modify access matrix
+- Change protection level
+
+Site Administrator may:
+
+- See the domain listed
+- View summary information
+- View protection status
+
+Site Administrator may NOT:
+
+- Edit Access
+- Edit Details
+- Delete
+- Modify access matrix
+
+--------------------------------------------------
+DOMAINS & ACCESS CONTROL
+--------------------------------------------------
+
+For Site Administrators:
+
+Show ALL domains.
+
+For standard domains:
+
+Show:
+- Edit Access
+- Edit Details
+- Delete
+
+For past_master_protected domains:
+
+Hide or disable:
+- Edit Access
+- Edit Details
+- Delete
+
+Display badge:
+
+Past Master Protected
+
+Tooltip:
+
+Only a PM Super Administrator may manage this domain.
+
+--------------------------------------------------
+DOMAIN CREATION
+--------------------------------------------------
+
+When creating a new domain:
+
+Default:
+- standard
+
+Only PM Super Administrator may create or modify:
+
+past_master_protected
+
+Site Administrator may not:
+
+- create past_master_protected domains
+- convert standard domains into past_master_protected domains
+- remove protection from past_master_protected domains
+
+--------------------------------------------------
+BACKEND ENFORCEMENT
+--------------------------------------------------
+
+Enforce server-side.
+
+Do not rely on UI restrictions.
+
+Protect:
+
+- access matrix updates
+- domain updates
+- domain deletion
+- protection level changes
+
+If unauthorized:
+
+Return:
+
+Only a PM Super Administrator may manage Past Master protected domains.
+
+--------------------------------------------------
+AUDIT LOGGING
+--------------------------------------------------
+
+Examples:
+
+John Smith updated access matrix for Treasury Documents.
+
+Peter Jones attempted to update Past Master Ritual but was denied because the domain is Past Master Protected.
+
+John Smith created domain Past Master Documents and marked it as Past Master Protected.
+
+--------------------------------------------------
+ACCEPTANCE TESTS
+--------------------------------------------------
+
+1. Site Administrator can see all domains.
+2. Site Administrator can edit standard domains.
+3. Site Administrator can delete standard domains.
+4. Site Administrator can modify access matrices for standard domains.
+5. Site Administrator cannot edit Past Master Ritual.
+6. Site Administrator cannot delete Past Master Ritual.
+7. Site Administrator cannot modify the Past Master Ritual access matrix.
+8. PM Super Administrator can manage Past Master protected domains.
+9. Future domains marked past_master_protected inherit these restrictions automatically.
+10. Backend blocks unauthorized API calls.
+11. Audit log records successful and denied attempts.
+12. Build passes.

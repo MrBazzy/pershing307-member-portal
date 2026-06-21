@@ -53,7 +53,7 @@ import {
   type DocumentDomainItem,
   type DocumentDomainAccessUpdateInputAccessLogic,
 } from "@workspace/api-client-react";
-import { Shield, Plus, MoreHorizontal, Pencil, Trash2, Settings2, AlertCircle } from "lucide-react";
+import { Shield, Plus, MoreHorizontal, Pencil, Trash2, Settings2, AlertCircle, Lock } from "lucide-react";
 import { ADMIN_LEVEL, PM_SUPER_LEVEL } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
@@ -86,26 +86,40 @@ const DEGREE_OPTIONS = [
 function DomainCard({
   domain,
   isPmSuper,
+  isAdmin,
   onEdit,
   onEditAccess,
   onDelete,
 }: {
   domain: DocumentDomainItem;
   isPmSuper: boolean;
+  isAdmin: boolean;
   onEdit: (d: DocumentDomainItem) => void;
   onEditAccess: (d: DocumentDomainItem) => void;
   onDelete: (d: DocumentDomainItem) => void;
 }) {
+  const isProtected = domain.domainProtectionLevel === "past_master_protected";
+  const canManage = isPmSuper || !isProtected;
+
   return (
     <Card className="border-card-border h-full">
       <CardContent className="p-5 flex flex-col gap-3 h-full">
-        {/* Top row: icon left, menu right */}
+        {/* Top row: icon left, controls right */}
         <div className="flex items-start justify-between gap-2">
           <div className="rounded-md bg-primary/10 p-2.5 shrink-0">
             <Shield className="h-5 w-5 text-primary" />
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            {isPmSuper && (
+            {isProtected && !isPmSuper && (
+              <div
+                className="flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded px-2 py-0.5"
+                title="Only a PM Super Administrator may manage this domain."
+              >
+                <Lock className="h-3 w-3" />
+                <span>Past Master Protected</span>
+              </div>
+            )}
+            {(isPmSuper || isAdmin) && canManage && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -143,6 +157,14 @@ function DomainCard({
           )}
         </div>
 
+        {/* Protected badge for PM Super (so they know it's marked protected) */}
+        {isProtected && isPmSuper && (
+          <div className="flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded px-2 py-0.5 w-fit">
+            <Lock className="h-3 w-3" />
+            <span>Past Master Protected</span>
+          </div>
+        )}
+
       </CardContent>
     </Card>
   );
@@ -156,6 +178,7 @@ export default function AdminDomainsPage() {
 
   const level = user?.roles?.reduce((max, r) => Math.max(max, r.permissionLevel), 0) ?? 0;
   const isPmSuper = level >= PM_SUPER_LEVEL;
+  const isAdmin = level >= ADMIN_LEVEL;
 
   const { data: domainsData, isLoading } = useListDocumentDomains();
   const createDomain = useCreateDocumentDomain();
@@ -175,6 +198,7 @@ export default function AdminDomainsPage() {
   const [createSlug, setCreateSlug] = useState("");
   const [createFrame, setCreateFrame] = useState<"general" | "ritual">("general");
   const [createDesc, setCreateDesc] = useState("");
+  const [createProtected, setCreateProtected] = useState(false);
   const [createLogic, setCreateLogic] = useState<"role_only" | "degree_only" | "role_or_degree" | "role_and_degree">("role_only");
   const [createRoles, setCreateRoles] = useState<string[]>([]);
   const [createDegree, setCreateDegree] = useState<string>("none");
@@ -193,6 +217,7 @@ export default function AdminDomainsPage() {
           slug: createSlug.trim(),
           frame: createFrame,
           description: createDesc.trim() || null,
+          domainProtectionLevel: createProtected ? "past_master_protected" : "standard",
           accessLogic: createLogic as DocumentDomainAccessUpdateInputAccessLogic,
           allowedRoleSlugs: createRoles,
           minDegree,
@@ -203,7 +228,7 @@ export default function AdminDomainsPage() {
           toast({ title: "Domain created" });
           setShowCreate(false);
           setCreateName(""); setCreateSlug(""); setCreateFrame("general"); setCreateDesc("");
-          setCreateLogic("role_only"); setCreateRoles([]); setCreateDegree("none");
+          setCreateProtected(false); setCreateLogic("role_only"); setCreateRoles([]); setCreateDegree("none");
           invalidate();
         },
         onError: (e: any) =>
@@ -310,7 +335,7 @@ export default function AdminDomainsPage() {
               Configure access rules for document domains. Access is calculated dynamically from roles and degrees.
             </p>
           </div>
-          {isPmSuper && (
+          {(isPmSuper || isAdmin) && (
             <Button size="sm" onClick={() => setShowCreate(true)} className="shrink-0">
               <Plus className="h-4 w-4 mr-1.5" />
               New Domain
@@ -318,10 +343,10 @@ export default function AdminDomainsPage() {
           )}
         </div>
 
-        {!isPmSuper && (
+        {!isPmSuper && isAdmin && (
           <div className="flex items-start gap-2 p-3 rounded-md bg-muted/40 border border-border text-sm text-muted-foreground mb-6">
             <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-            <span>You can view domain access rules. Only PM Super Administrators can create or edit domains.</span>
+            <span>You can manage standard domains. Past Master Protected domains require PM Super Administrator access.</span>
           </div>
         )}
 
@@ -359,7 +384,7 @@ export default function AdminDomainsPage() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {generalDomains.map((d) => (
-                      <DomainCard key={d.id} domain={d} isPmSuper={isPmSuper} onEdit={openEdit} onEditAccess={openEditAccess} onDelete={setDeleteTarget} />
+                      <DomainCard key={d.id} domain={d} isPmSuper={isPmSuper} isAdmin={isAdmin} onEdit={openEdit} onEditAccess={openEditAccess} onDelete={setDeleteTarget} />
                     ))}
                   </div>
                 </div>
@@ -373,7 +398,7 @@ export default function AdminDomainsPage() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {ritualDomains.map((d) => (
-                      <DomainCard key={d.id} domain={d} isPmSuper={isPmSuper} onEdit={openEdit} onEditAccess={openEditAccess} onDelete={setDeleteTarget} />
+                      <DomainCard key={d.id} domain={d} isPmSuper={isPmSuper} isAdmin={isAdmin} onEdit={openEdit} onEditAccess={openEditAccess} onDelete={setDeleteTarget} />
                     ))}
                   </div>
                 </div>
@@ -436,6 +461,23 @@ export default function AdminDomainsPage() {
                 onChange={(e) => setCreateDesc(e.target.value)}
               />
             </div>
+            {isPmSuper && (
+              <div className="flex items-start gap-2.5 p-3 rounded-md border border-amber-500/30 bg-amber-500/5">
+                <Checkbox
+                  id="create-protected"
+                  checked={createProtected}
+                  onCheckedChange={(v) => setCreateProtected(!!v)}
+                  className="mt-0.5"
+                />
+                <div>
+                  <label htmlFor="create-protected" className="text-sm font-medium cursor-pointer flex items-center gap-1.5">
+                    <Lock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                    Past Master Protected
+                  </label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Site Administrators will not be able to edit, delete, or modify the access matrix for this domain.</p>
+                </div>
+              </div>
+            )}
             <div>
               <label className="text-sm font-medium">Access Logic</label>
               <Select value={createLogic} onValueChange={(v) => setCreateLogic(v as any)}>
