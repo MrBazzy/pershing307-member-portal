@@ -3,6 +3,7 @@ import { logger } from "./lib/logger";
 import { seedSmtpFromEnv } from "./lib/smtp-seed";
 import { getLodgeId } from "./lib/config";
 import { seedFolderAccessMatrix } from "./lib/matrixPermissions";
+import { runInactiveSweep } from "./lib/inactiveSweep";
 
 const rawPort = process.env["PORT"];
 
@@ -42,4 +43,14 @@ app.listen(port, (err) => {
     .catch((e) =>
       logger.warn({ err: e }, "Access matrix seed skipped — lodge may not be bootstrapped yet")
     );
+
+  // Auto-inactive sweep: runs once at startup then every hour.
+  runInactiveSweep().catch((e) =>
+    logger.warn({ err: e }, "Initial inactive sweep skipped — lodge may not be bootstrapped yet")
+  );
+  setInterval(() => {
+    runInactiveSweep().catch((e) =>
+      logger.warn({ err: e }, "Scheduled inactive sweep failed")
+    );
+  }, 60 * 60 * 1000);
 });

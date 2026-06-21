@@ -29,6 +29,7 @@ const CONFIG_METADATA: Record<string, { description: string; isReadOnly: boolean
   invite_expiry_days: { description: "Days before an invitation link expires (default: 7)", isReadOnly: false },
   reset_expiry_hours: { description: "Hours before a password reset link expires (default: 1)", isReadOnly: false },
   require_2fa_roles: { description: "Comma-separated role slugs that must have 2FA enabled (e.g. site-administrator,pm-super-administrator)", isReadOnly: false },
+  inactive_after_months: { description: "Months of inactivity before a member is automatically set to Inactive. Set to 0 to disable (default: 0)", isReadOnly: false },
 };
 
 type KeyValidator = (v: string) => string | null;
@@ -70,6 +71,11 @@ const KEY_VALIDATORS: Record<string, KeyValidator> = {
   reset_expiry_hours: (v) => {
     const n = parseInt(v, 10);
     if (isNaN(n) || n < 1) return "Must be a positive integer (hours)";
+    return null;
+  },
+  inactive_after_months: (v) => {
+    const n = parseInt(v, 10);
+    if (isNaN(n) || n < 0) return "Must be 0 (disabled) or a positive integer (months)";
     return null;
   },
 };

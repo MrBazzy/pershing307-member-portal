@@ -74,6 +74,7 @@ const KEY_INPUT_TYPES: Record<string, string> = {
   lockout_duration_min: "number",
   invite_expiry_days: "number",
   reset_expiry_hours: "number",
+  inactive_after_months: "number",
 };
 
 const KEY_LABELS: Record<string, string> = {
@@ -92,6 +93,7 @@ const KEY_LABELS: Record<string, string> = {
   invite_expiry_days: "Invitation Expiry (days)",
   reset_expiry_hours: "Password Reset Expiry (hrs)",
   require_2fa_roles: "Roles Requiring 2FA",
+  inactive_after_months: "Auto-Inactive After (months)",
 };
 
 function ConfigRow({
@@ -509,6 +511,9 @@ export default function AdminConfigPage() {
   const inviteEntries = config.filter((c) =>
     ["invite_expiry_days", "reset_expiry_hours"].includes(c.key)
   );
+  const memberStatusEntries = config.filter((c) =>
+    ["inactive_after_months"].includes(c.key)
+  );
 
   const handleSave = async (key: string, value: string) => {
     return new Promise<void>((resolve, reject) => {
@@ -629,6 +634,18 @@ export default function AdminConfigPage() {
               <Separator />
               <div className="divide-y">
                 {inviteEntries.map((entry) => (
+                  <ConfigRow key={entry.key} entry={entry} onSave={handleSave} />
+                ))}
+              </div>
+            </div>
+
+            <div className="border border-card-border border-t-2 border-t-sidebar-active rounded-xl shadow-md px-4">
+              <h2 className="text-sm font-semibold py-3 text-muted-foreground uppercase tracking-wide">
+                Member Status
+              </h2>
+              <Separator />
+              <div className="divide-y">
+                {memberStatusEntries.map((entry) => (
                   <ConfigRow key={entry.key} entry={entry} onSave={handleSave} />
                 ))}
               </div>

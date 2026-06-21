@@ -108,6 +108,14 @@ others see only `published`. Uses effective matrix perms — NOT a raw level che
 - File type validation on server in history route (PDF, JPG, PNG, DOCX only)
 - history_documents.fileUrl stores the objectPath string
 
+## Membership Status (MEMBERS-STATUS-001)
+Restricted to 4 values: `pending`, `active`, `inactive`, `suspended`.
+Backend Zod enum already enforced. Degree-related values removed from frontend Select.
+Auto-inactive sweep: `artifacts/api-server/src/lib/inactiveSweep.ts` — runs at startup + hourly via `setInterval` in `index.ts`.
+Config key `inactive_after_months` (default 0 = disabled) in CONFIG_METADATA + KEY_VALIDATORS.
+Portal Configuration page shows it under "Member Status" section.
+Sweep only affects `active` members with a non-null `lastLoginAt` older than the cutoff.
+
 ## Admin credentials (dev)
 admin@pershing307.org / SecurePass123!
 Admin ID: 763db701-f08b-4124-87a9-2ac4db964e24

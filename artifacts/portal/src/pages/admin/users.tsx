@@ -644,12 +644,6 @@ export default function AdminUsersPage() {
 
 const MEMBERSHIP_STATUS_OPTIONS = [
   { value: "pending", label: "Pending" },
-  { value: "visitor", label: "Visitor" },
-  { value: "candidate", label: "Candidate" },
-  { value: "entered-apprentice", label: "Entered Apprentice" },
-  { value: "fellow-craft", label: "Fellow Craft" },
-  { value: "master-mason", label: "Master Mason" },
-  { value: "past-master", label: "Past Master" },
   { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
   { value: "suspended", label: "Suspended" },
