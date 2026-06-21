@@ -1,0 +1,203 @@
+REPORTS-INVITATIONS-001 — Move Invitation Tracking to Reports
+
+STEP 0 — SAFETY FIRST
+
+Before making changes:
+
+1. Create Replit checkpoint/snapshot.
+2. Create git tag:
+
+v3.9-before-invitation-report-migration
+
+3. Confirm build passes.
+
+--------------------------------------------------
+PHASE 1 — ANALYSIS FIRST
+--------------------------------------------------
+
+Before removing anything:
+
+Investigate whether Management → Invitations still contains any functionality that is NOT already available through:
+
+Management → Members
+
+Provide a report showing:
+
+- Function
+- Available in Members (Yes/No)
+- Available elsewhere (Yes/No)
+
+Examples:
+
+- Create invitation
+- Send invitation
+- Resend invitation
+- Revoke invitation
+- Invitation status
+- Invitation acceptance tracking
+- Invitation expiry tracking
+- Bulk operations
+- Invitation statistics
+
+Do NOT remove the menu yet.
+
+--------------------------------------------------
+PHASE 2 — DECISION
+--------------------------------------------------
+
+If ALL functionality already exists in Members:
+
+Then:
+
+- create another checkpoint/snapshot
+- create git tag:
+
+v3.9-before-remove-invitations-menu
+
+- remove Management → Invitations menu
+
+Keep all backend invitation functionality.
+
+Only remove the redundant navigation/menu.
+
+--------------------------------------------------
+PHASE 3 — REPORTS
+--------------------------------------------------
+
+Create:
+
+Reports
+→ Member Onboarding Progress
+
+Purpose:
+
+Track portal onboarding progress during initial PRD rollout.
+
+--------------------------------------------------
+SUMMARY DASHBOARD
+--------------------------------------------------
+
+Display:
+
+Total Members
+
+Not Invited
+
+Invitation Sent
+
+Accepted
+
+Expired
+
+Revoked
+
+Onboarding Completion %
+
+Example:
+
+72 Members
+
+60 Accepted
+8 Invitation Sent
+3 Expired
+1 Not Invited
+
+83% Complete
+
+--------------------------------------------------
+DETAIL TABLE
+--------------------------------------------------
+
+Columns:
+
+First Name
+Last Name
+Email
+Invitation Status
+Invitation Created
+Invitation Sent
+Invitation Accepted
+Invitation Expiry
+Last Reminder Sent
+Joined Date
+
+--------------------------------------------------
+FILTERS
+--------------------------------------------------
+
+All
+
+Not Invited
+
+Invitation Sent
+
+Accepted
+
+Expired
+
+Revoked
+
+Joined This Month
+
+Not Logged In Yet
+
+--------------------------------------------------
+ACTIONS
+--------------------------------------------------
+
+Directly from report:
+
+Send Invitation
+
+Resend Invitation
+
+Revoke Invitation
+
+Open Member Record
+
+--------------------------------------------------
+EXPORT
+--------------------------------------------------
+
+Allow export:
+
+CSV
+
+Excel (future if available)
+
+--------------------------------------------------
+PERMISSIONS
+--------------------------------------------------
+
+Visible only to:
+
+Site Administrator
+
+PM Super Administrator
+
+Secretary
+
+--------------------------------------------------
+AUDIT LOGGING
+--------------------------------------------------
+
+Log:
+
+Invitation sent from report
+
+Invitation resent from report
+
+Invitation revoked from report
+
+--------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------
+
+1. Analysis completed first.
+2. No functionality lost.
+3. Invitations menu removed only if redundant.
+4. Member Onboarding Progress report created.
+5. Dashboard statistics correct.
+6. Filters work.
+7. Actions work.
+8. Build passes.

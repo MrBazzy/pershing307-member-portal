@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard, Users, Mail, FileText, LogOut, ChevronRight,
+  LayoutDashboard, Users, FileText, LogOut, ChevronRight,
   Shield, Globe, Settings, Menu, X, Cake, Map, UserCircle,
   BookOpen, CalendarDays, Landmark, Fingerprint, FolderOpen, BarChart3,
   ClipboardCheck,
@@ -35,7 +35,6 @@ const MEMBER_NAV_ITEMS: NavItem[] = [
 const MANAGEMENT_ITEMS: NavItem[] = [
   { href: "/admin/users", label: "Members", icon: Users },
   { href: "/admin/roles-degrees", label: "Roles & Degrees", icon: Shield },
-  { href: "/admin/invitations", label: "Invitations", icon: Mail },
   { href: "/admin/domains", label: "Domains & Access Control", icon: Globe },
   { href: "/admin/document-management", label: "Document Management", icon: FolderOpen },
   { href: "/admin/document-review", label: "Document Review", icon: ClipboardCheck },
