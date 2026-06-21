@@ -279,7 +279,7 @@ router.patch("/:id/deactivate", requireAuth(), requireRole(SITE_ADMIN_LEVEL), as
   }
 
   const users = await db
-    .select({ isBootstrapAdmin: usersTable.isBootstrapAdmin })
+    .select({ isBootstrapAdmin: usersTable.isBootstrapAdmin, membershipStatus: usersTable.membershipStatus })
     .from(usersTable)
     .where(and(eq(usersTable.id, targetId), eq(usersTable.lodgeId, lodgeId!)))
     .limit(1);
@@ -307,7 +307,11 @@ router.patch("/:id/deactivate", requireAuth(), requireRole(SITE_ADMIN_LEVEL), as
     return;
   }
 
-  await db.update(usersTable).set({ isActive: false, updatedAt: new Date() }).where(eq(usersTable.id, targetId));
+  const prevStatusDeact = users[0].membershipStatus;
+  await db
+    .update(usersTable)
+    .set({ isActive: false, membershipStatus: "inactive", updatedAt: new Date() })
+    .where(eq(usersTable.id, targetId));
 
   const deactSessionsInvalidated = await markSessionsAsForceLogout(targetId);
 
@@ -317,7 +321,7 @@ router.patch("/:id/deactivate", requireAuth(), requireRole(SITE_ADMIN_LEVEL), as
     action: "USER_DEACTIVATED",
     targetType: "user",
     targetId,
-    detail: { sessionsInvalidated: deactSessionsInvalidated },
+    detail: { prevMembershipStatus: prevStatusDeact, sessionsInvalidated: deactSessionsInvalidated },
     ipAddress: getClientIp(req),
   });
 
@@ -342,7 +346,7 @@ router.patch("/:id/activate", requireAuth(), requireRole(SITE_ADMIN_LEVEL), asyn
 
   await db
     .update(usersTable)
-    .set({ isActive: true, failedLoginAttempts: 0, lockedUntil: null, updatedAt: new Date() })
+    .set({ isActive: true, membershipStatus: "active", failedLoginAttempts: 0, lockedUntil: null, updatedAt: new Date() })
     .where(eq(usersTable.id, targetId));
 
   const actSessionsInvalidated = await markSessionsAsForceLogout(targetId);
@@ -359,6 +363,46 @@ router.patch("/:id/activate", requireAuth(), requireRole(SITE_ADMIN_LEVEL), asyn
 
   res.json({ success: true });
 });
+
+type DeleteTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function performUserDeleteTx(tx: DeleteTx, targetId: string, targetEmail: string): Promise<void> {
+  // Null FK references where the deleted user was an actor/creator
+  await tx.update(auditLogsTable).set({ actorId: null }).where(eq(auditLogsTable.actorId, targetId));
+  await tx.execute(sql`UPDATE invitations SET revoked_by = NULL WHERE revoked_by = ${targetId}`);
+  await tx.execute(sql`UPDATE invitations SET accepted_by_user = NULL WHERE accepted_by_user = ${targetId}`);
+  await tx.update(userRolesTable).set({ grantedBy: null }).where(eq(userRolesTable.grantedBy, targetId));
+  await tx.update(userDomainAccessTable).set({ grantedBy: null }).where(eq(userDomainAccessTable.grantedBy, targetId));
+  await tx.update(documentFoldersTable).set({ createdBy: null }).where(eq(documentFoldersTable.createdBy, targetId));
+  await tx.update(eventCategoriesTable).set({ createdBy: null }).where(eq(eventCategoriesTable.createdBy, targetId));
+  await tx.update(eventCategoriesTable).set({ lastModifiedBy: null }).where(eq(eventCategoriesTable.lastModifiedBy, targetId));
+  await tx.update(eventsTable).set({ createdBy: null }).where(eq(eventsTable.createdBy, targetId));
+  await tx.update(eventsTable).set({ lastModifiedBy: null }).where(eq(eventsTable.lastModifiedBy, targetId));
+  await tx.update(eventsTable).set({ organizerId: null }).where(eq(eventsTable.organizerId, targetId));
+  await tx.update(historyDocumentsTable).set({ createdBy: null }).where(eq(historyDocumentsTable.createdBy, targetId));
+  await tx.update(historyPageTable).set({ updatedBy: null }).where(eq(historyPageTable.updatedBy, targetId));
+  await tx.update(historySectionsTable).set({ createdBy: null }).where(eq(historySectionsTable.createdBy, targetId));
+  await tx.update(historyTimelineTable).set({ createdBy: null }).where(eq(historyTimelineTable.createdBy, targetId));
+  await tx.update(lodgeYearsTable).set({ createdBy: null }).where(eq(lodgeYearsTable.createdBy, targetId));
+  await tx.update(pershingBioTable).set({ updatedBy: null }).where(eq(pershingBioTable.updatedBy, targetId));
+  await tx.update(protectedDomainsTable).set({ createdBy: null }).where(eq(protectedDomainsTable.createdBy, targetId));
+  await tx.update(roadmapItemsTable).set({ createdBy: null }).where(eq(roadmapItemsTable.createdBy, targetId));
+  await tx.update(tracingBoardCategoriesTable).set({ createdBy: null }).where(eq(tracingBoardCategoriesTable.createdBy, targetId));
+  await tx.update(tracingBoardCategoriesTable).set({ lastModifiedBy: null }).where(eq(tracingBoardCategoriesTable.lastModifiedBy, targetId));
+  await tx.update(tracingBoardEntriesTable).set({ createdBy: null }).where(eq(tracingBoardEntriesTable.createdBy, targetId));
+  await tx.update(tracingBoardEntriesTable).set({ lastModifiedBy: null }).where(eq(tracingBoardEntriesTable.lastModifiedBy, targetId));
+  // Delete rows directly owned by the member
+  await tx.execute(sql`DELETE FROM user_document_notice_acceptance WHERE user_id = ${targetId}`);
+  await tx.execute(sql`DELETE FROM invitations WHERE email = ${targetEmail}`);
+  await tx.execute(sql`DELETE FROM invitations WHERE invited_by = ${targetId}`);
+  await tx.delete(userRolesTable).where(eq(userRolesTable.userId, targetId));
+  await tx.delete(userDomainAccessTable).where(eq(userDomainAccessTable.userId, targetId));
+  await tx.delete(userDegreesTable).where(eq(userDegreesTable.userId, targetId));
+  await tx.delete(passwordResetTokensTable).where(eq(passwordResetTokensTable.userId, targetId));
+  await tx.delete(twoFactorSettingsTable).where(eq(twoFactorSettingsTable.userId, targetId));
+  await tx.delete(passwordHistoryTable).where(eq(passwordHistoryTable.userId, targetId));
+  await tx.delete(usersTable).where(eq(usersTable.id, targetId));
+}
 
 router.delete("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res) => {
   const targetId = String(req.params.id);
@@ -449,43 +493,7 @@ router.delete("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, 
     }
   }
 
-  await db.transaction(async (tx) => {
-    // Null FK references where the deleted user was an actor/creator
-    await tx.update(auditLogsTable).set({ actorId: null }).where(eq(auditLogsTable.actorId, targetId));
-    await tx.execute(sql`UPDATE invitations SET revoked_by = NULL WHERE revoked_by = ${targetId}`);
-    await tx.execute(sql`UPDATE invitations SET accepted_by_user = NULL WHERE accepted_by_user = ${targetId}`);
-    await tx.update(userRolesTable).set({ grantedBy: null }).where(eq(userRolesTable.grantedBy, targetId));
-    await tx.update(userDomainAccessTable).set({ grantedBy: null }).where(eq(userDomainAccessTable.grantedBy, targetId));
-    await tx.update(documentFoldersTable).set({ createdBy: null }).where(eq(documentFoldersTable.createdBy, targetId));
-    await tx.update(eventCategoriesTable).set({ createdBy: null }).where(eq(eventCategoriesTable.createdBy, targetId));
-    await tx.update(eventCategoriesTable).set({ lastModifiedBy: null }).where(eq(eventCategoriesTable.lastModifiedBy, targetId));
-    await tx.update(eventsTable).set({ createdBy: null }).where(eq(eventsTable.createdBy, targetId));
-    await tx.update(eventsTable).set({ lastModifiedBy: null }).where(eq(eventsTable.lastModifiedBy, targetId));
-    await tx.update(eventsTable).set({ organizerId: null }).where(eq(eventsTable.organizerId, targetId));
-    await tx.update(historyDocumentsTable).set({ createdBy: null }).where(eq(historyDocumentsTable.createdBy, targetId));
-    await tx.update(historyPageTable).set({ updatedBy: null }).where(eq(historyPageTable.updatedBy, targetId));
-    await tx.update(historySectionsTable).set({ createdBy: null }).where(eq(historySectionsTable.createdBy, targetId));
-    await tx.update(historyTimelineTable).set({ createdBy: null }).where(eq(historyTimelineTable.createdBy, targetId));
-    await tx.update(lodgeYearsTable).set({ createdBy: null }).where(eq(lodgeYearsTable.createdBy, targetId));
-    await tx.update(pershingBioTable).set({ updatedBy: null }).where(eq(pershingBioTable.updatedBy, targetId));
-    await tx.update(protectedDomainsTable).set({ createdBy: null }).where(eq(protectedDomainsTable.createdBy, targetId));
-    await tx.update(roadmapItemsTable).set({ createdBy: null }).where(eq(roadmapItemsTable.createdBy, targetId));
-    await tx.update(tracingBoardCategoriesTable).set({ createdBy: null }).where(eq(tracingBoardCategoriesTable.createdBy, targetId));
-    await tx.update(tracingBoardCategoriesTable).set({ lastModifiedBy: null }).where(eq(tracingBoardCategoriesTable.lastModifiedBy, targetId));
-    await tx.update(tracingBoardEntriesTable).set({ createdBy: null }).where(eq(tracingBoardEntriesTable.createdBy, targetId));
-    await tx.update(tracingBoardEntriesTable).set({ lastModifiedBy: null }).where(eq(tracingBoardEntriesTable.lastModifiedBy, targetId));
-    // Delete rows directly owned by the member
-    await tx.execute(sql`DELETE FROM user_document_notice_acceptance WHERE user_id = ${targetId}`);
-    await tx.execute(sql`DELETE FROM invitations WHERE email = ${target.email}`);
-    await tx.execute(sql`DELETE FROM invitations WHERE invited_by = ${targetId}`);
-    await tx.delete(userRolesTable).where(eq(userRolesTable.userId, targetId));
-    await tx.delete(userDomainAccessTable).where(eq(userDomainAccessTable.userId, targetId));
-    await tx.delete(userDegreesTable).where(eq(userDegreesTable.userId, targetId));
-    await tx.delete(passwordResetTokensTable).where(eq(passwordResetTokensTable.userId, targetId));
-    await tx.delete(twoFactorSettingsTable).where(eq(twoFactorSettingsTable.userId, targetId));
-    await tx.delete(passwordHistoryTable).where(eq(passwordHistoryTable.userId, targetId));
-    await tx.delete(usersTable).where(eq(usersTable.id, targetId));
-  });
+  await db.transaction((tx) => performUserDeleteTx(tx, targetId, target.email));
 
   await invalidateUserSessions(targetId);
 
@@ -637,27 +645,7 @@ router.delete("/:id/test-reset", requireAuth(), requireRole(PM_SUPER_ADMIN_LEVEL
     return;
   }
 
-  await db.transaction(async (tx) => {
-    await tx.update(auditLogsTable).set({ actorId: null }).where(eq(auditLogsTable.actorId, targetId));
-
-    await tx.update(invitationsTable).set({ revokedBy: null }).where(eq(invitationsTable.revokedBy, targetId));
-    await tx.update(invitationsTable).set({ acceptedByUser: null }).where(eq(invitationsTable.acceptedByUser, targetId));
-
-    await tx.delete(invitationsTable).where(eq(invitationsTable.email, target.email));
-    await tx.delete(invitationsTable).where(eq(invitationsTable.invitedBy, targetId));
-
-    await tx.update(userRolesTable).set({ grantedBy: null }).where(eq(userRolesTable.grantedBy, targetId));
-    await tx.update(userDomainAccessTable).set({ grantedBy: null }).where(eq(userDomainAccessTable.grantedBy, targetId));
-
-    await tx.delete(userRolesTable).where(eq(userRolesTable.userId, targetId));
-    await tx.delete(userDomainAccessTable).where(eq(userDomainAccessTable.userId, targetId));
-    await tx.delete(userDegreesTable).where(eq(userDegreesTable.userId, targetId));
-    await tx.delete(passwordResetTokensTable).where(eq(passwordResetTokensTable.userId, targetId));
-    await tx.delete(twoFactorSettingsTable).where(eq(twoFactorSettingsTable.userId, targetId));
-    await tx.delete(passwordHistoryTable).where(eq(passwordHistoryTable.userId, targetId));
-
-    await tx.delete(usersTable).where(eq(usersTable.id, targetId));
-  });
+  await db.transaction((tx) => performUserDeleteTx(tx, targetId, target.email));
 
   await invalidateUserSessions(targetId);
 

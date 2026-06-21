@@ -7,6 +7,7 @@ import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 import { writeAuditLog, getClientIp } from "../lib/audit";
 import { getLodgeId } from "../lib/config";
+import { markSessionsAsForceLogout } from "../lib/sessions";
 
 const router = Router();
 
@@ -96,6 +97,18 @@ router.post("/:userId", requireAuth(), requireRole(PM_SUPER_ADMIN_LEVEL), async 
 
   const { domainId } = result.data;
 
+  // H-003: verify target user belongs to this lodge
+  const targetUsers = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(and(eq(usersTable.id, targetUserId), eq(usersTable.lodgeId, lodgeId!)))
+    .limit(1);
+
+  if (targetUsers.length === 0) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
   const domains = await db
     .select({ id: protectedDomainsTable.id, name: protectedDomainsTable.name })
     .from(protectedDomainsTable)
@@ -111,6 +124,9 @@ router.post("/:userId", requireAuth(), requireRole(PM_SUPER_ADMIN_LEVEL), async 
     .insert(userDomainAccessTable)
     .values({ userId: targetUserId, domainId, grantedBy: actorId })
     .onConflictDoNothing();
+
+  // H-001: force session refresh so the user picks up the new domain access
+  await markSessionsAsForceLogout(targetUserId);
 
   await writeAuditLog({
     lodgeId,
@@ -140,6 +156,9 @@ router.delete("/:userId/:domainId", requireAuth(), requireRole(PM_SUPER_ADMIN_LE
   await db
     .delete(userDomainAccessTable)
     .where(and(eq(userDomainAccessTable.userId, targetUserId), eq(userDomainAccessTable.domainId, domainId)));
+
+  // H-001: immediately kick any active session so the revoked access takes effect
+  await markSessionsAsForceLogout(targetUserId);
 
   await writeAuditLog({
     lodgeId,
