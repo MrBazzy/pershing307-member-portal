@@ -177,7 +177,14 @@ router.post("/login", loginRateLimit, async (req, res) => {
     return;
   }
 
-  await db.update(usersTable).set({ lastLoginAt: new Date(), lastLoginIp: ip, updatedAt: new Date() }).where(eq(usersTable.id, user.id));
+  const now = new Date();
+  const wasInactiveLogin = user.membershipStatus === "inactive";
+  if (wasInactiveLogin) {
+    await db.update(usersTable).set({ lastLoginAt: now, lastLoginIp: ip, membershipStatus: "active", updatedAt: now }).where(eq(usersTable.id, user.id));
+    await writeAuditLog({ lodgeId: user.lodgeId, actorId: user.id, actorEmail: user.email, action: "MEMBERSHIP_STATUS_CHANGED", detail: { from: "inactive", to: "active", source: "auto_reactivation", summary: `${user.firstName} ${user.lastName} automatically returned to active after successful login` }, ipAddress: ip });
+  } else {
+    await db.update(usersTable).set({ lastLoginAt: now, lastLoginIp: ip, updatedAt: now }).where(eq(usersTable.id, user.id));
+  }
 
   req.session.userId = user.id;
   req.session.lodgeId = user.lodgeId;
@@ -274,8 +281,15 @@ router.post("/login/2fa", twoFaRateLimit, async (req, res) => {
     return;
   }
 
-  await db.update(usersTable).set({ lastLoginAt: new Date(), lastLoginIp: ip, updatedAt: new Date() }).where(eq(usersTable.id, user.id));
-  await db.update(twoFactorSettingsTable).set({ lastUsedAt: new Date(), updatedAt: new Date() }).where(eq(twoFactorSettingsTable.userId, user.id));
+  const now2fa = new Date();
+  const wasInactive2fa = user.membershipStatus === "inactive";
+  if (wasInactive2fa) {
+    await db.update(usersTable).set({ lastLoginAt: now2fa, lastLoginIp: ip, membershipStatus: "active", updatedAt: now2fa }).where(eq(usersTable.id, user.id));
+    await writeAuditLog({ lodgeId: user.lodgeId, actorId: user.id, actorEmail: user.email, action: "MEMBERSHIP_STATUS_CHANGED", detail: { from: "inactive", to: "active", source: "auto_reactivation", summary: `${user.firstName} ${user.lastName} automatically returned to active after successful login` }, ipAddress: ip });
+  } else {
+    await db.update(usersTable).set({ lastLoginAt: now2fa, lastLoginIp: ip, updatedAt: now2fa }).where(eq(usersTable.id, user.id));
+  }
+  await db.update(twoFactorSettingsTable).set({ lastUsedAt: now2fa, updatedAt: now2fa }).where(eq(twoFactorSettingsTable.userId, user.id));
 
   delete req.session.pendingTwoFactorUserId;
   delete req.session.pendingTwoFactorExpiry;

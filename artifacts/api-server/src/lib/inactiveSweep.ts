@@ -27,23 +27,30 @@ export async function runInactiveSweep(): Promise<void> {
           lt(usersTable.lastLoginAt, cutoff),
         ),
       )
-      .returning({ id: usersTable.id });
+      .returning({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName });
 
     if (affected.length > 0) {
       logger.info({ count: affected.length, cutoff, months }, "Auto-inactive sweep: marked members inactive");
 
       await Promise.all(
-        affected.map((u) =>
-          writeAuditLog({
+        affected.map((u) => {
+          const memberName = `${u.firstName} ${u.lastName}`.trim();
+          return writeAuditLog({
             lodgeId,
             actorId: null,
             action: "MEMBERSHIP_STATUS_CHANGED",
             targetType: "user",
             targetId: u.id,
-            detail: { from: "active", to: "inactive", source: "auto_sweep", inactiveAfterMonths: months },
+            detail: {
+              from: "active",
+              to: "inactive",
+              source: "auto_sweep",
+              inactiveAfterMonths: months,
+              summary: `${memberName} automatically marked inactive after ${months} month${months === 1 ? "" : "s"} without login`,
+            },
             ipAddress: null,
-          }),
-        ),
+          });
+        }),
       );
     }
   } catch (err) {

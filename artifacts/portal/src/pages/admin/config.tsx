@@ -9,6 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -74,7 +81,6 @@ const KEY_INPUT_TYPES: Record<string, string> = {
   lockout_duration_min: "number",
   invite_expiry_days: "number",
   reset_expiry_hours: "number",
-  inactive_after_months: "number",
 };
 
 const KEY_LABELS: Record<string, string> = {
@@ -93,8 +99,132 @@ const KEY_LABELS: Record<string, string> = {
   invite_expiry_days: "Invitation Expiry (days)",
   reset_expiry_hours: "Password Reset Expiry (hrs)",
   require_2fa_roles: "Roles Requiring 2FA",
-  inactive_after_months: "Auto-Inactive After (months)",
 };
+
+const INACTIVE_PRESETS = [
+  { value: "0", label: "Disabled" },
+  { value: "3", label: "3 months" },
+  { value: "6", label: "6 months" },
+  { value: "12", label: "12 months" },
+  { value: "24", label: "24 months" },
+];
+
+function InactiveAfterMonthsRow({
+  currentValue,
+  onSave,
+}: {
+  currentValue: string | null;
+  onSave: (key: string, value: string) => Promise<void>;
+}) {
+  const current = currentValue ?? "0";
+  const isPreset = INACTIVE_PRESETS.some((p) => p.value === current);
+
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [selectVal, setSelectVal] = useState(isPreset ? current : "custom");
+  const [customVal, setCustomVal] = useState(isPreset ? "" : current);
+
+  const startEditing = () => {
+    const fresh = currentValue ?? "0";
+    const freshIsPreset = INACTIVE_PRESETS.some((p) => p.value === fresh);
+    setSelectVal(freshIsPreset ? fresh : "custom");
+    setCustomVal(freshIsPreset ? "" : fresh);
+    setEditing(true);
+  };
+
+  const handleSave = async () => {
+    const value = selectVal === "custom" ? customVal : selectVal;
+    if (!value || isNaN(parseInt(value, 10)) || parseInt(value, 10) < 0) return;
+    setSaving(true);
+    try {
+      await onSave("inactive_after_months", value);
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const displayLabel =
+    current === "0"
+      ? "Disabled"
+      : isPreset
+        ? (INACTIVE_PRESETS.find((p) => p.value === current)?.label ?? `${current} months`)
+        : `${current} months`;
+
+  const canSave =
+    selectVal !== "custom" ||
+    (customVal.trim() !== "" && !isNaN(parseInt(customVal, 10)) && parseInt(customVal, 10) >= 1);
+
+  return (
+    <div className="py-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-0.5 flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium">Auto-Inactive After</span>
+            <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono text-muted-foreground">
+              inactive_after_months
+            </code>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Automatically set a member to <strong>Inactive</strong> after this many months without
+            logging in. Inactive is informational only — it does not block login or remove
+            permissions. Set to Disabled to turn this off.
+          </p>
+        </div>
+        {!editing && (
+          <Button size="sm" variant="outline" onClick={startEditing} className="shrink-0">
+            Edit
+          </Button>
+        )}
+      </div>
+
+      {editing ? (
+        <div className="flex items-center gap-2 mt-3 flex-wrap">
+          <Select value={selectVal} onValueChange={setSelectVal}>
+            <SelectTrigger className="w-40 h-8 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {INACTIVE_PRESETS.map((p) => (
+                <SelectItem key={p.value} value={p.value}>
+                  {p.label}
+                </SelectItem>
+              ))}
+              <SelectItem value="custom">Custom…</SelectItem>
+            </SelectContent>
+          </Select>
+          {selectVal === "custom" && (
+            <div className="flex items-center gap-1.5">
+              <Input
+                type="number"
+                min={1}
+                placeholder="months"
+                value={customVal}
+                onChange={(e) => setCustomVal(e.target.value)}
+                className="w-24 h-8 text-sm"
+              />
+              <span className="text-sm text-muted-foreground">months</span>
+            </div>
+          )}
+          <Button size="sm" onClick={handleSave} disabled={saving || !canSave} className="h-8">
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setEditing(false)} className="h-8">
+            Cancel
+          </Button>
+        </div>
+      ) : (
+        <p className="mt-1.5 text-sm font-mono">
+          {current === "0" ? (
+            <span className="text-muted-foreground italic">Disabled</span>
+          ) : (
+            <span className="text-foreground">{displayLabel}</span>
+          )}
+        </p>
+      )}
+    </div>
+  );
+}
 
 function ConfigRow({
   entry,
@@ -644,11 +774,10 @@ export default function AdminConfigPage() {
                 Member Status
               </h2>
               <Separator />
-              <div className="divide-y">
-                {memberStatusEntries.map((entry) => (
-                  <ConfigRow key={entry.key} entry={entry} onSave={handleSave} />
-                ))}
-              </div>
+              <InactiveAfterMonthsRow
+                currentValue={config.find((c) => c.key === "inactive_after_months")?.value ?? null}
+                onSave={handleSave}
+              />
             </div>
 
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 space-y-1">

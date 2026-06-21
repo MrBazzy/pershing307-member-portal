@@ -303,9 +303,18 @@ router.post("/authentication/complete", passkeyRateLimit, async (req, res) => {
     .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
     .where(eq(userRolesTable.userId, user.id));
 
-  await db.update(usersTable)
-    .set({ lastLoginAt: new Date(), lastLoginIp: ip, failedLoginAttempts: 0, lockedUntil: null, updatedAt: new Date() })
-    .where(eq(usersTable.id, user.id));
+  const nowPk = new Date();
+  const wasInactivePk = user.membershipStatus === "inactive";
+  if (wasInactivePk) {
+    await db.update(usersTable)
+      .set({ lastLoginAt: nowPk, lastLoginIp: ip, failedLoginAttempts: 0, lockedUntil: null, membershipStatus: "active", updatedAt: nowPk })
+      .where(eq(usersTable.id, user.id));
+    await writeAuditLog({ lodgeId: user.lodgeId, actorId: user.id, actorEmail: user.email, action: "MEMBERSHIP_STATUS_CHANGED", detail: { from: "inactive", to: "active", source: "auto_reactivation", summary: `${user.firstName} ${user.lastName} automatically returned to active after successful login` }, ipAddress: ip });
+  } else {
+    await db.update(usersTable)
+      .set({ lastLoginAt: nowPk, lastLoginIp: ip, failedLoginAttempts: 0, lockedUntil: null, updatedAt: nowPk })
+      .where(eq(usersTable.id, user.id));
+  }
 
   req.session.userId = user.id;
   req.session.lodgeId = user.lodgeId;
