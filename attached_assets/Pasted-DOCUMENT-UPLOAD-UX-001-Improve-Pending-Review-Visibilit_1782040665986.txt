@@ -1,0 +1,259 @@
+DOCUMENT-UPLOAD-UX-001 — Improve Pending Review Visibility
+
+STEP 0 — SAFETY FIRST
+
+Before making changes:
+
+1. Create Replit checkpoint/snapshot.
+2. Create git tag:
+
+v3.9-before-pending-review-visibility
+
+3. Confirm build passes.
+
+--------------------------------------------------
+ISSUE
+--------------------------------------------------
+
+A member can upload a document successfully.
+
+However:
+
+- There is no clear indication that the upload succeeded.
+- There is no visible Pending Review badge.
+- The member may think the upload failed.
+- The member may upload the same document multiple times.
+
+This creates confusion and unnecessary administrator workload.
+
+--------------------------------------------------
+GOAL
+--------------------------------------------------
+
+Make the upload and review workflow visible and understandable for members.
+
+Members must immediately understand:
+
+- Upload succeeded.
+- Document is waiting for approval.
+- Document is not yet published.
+- Approval by an administrator is required.
+
+--------------------------------------------------
+UPLOAD SUCCESS MESSAGE
+--------------------------------------------------
+
+Immediately after a successful upload:
+
+Show a success notification.
+
+Example:
+
+Document uploaded successfully.
+
+Status:
+Pending Review
+
+Your document will become visible to other members after approval by an administrator.
+
+--------------------------------------------------
+PENDING REVIEW BADGE
+--------------------------------------------------
+
+The uploader must see his own pending documents.
+
+Display a visible badge:
+
+Pending Review
+
+Suggested styling:
+- Gold / amber background
+- Dark text
+- Consistent with the portal design
+
+Example:
+
+Lodge Guidelines.pdf
+
+[ Pending Review ]
+
+--------------------------------------------------
+FOLDER VIEW
+--------------------------------------------------
+
+Within the folder where the upload was submitted:
+
+The uploader should see:
+
+- Filename
+- Upload date
+- Status badge
+
+Example:
+
+Lodge Guidelines.pdf
+
+Uploaded:
+21 June 2026
+
+Status:
+Pending Review
+
+--------------------------------------------------
+MY PENDING DOCUMENTS
+--------------------------------------------------
+
+If feasible, add a section:
+
+My Pending Documents
+
+at the top of the folder.
+
+Example:
+
+My Pending Documents (2)
+
+- Lodge Guidelines.pdf
+- Event Flyer.pdf
+
+This section should only show documents uploaded by the logged-in user that are awaiting approval.
+
+--------------------------------------------------
+WITHDRAW PENDING DOCUMENT
+--------------------------------------------------
+
+While status = Pending Review
+
+The original uploader should be able to:
+
+Withdraw Upload
+
+Purpose:
+
+- Correct mistakes
+- Replace with a newer version
+- Prevent duplicate uploads
+
+After withdrawal:
+
+Status:
+Withdrawn
+
+Document leaves the Pending Review queue.
+
+--------------------------------------------------
+PUBLISHED DOCUMENTS
+--------------------------------------------------
+
+Once approved:
+
+Status changes from:
+
+Pending Review
+
+to:
+
+Published
+
+The pending badge disappears.
+
+The document becomes visible according to the folder's access rules.
+
+--------------------------------------------------
+REJECTED DOCUMENTS
+--------------------------------------------------
+
+If a document is rejected:
+
+The uploader should see:
+
+Rejected
+
+with a short reason if available.
+
+Example:
+
+Rejected
+
+Reason:
+Uploaded to incorrect folder.
+
+--------------------------------------------------
+STATUS COLORS
+--------------------------------------------------
+
+Pending Review:
+Gold / Amber
+
+Published:
+Green
+
+Rejected:
+Red
+
+Archived:
+Grey
+
+Withdrawn:
+Grey
+
+Use consistent styling throughout the portal.
+
+--------------------------------------------------
+AUDIT LOGGING
+--------------------------------------------------
+
+Examples:
+
+John Smith uploaded document "Lodge Guidelines.pdf".
+
+John Smith withdrew pending document "Lodge Guidelines.pdf".
+
+Peter Jones approved document "Lodge Guidelines.pdf".
+
+Peter Jones rejected document "Event Flyer.pdf".
+
+--------------------------------------------------
+BACKEND REQUIREMENTS
+--------------------------------------------------
+
+The uploader must only see:
+
+- his own pending uploads
+- his own withdrawn uploads
+- his own rejected uploads
+
+unless broader permissions already exist.
+
+Do not expose pending uploads of other users.
+
+--------------------------------------------------
+PRESERVE
+--------------------------------------------------
+
+Do not change:
+
+- folder structure
+- access matrix
+- document approval workflow
+- document permissions
+- Past Master protections
+- role model
+
+This is a usability improvement only.
+
+--------------------------------------------------
+ACCEPTANCE TESTS
+--------------------------------------------------
+
+1. Member uploads document.
+2. Success message appears.
+3. Pending Review badge appears.
+4. Member can see own pending upload.
+5. Other members cannot see pending upload.
+6. Member can withdraw pending upload.
+7. Withdrawn document leaves review queue.
+8. Approved document changes to Published.
+9. Rejected document shows Rejected status.
+10. Audit log records actions.
+11. Build passes.

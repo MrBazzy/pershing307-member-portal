@@ -271,10 +271,16 @@ router.get("/", requireAuth(), async (req, res) => {
     ))
     .orderBy(asc(documentsTable.createdAt));
 
-  // Filter by visibility — managers (canManage) and approvers (canApprove) see all statuses;
-  // others see only published. Use effective permissions so past_master_protected domains
-  // are enforced strictly through the matrix.
-  const visible = docs.filter((d) => folderPerms.canManage || folderPerms.canApprove || d.status === "published");
+  // Filter by visibility — managers (canManage) and approvers (canApprove) see all statuses.
+  // Regular members see published docs plus their own pending/rejected/withdrawn submissions.
+  // Use effective permissions so past_master_protected domains are enforced through the matrix.
+  const ownNonPublishedStatuses = new Set(["pending_review", "rejected", "withdrawn"]);
+  const visible = docs.filter((d) =>
+    folderPerms.canManage ||
+    folderPerms.canApprove ||
+    d.status === "published" ||
+    (d.uploaderId === userId && ownNonPublishedStatuses.has(d.status ?? ""))
+  );
 
   // Fetch uploaders in bulk
   const uploaderIds = [...new Set(visible.map((d) => d.uploaderId).filter(Boolean) as string[])];

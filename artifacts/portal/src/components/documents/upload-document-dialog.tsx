@@ -39,6 +39,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   folderId: string;
   folderTitle: string;
+  onUploadSuccess?: (title: string) => void;
 }
 
 function formatBytes(bytes: number): string {
@@ -47,7 +48,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function UploadDocumentDialog({ open, onOpenChange, folderId, folderTitle }: Props) {
+export function UploadDocumentDialog({ open, onOpenChange, folderId, folderTitle, onUploadSuccess }: Props) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { mutateAsync: requestUpload } = useRequestDocumentUpload();
@@ -149,8 +150,10 @@ export function UploadDocumentDialog({ open, onOpenChange, folderId, folderTitle
         queryKey: getListFolderDocumentsQueryKey(folderId),
       });
 
+      const uploadedTitle = title.trim();
       reset();
       onOpenChange(false);
+      onUploadSuccess?.(uploadedTitle);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Upload failed. Please try again.";
       setError(msg);

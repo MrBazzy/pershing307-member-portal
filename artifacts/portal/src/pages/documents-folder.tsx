@@ -69,6 +69,7 @@ import {
   Pencil,
   Trash2,
   FolderPlus,
+  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -144,6 +145,14 @@ export default function DocumentsFolderPage({ id }: Props) {
         queryClient.invalidateQueries({ queryKey: getGetDocumentNoticeStatusQueryKey() });
         setNoticeExpanded(false);
       },
+    });
+  }
+
+  function handleUploadSuccess(docTitle: string) {
+    toast({
+      title: "Document uploaded successfully",
+      description: `"${docTitle}" is now pending review. It will become visible to other members after an administrator approves it.`,
+      duration: 8000,
     });
   }
 
@@ -629,6 +638,59 @@ export default function DocumentsFolderPage({ id }: Props) {
               </section>
             )}
 
+            {/* My Pending Documents — only shown to the uploader (non-admin), when they have pending submissions */}
+            {(() => {
+              const myPending = documents.filter(
+                (d) => d.uploaderId === user?.id && d.status === "pending_review",
+              );
+              if (isAdmin || myPending.length === 0) return null;
+              return (
+                <section className="mb-6">
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 overflow-hidden">
+                    <div className="flex items-center gap-2 px-4 py-3 border-b border-amber-200 dark:border-amber-800">
+                      <Clock className="h-4 w-4 text-amber-600 shrink-0" />
+                      <span className="text-sm font-semibold text-amber-900 dark:text-amber-200 flex-1">
+                        My Pending Documents
+                      </span>
+                      <span className="rounded-full bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-100 text-xs font-semibold px-2 py-0.5">
+                        {myPending.length}
+                      </span>
+                    </div>
+                    <div className="divide-y divide-amber-100 dark:divide-amber-900">
+                      {myPending.map((doc) => (
+                        <div key={doc.id} className="flex items-center gap-3 px-4 py-3">
+                          <FileText className="h-4 w-4 text-amber-600 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-amber-900 dark:text-amber-200 truncate">
+                              {doc.title}
+                            </p>
+                            <p className="text-xs text-amber-700/70 dark:text-amber-400/70 mt-0.5">
+                              {doc.originalFileName} · Uploaded {formatDate(doc.createdAt)}
+                            </p>
+                          </div>
+                          <DocumentStatusBadge status="pending_review" />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="gap-1.5 text-amber-700 hover:text-amber-900 hover:bg-amber-100 dark:text-amber-400 dark:hover:text-amber-200 dark:hover:bg-amber-900/50 shrink-0"
+                            onClick={() => setWithdrawTarget({ id: doc.id, title: doc.title })}
+                          >
+                            <Undo2 className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">Withdraw</span>
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="px-4 py-2.5 border-t border-amber-200 dark:border-amber-800">
+                      <p className="text-xs text-amber-700/80 dark:text-amber-400/70">
+                        These documents are awaiting approval and are not yet visible to other members.
+                      </p>
+                    </div>
+                  </div>
+                </section>
+              );
+            })()}
+
             {/* Documents section */}
             <section>
               <div className="flex items-center justify-between mb-3">
@@ -840,6 +902,7 @@ export default function DocumentsFolderPage({ id }: Props) {
           onOpenChange={setUploadOpen}
           folderId={id}
           folderTitle={folder.title}
+          onUploadSuccess={handleUploadSuccess}
         />
       )}
 

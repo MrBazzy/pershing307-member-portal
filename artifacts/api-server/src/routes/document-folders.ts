@@ -666,10 +666,17 @@ router.get("/:id/documents", requireAuth(), requireRole(MEMBER_LEVEL), async (re
     .where(and(eq(documentsTable.folderId, folder.id), eq(documentsTable.lodgeId, lodgeId)))
     .orderBy(asc(documentsTable.createdAt));
 
-  // Approvers (canApprove) and managers (canManage) see all statuses; others see only published.
+  // Approvers (canApprove) and managers (canManage) see all statuses.
+  // Regular members see published docs plus their own pending/rejected/withdrawn submissions.
   // Use effective permissions instead of a raw level check so that past_master_protected
   // domains are enforced strictly through the matrix.
-  const visible = docs.filter((d) => viewPerms.canManage || viewPerms.canApprove || d.status === "published");
+  const ownNonPublishedStatuses = new Set(["pending_review", "rejected", "withdrawn"]);
+  const visible = docs.filter((d) =>
+    viewPerms.canManage ||
+    viewPerms.canApprove ||
+    d.status === "published" ||
+    (d.uploaderId === userId && ownNonPublishedStatuses.has(d.status ?? ""))
+  );
 
   const uploaderIds = [...new Set(visible.map((d) => d.uploaderId).filter(Boolean) as string[])];
   const uploaderMap = new Map<string, { firstName: string; lastName: string }>();
