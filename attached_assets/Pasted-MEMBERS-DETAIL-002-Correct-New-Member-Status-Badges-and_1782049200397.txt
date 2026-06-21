@@ -1,0 +1,136 @@
+MEMBERS-DETAIL-002 — Correct New Member Status Badges and Key Dates
+
+STEP 0 — SAFETY FIRST
+
+Before making changes:
+
+1. Create Replit checkpoint/snapshot.
+2. Create git tag:
+
+v3.9-before-new-member-status-cleanup
+
+3. Confirm build passes.
+
+--------------------------------------------------
+ISSUES
+--------------------------------------------------
+
+After creating a new member, the first Member Detail screen contains a few incorrect or unnecessary status indicators.
+
+--------------------------------------------------
+CHANGE 1 — REMOVE TEST MEMBER BADGE
+--------------------------------------------------
+
+The badge "Test Member" next to the member name is no longer needed.
+
+Going forward, members created through the Create Member form should be treated as normal member records.
+
+Remove the "Test Member" badge from the Member Detail header.
+
+If old test-member logic still exists internally, do not show it in the header anymore.
+
+--------------------------------------------------
+CHANGE 2 — PASSWORD STATUS
+--------------------------------------------------
+
+Current issue:
+
+Password status shows:
+
+SET
+
+immediately after creating a member.
+
+This is incorrect.
+
+Required behavior:
+
+If the member has not yet completed onboarding and has not yet set their own password:
+
+Password status should be:
+
+PENDING
+
+Once the member accepts the invitation / completes onboarding and creates a password:
+
+Password status should become:
+
+SET
+
+Suggested logic:
+
+- passwordHash exists but user has not completed onboarding / mustChangePassword / profileSetupRequired is true:
+  show PENDING
+
+- user completed onboarding and has active password:
+  show SET
+
+- no usable password exists:
+  show PENDING
+
+Do not show SET until the new member can actually log in with their own chosen password.
+
+--------------------------------------------------
+CHANGE 3 — KEY DATES
+--------------------------------------------------
+
+In the Key Dates section, show these fields:
+
+1. Member Created
+2. Invitation Sent
+3. Joined
+4. Last Login
+
+Definitions:
+
+Member Created:
+- timestamp when the member record was created
+
+Invitation Sent:
+- timestamp of most recent invitation email sent
+- show "Not sent yet" if no invitation has been sent
+
+Joined:
+- timestamp when invitation was accepted / onboarding completed
+- show "Not joined yet" if not completed
+
+Last Login:
+- timestamp of last successful login
+- show "Never" if no login has occurred
+
+--------------------------------------------------
+AUDIT / DATA SOURCE
+--------------------------------------------------
+
+Use existing user fields or audit logs where possible.
+
+Do not create duplicate tracking if the information already exists.
+
+If a field is missing and required, add minimal backend support.
+
+--------------------------------------------------
+PRESERVE
+--------------------------------------------------
+
+Do not change:
+
+- invitation token logic
+- onboarding logic
+- roles
+- degrees
+- authentication
+- document access
+- audit log architecture
+
+--------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------
+
+1. Newly created member no longer shows Test Member badge.
+2. Newly created member shows Password Status: PENDING.
+3. Password Status changes to SET only after onboarding/password creation.
+4. Key Dates shows Member Created.
+5. Key Dates shows Invitation Sent or "Not sent yet".
+6. Key Dates shows Joined or "Not joined yet".
+7. Key Dates shows Last Login or "Never".
+8. Build passes.

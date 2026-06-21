@@ -15,7 +15,7 @@ import {
   auditLogsTable,
   userDocumentNoticeAcceptanceTable,
 } from "@workspace/db/schema";
-import { eq, and, or, ilike, count, inArray, ne, desc, isNull, gt } from "drizzle-orm";
+import { eq, and, or, ilike, count, inArray, ne, desc, isNull, gt, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { writeAuditLog, getClientIp } from "../lib/audit";
 import { getLodgeId, getConfig, getConfigNumber } from "../lib/config";
@@ -206,7 +206,7 @@ router.get("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res
 
   const user = users[0];
 
-  const [roles, noticeRow] = await Promise.all([
+  const [roles, noticeRow, lastSentRow] = await Promise.all([
     db
       .select({ id: rolesTable.id, name: rolesTable.name, slug: rolesTable.slug, permissionLevel: rolesTable.permissionLevel })
       .from(userRolesTable)
@@ -216,6 +216,16 @@ router.get("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res
       .select({ acceptedAt: userDocumentNoticeAcceptanceTable.acceptedAt })
       .from(userDocumentNoticeAcceptanceTable)
       .where(eq(userDocumentNoticeAcceptanceTable.userId, user.id))
+      .limit(1),
+    db
+      .select({ createdAt: auditLogsTable.createdAt })
+      .from(auditLogsTable)
+      .where(and(
+        eq(auditLogsTable.lodgeId, lodgeId!),
+        inArray(auditLogsTable.action, ["INVITATION_SENT", "INVITATION_RESENT"]),
+        sql`${auditLogsTable.detail}->>'email' = ${user.email}`
+      ))
+      .orderBy(desc(auditLogsTable.createdAt))
       .limit(1),
   ]);
 
@@ -232,12 +242,15 @@ router.get("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, res
       isActive: user.isActive,
       emailVerified: user.emailVerified,
       mustChangePassword: user.mustChangePassword,
+      hasPassword: !!user.passwordHash,
+      profileSetupRequired: user.profileSetupRequired,
       lastLoginAt: user.lastLoginAt,
       createdAt: user.createdAt,
       roles,
       noticeAcceptedAt: noticeRow[0]?.acceptedAt?.toISOString() ?? null,
       lockedUntil: user.lockedUntil?.toISOString() ?? null,
       isBootstrapAdmin: user.isBootstrapAdmin,
+      invitationLastSentAt: lastSentRow[0]?.createdAt?.toISOString() ?? null,
     },
     testResetEnabled: isTestResetEnabled(),
   });

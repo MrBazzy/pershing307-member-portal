@@ -817,7 +817,6 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
               <SheetTitle className="font-serif text-xl flex items-center gap-2 flex-wrap">
                 {user.firstName} {user.lastName}
                 {isBootstrapAdmin && <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">Bootstrap Admin</Badge>}
-                {isTestMember && <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-amber-600 border-amber-500/40 shrink-0">Test Member</Badge>}
               </SheetTitle>
               <SheetDescription>{user.email}</SheetDescription>
             </SheetHeader>
@@ -859,9 +858,16 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
                       </Badge>
                     </StatusCard>
                     <StatusCard label="Password">
-                      <Badge variant="outline" className={cn(user.mustChangePassword ? "text-amber-600 border-amber-500/30" : "text-muted-foreground")}>
-                        {user.mustChangePassword ? "Must change" : "Set"}
-                      </Badge>
+                      {(() => {
+                        const hasPassword = (user as any).hasPassword;
+                        const profileSetupRequired = (user as any).profileSetupRequired;
+                        const isPending = !hasPassword || profileSetupRequired || user.mustChangePassword;
+                        return (
+                          <Badge variant="outline" className={cn(isPending ? "text-muted-foreground" : "text-green-700 border-green-600/30")}>
+                            {isPending ? "Pending" : "Set"}
+                          </Badge>
+                        );
+                      })()}
                     </StatusCard>
                     <StatusCard label="Membership">
                       <span className="text-sm font-medium capitalize">{user.membershipStatus ?? "—"}</span>
@@ -879,14 +885,25 @@ function UserDetailSheet({ userId, onClose }: { userId: string | null; onClose: 
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Key Dates</p>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                    <DateRow label="Joined" value={format(new Date(user.createdAt), "d MMM yyyy")} />
-                    <DateRow label="Last Login" value={user.lastLoginAt ? formatDistanceToNow(new Date(user.lastLoginAt), { addSuffix: true }) : "Never"} />
-                    {latestInv && <>
-                      <DateRow label="Invitation Created" value={format(new Date(latestInv.createdAt), "d MMM yyyy")} />
-                      {latestInv.acceptedAt && <DateRow label="Invitation Accepted" value={format(new Date(latestInv.acceptedAt), "d MMM yyyy")} />}
-                      {!latestInv.acceptedAt && !latestInv.revokedAt && <DateRow label="Invitation Expires" value={format(new Date(latestInv.expiresAt), "d MMM yyyy")} />}
-                      {latestInv.revokedAt && <DateRow label="Invitation Revoked" value={format(new Date(latestInv.revokedAt), "d MMM yyyy")} />}
-                    </>}
+                    <DateRow label="Member Created" value={format(new Date(user.createdAt), "d MMM yyyy")} />
+                    <DateRow
+                      label="Invitation Sent"
+                      value={(user as any).invitationLastSentAt
+                        ? format(new Date((user as any).invitationLastSentAt), "d MMM yyyy")
+                        : "Not sent yet"}
+                    />
+                    <DateRow
+                      label="Joined"
+                      value={latestInv?.acceptedAt
+                        ? format(new Date(latestInv.acceptedAt), "d MMM yyyy")
+                        : "Not joined yet"}
+                    />
+                    <DateRow
+                      label="Last Login"
+                      value={user.lastLoginAt
+                        ? formatDistanceToNow(new Date(user.lastLoginAt), { addSuffix: true })
+                        : "Never"}
+                    />
                     {user.dateOfBirth && <DateRow label="Date of Birth" value={format(new Date(user.dateOfBirth), "d MMM yyyy")} />}
                   </div>
                 </div>
