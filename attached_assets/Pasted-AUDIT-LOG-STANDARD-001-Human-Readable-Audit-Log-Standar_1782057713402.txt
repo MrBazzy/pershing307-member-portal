@@ -1,0 +1,260 @@
+AUDIT-LOG-STANDARD-001 — Human-Readable Audit Log Standard
+
+STEP 0 — SAFETY FIRST
+
+Create checkpoint/snapshot.
+Create git tag:
+
+v3.9-before-audit-log-standard
+
+Confirm build passes before implementation.
+
+--------------------------------------------------
+GOAL
+--------------------------------------------------
+
+All audit log entries must clearly answer:
+
+- Who did it?
+- What did they do?
+- To whom or to what?
+- When did it happen?
+- Why did it happen, if a reason was provided?
+- What was the result?
+
+This must apply globally, not only to documents.
+
+--------------------------------------------------
+CURRENT ISSUE
+--------------------------------------------------
+
+Some audit log entries only show the technical action, for example:
+
+DOCUMENT_REJECTED
+MEMBER_CREATED
+ROLE_GRANTED
+
+but do not clearly show:
+
+- actor full name
+- target full name or document name
+- timestamp
+- reason
+- result
+
+This is not sufficient for administration, governance, troubleshooting, or accountability.
+
+--------------------------------------------------
+GLOBAL AUDIT LOG DISPLAY STANDARD
+--------------------------------------------------
+
+Every visible audit entry should display:
+
+1. Actor
+Full name of the user who performed the action.
+
+Example:
+John Smith
+
+Fallback:
+- email address only if full name is unavailable
+- System only for genuine automated system actions
+
+2. Action
+Human-readable action.
+
+Example:
+uploaded a document
+rejected a document
+created a member
+deleted a member
+granted a role
+changed membership status
+
+3. Target
+The object affected.
+
+Examples:
+- document "Lodge Guidelines.pdf"
+- member Peter Jones
+- role Treasurer
+- folder General Documents
+- domain Past Master Ritual
+
+4. Timestamp
+Date and time in readable local format.
+
+5. Result
+Success, Failed, Denied, Warning, Info.
+
+6. Reason / Details
+Show reason when available.
+
+Examples:
+- Rejection reason
+- Delete reason
+- Access denied reason
+- Role change reason
+- Membership status change reason
+
+--------------------------------------------------
+EXAMPLE FORMATS
+--------------------------------------------------
+
+Document upload:
+
+John Smith uploaded document "Lodge Guidelines.pdf" to General Documents.
+Status: Pending Review.
+Time: 21 June 2026, 19:42.
+Result: Success.
+
+Document rejection:
+
+Peter Jones rejected document "Lodge Guidelines.pdf" uploaded by John Smith.
+Reason: Uploaded to incorrect folder.
+Time: 21 June 2026, 20:13.
+Result: Success.
+
+Member created:
+
+John Smith created member Peter Jones.
+Invitation status: Not Invited.
+Time: 21 June 2026, 20:20.
+Result: Success.
+
+Member deleted:
+
+John Smith deleted member Peter Jones.
+Time: 21 June 2026, 20:30.
+Result: Success.
+
+Role granted:
+
+John Smith granted role Treasurer to Peter Jones.
+Time: 21 June 2026, 20:35.
+Result: Success.
+
+Blocked action:
+
+Peter Jones attempted to modify Past Master Ritual access but was denied.
+Reason: Only a PM Super Administrator may manage Past Master Protected domains.
+Time: 21 June 2026, 20:45.
+Result: Denied.
+
+--------------------------------------------------
+MODULES TO COVER
+--------------------------------------------------
+
+Apply this audit display standard to at least:
+
+- Authentication
+- Login failures
+- Password resets
+- Passkeys
+- 2FA
+- Member creation
+- Member deletion
+- Member activation/deactivation
+- Invitation created/sent/accepted/revoked
+- Role granted/revoked
+- Degree granted/removed
+- Membership status changed
+- Document uploaded
+- Document viewed
+- Document downloaded
+- Document approved
+- Document rejected
+- Document withdrawn
+- Document deleted/archived
+- Folder created/renamed/deleted
+- Access matrix changed
+- Domain changed
+- Configuration changed
+- Events changed
+- Tracing Board changed
+- History changed
+
+--------------------------------------------------
+BACKEND REQUIREMENTS
+--------------------------------------------------
+
+Update audit logging so structured metadata contains:
+
+- actorUserId
+- actorFirstName
+- actorLastName
+- actorEmail
+- targetType
+- targetId
+- targetName
+- actionType
+- result
+- reason
+- humanMessage
+- recommendedAction if applicable
+- timestamp
+
+Do not store sensitive values:
+- passwords
+- temporary passwords
+- passkey secrets
+- 2FA secrets
+- session tokens
+- SMTP passwords
+
+--------------------------------------------------
+DISPLAY REQUIREMENTS
+--------------------------------------------------
+
+The Audit Log UI should render the human-readable message first.
+
+Raw technical action code may remain visible as secondary detail if useful.
+
+Example:
+
+Primary:
+Peter Jones rejected document "Lodge Guidelines.pdf" uploaded by John Smith.
+
+Secondary:
+Action: DOCUMENT_REJECTED
+
+--------------------------------------------------
+EXISTING AUDIT RECORDS
+--------------------------------------------------
+
+If older records lack full metadata:
+
+Render best effort.
+
+Example:
+DOCUMENT_REJECTED
+
+Show:
+A document was rejected.
+Details unavailable for older audit record.
+
+Do not break existing audit history.
+
+--------------------------------------------------
+AUDIT TIMELINE
+--------------------------------------------------
+
+Member Timeline should also use the same human-readable audit interpretation standard.
+
+--------------------------------------------------
+ACCEPTANCE TESTS
+--------------------------------------------------
+
+1. Upload document.
+2. Audit log shows who uploaded what, where and when.
+3. Reject document with reason.
+4. Audit log shows who rejected it, what was rejected, who uploaded it and why.
+5. Create member.
+6. Audit log shows who created which member.
+7. Delete member.
+8. Audit log shows who deleted which member.
+9. Grant role.
+10. Audit log shows who granted what role to whom.
+11. Denied Past Master Protected action shows actor, target and reason.
+12. Existing older audit records still display safely.
+13. Build passes.

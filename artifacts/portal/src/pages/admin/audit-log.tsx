@@ -344,6 +344,61 @@ function interpret(
         recommendation: "The user cannot log in until the account is reactivated.",
       };
 
+    case "MEMBER_CREATED": {
+      const firstName = s("firstName");
+      const lastName = s("lastName");
+      const email = s("email");
+      const memberName = [firstName, lastName].filter(Boolean).join(" ");
+      const displayName = targetLabel || memberName || email || "a new member";
+      return {
+        category: "Users",
+        result: "success",
+        summary: `${actorLabel} created member ${displayName}.`,
+        details: email && memberName ? `Email: ${email}.` : undefined,
+      };
+    }
+
+    case "MEMBER_DELETED": {
+      const name = s("name");
+      const email = s("email");
+      const displayName = targetLabel || name || email || "a member";
+      return {
+        category: "Users",
+        result: "warning",
+        summary: `${actorLabel} deleted member ${displayName}.`,
+        details: email ? `Email: ${email}.` : undefined,
+      };
+    }
+
+    case "DELETE_BLOCKED": {
+      const reason = s("reason");
+      const name = s("name");
+      const displayName = targetLabel || name || targetStr;
+      let details: string;
+      switch (reason) {
+        case "self_delete":
+          details = "An administrator cannot delete their own account.";
+          break;
+        case "bootstrap_admin":
+          details = "The bootstrap administrator account cannot be deleted.";
+          break;
+        case "insufficient_permission":
+          details = "Only a PM Super Administrator can delete another PM Super Administrator.";
+          break;
+        case "last_pm_super":
+          details = "Cannot delete the last PM Super Administrator.";
+          break;
+        default:
+          details = reason || "Delete was blocked by the system.";
+      }
+      return {
+        category: "Users",
+        result: "failure",
+        summary: `${actorLabel} attempted to delete ${displayName} but was blocked.`,
+        details,
+      };
+    }
+
     case "USER_NAME_UPDATED": {
       const from = s("from");
       const to = s("to");
@@ -354,6 +409,22 @@ function interpret(
           ? `${actorLabel} updated name for ${targetLabel}.`
           : `${actorLabel} updated a member's name.`,
         details: from && to ? `Changed from "${from}" to "${to}".` : undefined,
+      };
+    }
+
+    case "USER_EMAIL_UPDATED": {
+      const prevEmail = s("previousEmail");
+      const newEmail  = s("updatedEmail");
+      const selfService = detail["selfService"] === true;
+      return {
+        category: "Users",
+        result: "success",
+        summary: targetLabel
+          ? `${selfService ? targetLabel : actorLabel} updated email for ${targetLabel}.`
+          : selfService
+            ? `${actorLabel} updated their own email address.`
+            : `${actorLabel} updated a member's email address.`,
+        details: prevEmail && newEmail ? `Changed from "${prevEmail}" to "${newEmail}".` : undefined,
       };
     }
 
@@ -423,6 +494,35 @@ function interpret(
       };
     }
 
+    case "ROLE_CREATED": {
+      const name = s("name") || s("roleName");
+      const level = n("permissionLevel");
+      return {
+        category: "Roles",
+        result: "success",
+        summary: `${actorLabel} created role${name ? ` "${name}"` : ""}.`,
+        details: level !== undefined ? `Permission level: ${level}.` : undefined,
+      };
+    }
+
+    case "ROLE_UPDATED": {
+      const name = s("name") || s("roleName");
+      return {
+        category: "Roles",
+        result: "info",
+        summary: `${actorLabel} updated role${name ? ` "${name}"` : ""}.`,
+      };
+    }
+
+    case "ROLE_DELETED": {
+      const name = s("name") || s("roleName");
+      return {
+        category: "Roles",
+        result: "warning",
+        summary: `${actorLabel} deleted role${name ? ` "${name}"` : ""}.`,
+      };
+    }
+
     // ── Invitations ───────────────────────────────────────────────────
     case "INVITATION_CREATED": {
       const email = s("email");
@@ -434,6 +534,30 @@ function interpret(
         result: "success",
         summary: `${actorLabel} created an invitation for ${name ? `${name} (${email})` : email || "a new member"}.`,
         details: "An invitation email was sent if SMTP is configured.",
+      };
+    }
+
+    case "INVITATION_SENT": {
+      const email = s("email");
+      const firstName = s("firstName");
+      const lastName = s("lastName");
+      const name = [firstName, lastName].filter(Boolean).join(" ");
+      return {
+        category: "Invitations",
+        result: "info",
+        summary: `${actorLabel} sent invitation to ${name ? `${name} (${email})` : email || "a member"}.`,
+      };
+    }
+
+    case "INVITATION_RESENT": {
+      const email = s("email");
+      const firstName = s("firstName");
+      const lastName = s("lastName");
+      const name = [firstName, lastName].filter(Boolean).join(" ");
+      return {
+        category: "Invitations",
+        result: "info",
+        summary: `${actorLabel} resent invitation to ${name ? `${name} (${email})` : email || "a member"}.`,
       };
     }
 
@@ -492,6 +616,13 @@ function interpret(
       };
     }
 
+    case "DEGREE_DEFINITIONS_UPDATED":
+      return {
+        category: "Degrees",
+        result: "info",
+        summary: `${actorLabel} updated the lodge degree definitions.`,
+      };
+
     // ── Access / Domains ──────────────────────────────────────────────
     case "DOMAIN_ACCESS_GRANTED": {
       const domainName = s("domainName");
@@ -512,6 +643,97 @@ function interpret(
         summary: targetLabel
           ? `${actorLabel} revoked domain access "${domainName || "unknown"}" from ${targetLabel}.`
           : `${actorLabel} revoked domain access: ${domainName || "unknown"}.`,
+      };
+    }
+
+    case "DOMAIN_CREATED": {
+      const name = s("domainName");
+      const protection = s("domainProtectionLevel");
+      const isProtected = protection === "past_master_protected";
+      return {
+        category: "Access",
+        result: "success",
+        summary: `${actorLabel} created domain${name ? ` "${name}"` : ""}${isProtected ? " (Past Master Protected)" : ""}.`,
+      };
+    }
+
+    case "DOMAIN_UPDATED": {
+      const name = s("domainName");
+      return {
+        category: "Access",
+        result: "info",
+        summary: `${actorLabel} updated domain${name ? ` "${name}"` : ""}.`,
+      };
+    }
+
+    case "DOMAIN_ACCESS_RULE_CHANGED": {
+      const name = s("domainName");
+      return {
+        category: "Access",
+        result: "info",
+        summary: `${actorLabel} changed access rules for domain${name ? ` "${name}"` : ""}.`,
+      };
+    }
+
+    case "DOMAIN_PROTECTION_BLOCKED": {
+      const name = s("domainName");
+      const reason = s("reason") || s("attemptedAction");
+      return {
+        category: "Access",
+        result: "failure",
+        summary: `${actorLabel} attempted a protected action${name ? ` on domain "${name}"` : ""} but was denied.`,
+        details: reason
+          ? `Reason: ${reason}`
+          : "Action blocked — domain is Past Master Protected.",
+        recommendation: "Only a PM Super Administrator may manage Past Master Protected domains.",
+      };
+    }
+
+    case "ACCESS_MATRIX_UPDATED": {
+      const name = s("domainName");
+      const granted = n("granted");
+      const revoked = n("revoked");
+      const changeSummary = [
+        granted ? `${granted} permission(s) granted` : null,
+        revoked ? `${revoked} permission(s) revoked` : null,
+      ].filter(Boolean).join(", ");
+      return {
+        category: "Access",
+        result: "info",
+        summary: `${actorLabel} updated access matrix${name ? ` for domain "${name}"` : ""}.`,
+        details: changeSummary || undefined,
+      };
+    }
+
+    case "ACCESS_MATRIX_PERMISSION_GRANTED": {
+      const name = s("domainName");
+      const subjectKey = s("subjectKey");
+      const permission = s("permission");
+      return {
+        category: "Access",
+        result: "success",
+        summary: `${actorLabel} granted${subjectKey ? ` "${subjectKey}"` : ""} ${permission || "access"}${name ? ` on domain "${name}"` : ""}.`,
+      };
+    }
+
+    case "ACCESS_MATRIX_PERMISSION_REVOKED": {
+      const name = s("domainName");
+      const subjectKey = s("subjectKey");
+      const permission = s("permission");
+      return {
+        category: "Access",
+        result: "info",
+        summary: `${actorLabel} revoked${subjectKey ? ` "${subjectKey}"` : ""} ${permission || "access"}${name ? ` from domain "${name}"` : ""}.`,
+      };
+    }
+
+    case "FOLDER_DOMAIN_LINKED": {
+      const folder = s("folderTitle");
+      const domain = s("domainName");
+      return {
+        category: "Documents",
+        result: "info",
+        summary: `${actorLabel} linked folder${folder ? ` "${folder}"` : ""} to domain${domain ? ` "${domain}"` : ""}.`,
       };
     }
 
@@ -648,6 +870,154 @@ function interpret(
       };
     }
 
+    // ── Document lifecycle ─────────────────────────────────────────────
+    case "DOCUMENT_UPLOADED": {
+      const title     = s("title") || s("fileName");
+      const folder    = s("folderTitle");
+      const status    = s("status");
+      const statusLabel = status === "pending_review" ? "Pending Review"
+        : status === "published"     ? "Published"
+        : status === "rejected"      ? "Rejected"
+        : status ? status : "Pending Review";
+      return {
+        category: "Documents",
+        result: "success",
+        summary: `${actorLabel} uploaded document${title ? ` "${title}"` : ""}${folder ? ` to ${folder}` : ""}.`,
+        details: `Status: ${statusLabel}.`,
+      };
+    }
+
+    case "DOCUMENT_APPROVED": {
+      const title    = s("title") || s("fileName");
+      const uploader = s("uploaderName");
+      return {
+        category: "Documents",
+        result: "success",
+        summary: `${actorLabel} approved document${title ? ` "${title}"` : ""}${uploader && uploader !== actorLabel ? ` uploaded by ${uploader}` : ""}.`,
+      };
+    }
+
+    case "DOCUMENT_REJECTED": {
+      const title    = s("title") || s("fileName");
+      const uploader = s("uploaderName");
+      const reason   = s("rejectionReason");
+      return {
+        category: "Documents",
+        result: "warning",
+        summary: `${actorLabel} rejected document${title ? ` "${title}"` : ""}${uploader && uploader !== actorLabel ? ` uploaded by ${uploader}` : ""}.`,
+        details: reason ? `Reason: ${reason}.` : undefined,
+      };
+    }
+
+    case "DOCUMENT_ARCHIVED": {
+      const title = s("title") || s("fileName");
+      return {
+        category: "Documents",
+        result: "info",
+        summary: `${actorLabel} archived document${title ? ` "${title}"` : ""}.`,
+      };
+    }
+
+    case "DOCUMENT_DELETED": {
+      const title = s("title") || s("fileName");
+      return {
+        category: "Documents",
+        result: "warning",
+        summary: `${actorLabel} deleted document${title ? ` "${title}"` : ""}.`,
+      };
+    }
+
+    case "DOCUMENT_RESTORED": {
+      const title = s("title") || s("fileName");
+      return {
+        category: "Documents",
+        result: "success",
+        summary: `${actorLabel} restored document${title ? ` "${title}"` : ""}.`,
+      };
+    }
+
+    case "DOCUMENT_WITHDRAWN": {
+      const title = s("title") || s("fileName");
+      return {
+        category: "Documents",
+        result: "info",
+        summary: `${actorLabel} withdrew document${title ? ` "${title}"` : ""}.`,
+      };
+    }
+
+    case "DOCUMENT_RENAMED": {
+      const oldTitle = s("oldTitle");
+      const newTitle = s("newTitle");
+      return {
+        category: "Documents",
+        result: "info",
+        summary: `${actorLabel} renamed document${oldTitle ? ` "${oldTitle}"` : ""}${newTitle && newTitle !== oldTitle ? ` to "${newTitle}"` : ""}.`,
+      };
+    }
+
+    case "DOCUMENT_MOVED": {
+      const title = s("title");
+      const from  = s("fromFolderTitle");
+      const to    = s("toFolderTitle");
+      const loc   = from && to ? ` from ${from} to ${to}` : from ? ` from ${from}` : to ? ` to ${to}` : "";
+      return {
+        category: "Documents",
+        result: "info",
+        summary: `${actorLabel} moved document${title ? ` "${title}"` : ""}${loc}.`,
+      };
+    }
+
+    case "DOCUMENT_DOWNLOADED": {
+      const title = s("title") || s("fileName");
+      return {
+        category: "Documents",
+        result: "info",
+        summary: `${actorLabel} downloaded document${title ? ` "${title}"` : ""}.`,
+      };
+    }
+
+    case "DOCUMENT_VIEWED": {
+      const title = s("title") || s("fileName");
+      return {
+        category: "Documents",
+        result: "info",
+        summary: `${actorLabel} viewed document${title ? ` "${title}"` : ""}.`,
+      };
+    }
+
+    case "DOCUMENT_ACCESS_DENIED": {
+      const title  = s("documentTitle") || s("title");
+      const domain = s("domainSlug");
+      const via    = s("via");
+      return {
+        category: "Documents",
+        result: "failure",
+        summary: `${actorLabel} was denied access to document${title ? ` "${title}"` : ""}${via ? ` (${via})` : ""}.`,
+        details: domain ? `Domain: ${domain}. Access restricted by domain permissions.` : "Document access was denied.",
+        recommendation: "Review the user's domain access in Access Management.",
+      };
+    }
+
+    case "DOCUMENT_NOTICE_ACCEPTED": {
+      const version = s("noticeVersion");
+      return {
+        category: "Documents",
+        result: "info",
+        summary: `${actorLabel} acknowledged the document access notice${version ? ` (v${version})` : ""}.`,
+      };
+    }
+
+    case "DOCUMENT_NOTICE_RESET": {
+      const count = n("usersReset");
+      return {
+        category: "Documents",
+        result: "info",
+        summary: `${actorLabel} reset the document access notice for all members.`,
+        details: count !== undefined ? `${count} member acknowledgement(s) cleared.` : undefined,
+        recommendation: "All members will need to re-acknowledge the document notice on their next visit.",
+      };
+    }
+
     // ── System / Config ───────────────────────────────────────────────
     case "BOOTSTRAP_COMPLETED":
       return {
@@ -705,6 +1075,7 @@ const CATEGORY_BADGE: Record<string, string> = {
   Invitations:     "bg-sky-50 text-sky-700 border-sky-200",
   Degrees:         "bg-orange-50 text-orange-700 border-orange-200",
   Access:          "bg-rose-50 text-rose-700 border-rose-200",
+  Documents:       "bg-emerald-50 text-emerald-700 border-emerald-200",
   Roadmap:         "bg-lime-50 text-lime-700 border-lime-200",
   "Tracing Board": "bg-cyan-50 text-cyan-700 border-cyan-200",
   Events:          "bg-pink-50 text-pink-700 border-pink-200",
@@ -716,7 +1087,7 @@ const CATEGORY_BADGE: Record<string, string> = {
 const CATEGORIES = [
   "Authentication", "Passkeys", "2FA / TOTP", "Password",
   "Users", "Roles", "Invitations", "Degrees", "Access",
-  "Roadmap", "Tracing Board", "Events", "History", "System",
+  "Documents", "Roadmap", "Tracing Board", "Events", "History", "System",
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -759,9 +1130,18 @@ function AuditRow({
   onToggle: () => void;
 }) {
   const { actorLabel, targetLabel } = useMemo(() => {
-    // Resolve actor: id first → email lookup → raw email → "System"
+    const det = (log.detail ?? {}) as AuditDetail;
+
+    // Resolve actor:
+    //   1. detail.actorName (written at log time — most reliable, survives user deletion)
+    //   2. live name lookup by actorId
+    //   3. live name lookup by actorEmail
+    //   4. raw actorEmail
+    //   5. "System"
     let actor = "System";
-    if (log.actorId) {
+    if (det.actorName && typeof det.actorName === "string") {
+      actor = det.actorName;
+    } else if (log.actorId) {
       const name = nameMaps.byId.get(log.actorId);
       if (name) actor = name;
       else if (log.actorEmail) {
@@ -773,9 +1153,13 @@ function AuditRow({
       actor = byEmail ?? log.actorEmail;
     }
 
-    // Resolve target: only when targetType === "user" and targetId is set
+    // Resolve target:
+    //   1. detail.targetName (written at log time)
+    //   2. live name lookup when targetType === "user"
     let target: string | null = null;
-    if (log.targetType === "user" && log.targetId) {
+    if (det.targetName && typeof det.targetName === "string") {
+      target = det.targetName;
+    } else if (log.targetType === "user" && log.targetId) {
       target = nameMaps.byId.get(log.targetId) ?? null;
     }
 
