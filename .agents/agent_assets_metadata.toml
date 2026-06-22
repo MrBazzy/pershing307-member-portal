@@ -6,3 +6,9 @@ id = "DfqTsvp_K_Isx-yBCOGuR"
 uri = "file://Pershing307_Member_Portal_Manual.docx"
 type = "word_document"
 title = "Pershing No. 307 — Member Portal Manual (Word)"
+
+[[outputs]]
+id = "Vai9IIsoIKxgUstI2R_1A"
+uri = "file://DOCUMENTATION_GAP_ANALYSIS.md"
+type = "text"
+title = "Documentation Gap Analysis — Pershing No. 307 Member Portal"
