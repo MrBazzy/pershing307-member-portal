@@ -7,6 +7,7 @@ import {
   usersTable,
   userRolesTable,
   auditLogsTable,
+  twoFactorSettingsTable,
 } from "@workspace/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { hashPassword } from "../src/lib/password";
@@ -121,9 +122,10 @@ export async function teardownFixtures(): Promise<void> {
   const userIds = users.map((u) => u.id);
 
   if (userIds.length > 0) {
-    // audit_logs.actor_id references users — clear those first.
+    // Clear all tables that reference users via FK before deleting the users row.
     await db.delete(auditLogsTable).where(inArray(auditLogsTable.actorId, userIds));
     await db.delete(userRolesTable).where(inArray(userRolesTable.userId, userIds));
+    await db.delete(twoFactorSettingsTable).where(inArray(twoFactorSettingsTable.userId, userIds));
 
     // Best-effort cleanup of any sessions created during login.
     for (const uid of userIds) {

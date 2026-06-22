@@ -2,6 +2,7 @@
 - [Pershing307 Stack & Conventions](pershing307-stack.md) — portal stack, lib build requirement after codegen, auth patterns, key config values.
 - [Pershing307 lib dist rebuild](pershing307-lib-dist-rebuild.md) — after orval codegen, must run `cd lib/api-client-react && npx tsc --build` or portal TS picks up stale dist/ declarations.
 - [Pershing307 Sprint 2A](pershing307-sprint2a.md) — Birthday Calendar + Roadmap Box: what was built, what's pending (DOB edit in admin/users).
+- [Auth test patterns](pershing307-auth-test-patterns.md) — Route paths, level-check ordering, session-safe logout testing, and FK cleanup for the authorization test suite.
 - [Pershing307 Onboarding Report](pershing307-onboarding-report.md) — Member Onboarding tab in Reports: client-side join of users+invitations; Invitations nav item removed; Cleanup moved into report.
 - [Pershing307 Document Domains](pershing307-document-domains.md) — DOCUMENT-DOMAINS-001: domain access system, seeded domains, frame split, PM_SUPER_LEVEL.
 - [Pershing307 Document Matrix Bypass Patterns](pershing307-matrix-bypass.md) — recurring patterns where hardcoded isAdmin checks bypass the access matrix; what was fixed and the rule for future routes.
