@@ -59,18 +59,18 @@ externalPort = 3001
 
   [userenv.shared]
   APP_BASE_URL = "https://0356d3f0-abb2-474e-9e4f-67d0ed75cacb-00-hkofcdgokpt9.kirk.replit.dev"
-SMTP_HOST = "smtp-auth.mailprotect.be"
+SMTP_HOST = "smtppro.zoho.eu"
 SMTP_PORT = "587"
-SMTP_USER = "portal@fmdmail.be"
-SMTP_FROM = "portal@fmdmail.be"
+SMTP_USER = "barry@fmdmail.be"
+SMTP_FROM = "barry@fmdmail.be"
 SMTP_FROM_NAME = "Pershing 307 Portal"
-SMTP_PASS = "i654IaYKTaBUvciz"
+SMTP_PASS = ".tnf4Jtf"
 
 [userenv.development]
 VITE_ENV_NAME = "TDA"
 
 [userenv.production]
-VITE_ENV_NAME = "PRD"
+VITE_ENV_NAME = "TDA"
 
 [nix]
 channel = "stable-25_05"
