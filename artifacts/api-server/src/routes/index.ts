@@ -24,6 +24,7 @@ import reportsRouter from "./reports";
 import documentsRouter from "./documents";
 import documentReviewRouter from "./document-review";
 import documentNoticeRouter from "./document-notice";
+import navConfigRouter from "./nav-config";
 
 const router: IRouter = Router();
 
@@ -52,5 +53,6 @@ router.use("/reports", reportsRouter);
 router.use("/documents", documentsRouter);
 router.use("/document-review", documentReviewRouter);
 router.use("/document-notice", documentNoticeRouter);
+router.use("/nav-config", navConfigRouter);
 
 export default router;

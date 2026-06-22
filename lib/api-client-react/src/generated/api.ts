@@ -107,6 +107,7 @@ import type {
   LoginInput,
   LoginResult,
   MemberDetailReport,
+  NavConfig,
   PasskeyAuthenticationResponse,
   PasskeyListResult,
   PasskeyLoginResult,
@@ -11184,5 +11185,153 @@ export const useResetDocumentNoticeAcceptance = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getResetDocumentNoticeAcceptanceMutationOptions(options));
+    }
+
+export const getGetNavConfigUrl = () => {
+
+
+
+
+  return `/api/nav-config`
+}
+
+/**
+ * @summary Get navigation menu configuration
+ */
+export const getNavConfig = async ( options?: RequestInit): Promise<NavConfig> => {
+
+  return customFetch<NavConfig>(getGetNavConfigUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetNavConfigQueryKey = () => {
+    return [
+    `/api/nav-config`
+    ] as const;
+    }
+
+
+export const getGetNavConfigQueryOptions = <TData = Awaited<ReturnType<typeof getNavConfig>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNavConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetNavConfigQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNavConfig>>> = ({ signal }) => getNavConfig({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getNavConfig>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetNavConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getNavConfig>>>
+export type GetNavConfigQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get navigation menu configuration
+ */
+
+export function useGetNavConfig<TData = Awaited<ReturnType<typeof getNavConfig>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNavConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetNavConfigQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateNavConfigUrl = () => {
+
+
+
+
+  return `/api/nav-config`
+}
+
+/**
+ * @summary Update navigation menu configuration (admin only)
+ */
+export const updateNavConfig = async (navConfig: NavConfig, options?: RequestInit): Promise<NavConfig> => {
+
+  return customFetch<NavConfig>(getUpdateNavConfigUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      navConfig,)
+  }
+);}
+
+
+
+
+export const getUpdateNavConfigMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateNavConfig>>, TError,{data: BodyType<NavConfig>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateNavConfig>>, TError,{data: BodyType<NavConfig>}, TContext> => {
+
+const mutationKey = ['updateNavConfig'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateNavConfig>>, {data: BodyType<NavConfig>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateNavConfig(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateNavConfigMutationResult = NonNullable<Awaited<ReturnType<typeof updateNavConfig>>>
+    export type UpdateNavConfigMutationBody = BodyType<NavConfig>
+    export type UpdateNavConfigMutationError = ErrorType<void>
+
+    /**
+ * @summary Update navigation menu configuration (admin only)
+ */
+export const useUpdateNavConfig = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateNavConfig>>, TError,{data: BodyType<NavConfig>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateNavConfig>>,
+        TError,
+        {data: BodyType<NavConfig>},
+        TContext
+      > => {
+      return useMutation(getUpdateNavConfigMutationOptions(options));
     }
 

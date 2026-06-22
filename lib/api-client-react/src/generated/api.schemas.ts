@@ -1831,6 +1831,28 @@ export interface DocumentNoticeResetResult {
   usersReset: number;
 }
 
+export type NavConfigItemSlug = typeof NavConfigItemSlug[keyof typeof NavConfigItemSlug];
+
+
+export const NavConfigItemSlug = {
+  dashboard: 'dashboard',
+  'tracing-board': 'tracing-board',
+  history: 'history',
+  events: 'events',
+  birthdays: 'birthdays',
+  documents: 'documents',
+} as const;
+
+export interface NavConfigItem {
+  slug: NavConfigItemSlug;
+  enabled: boolean;
+  minLevel: number;
+}
+
+export interface NavConfig {
+  items: NavConfigItem[];
+}
+
 export type ListUsersParams = {
 /**
  * @minimum 1

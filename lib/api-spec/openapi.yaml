@@ -3549,6 +3549,48 @@ paths:
         "403":
           description: PM Super only
 
+  /nav-config:
+    get:
+      operationId: getNavConfig
+      tags: [nav-config]
+      summary: Get navigation menu configuration
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Nav config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NavConfig"
+        "401":
+          description: Not authenticated
+    put:
+      operationId: updateNavConfig
+      tags: [nav-config]
+      summary: Update navigation menu configuration (admin only)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NavConfig"
+      responses:
+        "200":
+          description: Updated nav config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NavConfig"
+        "400":
+          description: Invalid request
+        "401":
+          description: Not authenticated
+        "403":
+          description: Admin only
+
 components:
   schemas:
     HealthStatus:
@@ -5977,3 +6019,24 @@ components:
           type: boolean
         usersReset:
           type: integer
+
+    NavConfigItem:
+      type: object
+      required: [slug, enabled, minLevel]
+      properties:
+        slug:
+          type: string
+          enum: [dashboard, tracing-board, history, events, birthdays, documents]
+        enabled:
+          type: boolean
+        minLevel:
+          type: integer
+
+    NavConfig:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/NavConfigItem"

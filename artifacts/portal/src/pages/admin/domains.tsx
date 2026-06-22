@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,10 +51,17 @@ import {
   useUpdateDocumentDomainAccess,
   useDeleteDocumentDomain,
   getListDocumentDomainsQueryKey,
+  useGetNavConfig,
+  useUpdateNavConfig,
+  getGetNavConfigQueryKey,
   type DocumentDomainItem,
   type DocumentDomainAccessUpdateInputAccessLogic,
+  type NavConfigItem,
 } from "@workspace/api-client-react";
-import { Shield, Plus, MoreHorizontal, Pencil, Trash2, Settings2, AlertCircle, Lock } from "lucide-react";
+import {
+  Shield, Plus, MoreHorizontal, Pencil, Trash2, Settings2, AlertCircle, Lock,
+  LayoutDashboard, BookOpen, Landmark, CalendarDays, Cake, FolderOpen,
+} from "lucide-react";
 import { ADMIN_LEVEL, PM_SUPER_LEVEL } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
@@ -82,6 +90,19 @@ const DEGREE_OPTIONS = [
   { value: 3, label: "Master Mason (3)" },
 ];
 
+const MIN_LEVEL_OPTIONS = [
+  { value: 10, label: "All authenticated users (Visitor+)" },
+  { value: 20, label: "Full members only (Member+)" },
+];
+
+const NAV_ITEM_REGISTRY = [
+  { slug: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { slug: "tracing-board", label: "Tracing Board", icon: BookOpen },
+  { slug: "history", label: "History", icon: Landmark },
+  { slug: "events", label: "Events", icon: CalendarDays },
+  { slug: "birthdays", label: "Birthdays", icon: Cake },
+  { slug: "documents", label: "Documents", icon: FolderOpen },
+] as const;
 
 function DomainCard({
   domain,
@@ -104,7 +125,6 @@ function DomainCard({
   return (
     <Card className="border-card-border h-full">
       <CardContent className="p-5 flex flex-col gap-3 h-full">
-        {/* Top row: icon left, controls right */}
         <div className="flex items-start justify-between gap-2">
           <div className="rounded-md bg-primary/10 p-2.5 shrink-0">
             <Shield className="h-5 w-5 text-primary" />
@@ -149,7 +169,6 @@ function DomainCard({
           </div>
         </div>
 
-        {/* Title + description */}
         <div className="flex-1 min-h-0">
           <h3 className="font-semibold text-sm text-foreground leading-snug">{domain.name}</h3>
           {domain.description && (
@@ -157,14 +176,12 @@ function DomainCard({
           )}
         </div>
 
-        {/* Protected badge for PM Super (so they know it's marked protected) */}
         {isProtected && isPmSuper && (
           <div className="flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded px-2 py-0.5 w-fit">
             <Lock className="h-3 w-3" />
             <span>Past Master Protected</span>
           </div>
         )}
-
       </CardContent>
     </Card>
   );
@@ -177,22 +194,74 @@ export default function AdminDomainsPage() {
   const [, setLocation] = useLocation();
 
   const level = user?.roles?.reduce((max, r) => Math.max(max, r.permissionLevel), 0) ?? 0;
-  const isPmSuper = level >= PM_SUPER_LEVEL;
   const isAdmin = level >= ADMIN_LEVEL;
+  const isPmSuper = level >= PM_SUPER_LEVEL;
 
-  const { data: domainsData, isLoading } = useListDocumentDomains();
+  const [activeTab, setActiveTab] = useState<"domains" | "navigation">("domains");
+
+  // ── Domain queries / mutations ────────────────────────────────────────────
+  const { data, isLoading } = useListDocumentDomains({
+    query: { enabled: isAdmin, queryKey: getListDocumentDomainsQueryKey() },
+  });
+  const domains = data?.domains ?? [];
+
   const createDomain = useCreateDocumentDomain();
   const updateDomain = useUpdateDocumentDomain();
   const updateAccess = useUpdateDocumentDomainAccess();
   const deleteDomain = useDeleteDocumentDomain();
 
-  const domains = domainsData?.domains ?? [];
-
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: getListDocumentDomainsQueryKey() });
   }
 
-  // Create domain
+  // ── Nav config queries / mutations ────────────────────────────────────────
+  const { data: navConfigData, isLoading: navLoading } = useGetNavConfig({
+    query: { enabled: isAdmin, queryKey: getGetNavConfigQueryKey() },
+  });
+  const updateNavConfig = useUpdateNavConfig();
+
+  const [pendingNav, setPendingNav] = useState<NavConfigItem[] | null>(null);
+  const [navDirty, setNavDirty] = useState(false);
+
+  const displayedNavItems: NavConfigItem[] = pendingNav ?? (navConfigData?.items ?? NAV_ITEM_REGISTRY.map((n) => ({ slug: n.slug, enabled: true, minLevel: 10 })));
+
+  function getNavItem(slug: string) {
+    return displayedNavItems.find((i) => i.slug === slug) ?? { slug, enabled: true, minLevel: 10 };
+  }
+
+  function updateNavItem(slug: string, patch: Partial<NavConfigItem>) {
+    const base: NavConfigItem[] = navConfigData?.items ?? NAV_ITEM_REGISTRY.map((n) => ({ slug: n.slug, enabled: true, minLevel: 10 }));
+    const current = pendingNav ?? base;
+    const updated = NAV_ITEM_REGISTRY.map((reg) => {
+      const existing = current.find((i) => i.slug === reg.slug) ?? { slug: reg.slug, enabled: true, minLevel: 10 };
+      return existing.slug === slug ? { ...existing, ...patch } : existing;
+    });
+    setPendingNav(updated);
+    setNavDirty(true);
+  }
+
+  function handleSaveNav() {
+    if (!pendingNav) return;
+    updateNavConfig.mutate(
+      { data: { items: pendingNav } },
+      {
+        onSuccess: (data) => {
+          toast({ title: "Navigation saved" });
+          queryClient.setQueryData(getGetNavConfigQueryKey(), data);
+          setPendingNav(null);
+          setNavDirty(false);
+        },
+        onError: () => toast({ title: "Failed to save navigation", variant: "destructive" }),
+      },
+    );
+  }
+
+  function handleDiscardNav() {
+    setPendingNav(null);
+    setNavDirty(false);
+  }
+
+  // ── Domain dialog state ───────────────────────────────────────────────────
   const [showCreate, setShowCreate] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createSlug, setCreateSlug] = useState("");
@@ -207,28 +276,30 @@ export default function AdminDomainsPage() {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   }
 
+  function toggleRole(slug: string, current: string[], setter: (v: string[]) => void) {
+    setter(current.includes(slug) ? current.filter((s) => s !== slug) : [...current, slug]);
+  }
+
   function handleCreate() {
-    if (!createName.trim() || !createSlug.trim()) return;
-    const minDegree = createDegree && createDegree !== "none" ? parseInt(createDegree) : null;
     createDomain.mutate(
       {
         data: {
           name: createName.trim(),
           slug: createSlug.trim(),
           frame: createFrame,
-          description: createDesc.trim() || null,
+          description: createDesc.trim() || undefined,
           domainProtectionLevel: createProtected ? "past_master_protected" : "standard",
-          accessLogic: createLogic as DocumentDomainAccessUpdateInputAccessLogic,
+          accessLogic: createLogic,
           allowedRoleSlugs: createRoles,
-          minDegree,
+          minDegree: createDegree !== "none" ? parseInt(createDegree, 10) : undefined,
         },
       },
       {
         onSuccess: () => {
           toast({ title: "Domain created" });
           setShowCreate(false);
-          setCreateName(""); setCreateSlug(""); setCreateFrame("general"); setCreateDesc("");
-          setCreateProtected(false); setCreateLogic("role_only"); setCreateRoles([]); setCreateDegree("none");
+          setCreateName(""); setCreateSlug(""); setCreateDesc(""); setCreateProtected(false);
+          setCreateLogic("role_only"); setCreateRoles([]); setCreateDegree("none");
           invalidate();
         },
         onError: (e: any) =>
@@ -237,73 +308,58 @@ export default function AdminDomainsPage() {
     );
   }
 
-  // Edit details
   const [editTarget, setEditTarget] = useState<DocumentDomainItem | null>(null);
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
 
   function openEdit(d: DocumentDomainItem) {
-    setEditTarget(d);
-    setEditName(d.name);
-    setEditDesc(d.description ?? "");
+    setEditTarget(d); setEditName(d.name); setEditDesc(d.description ?? "");
   }
 
   function handleEdit() {
-    if (!editTarget || !editName.trim()) return;
+    if (!editTarget) return;
     updateDomain.mutate(
-      { id: editTarget.id, data: { name: editName.trim(), description: editDesc.trim() || null } },
+      { id: editTarget.id, data: { name: editName.trim(), description: editDesc.trim() || undefined } },
       {
-        onSuccess: () => {
-          toast({ title: "Domain updated" });
-          setEditTarget(null);
-          invalidate();
-        },
+        onSuccess: () => { toast({ title: "Domain updated" }); setEditTarget(null); invalidate(); },
         onError: (e: any) =>
           toast({ title: e?.data?.error ?? "Failed to update domain", variant: "destructive" }),
       },
     );
   }
 
-  // Edit access rules
   const [accessTarget, setAccessTarget] = useState<DocumentDomainItem | null>(null);
   const [accessLogic, setAccessLogic] = useState<"role_only" | "degree_only" | "role_or_degree" | "role_and_degree">("role_only");
   const [accessRoles, setAccessRoles] = useState<string[]>([]);
   const [accessDegree, setAccessDegree] = useState<string>("none");
 
   function openEditAccess(d: DocumentDomainItem) {
-    setLocation(`/admin/domains/${d.id}/access`);
+    setAccessTarget(d);
+    setAccessLogic(d.accessLogic as any);
+    setAccessRoles(d.allowedRoleSlugs ?? []);
+    setAccessDegree(d.minDegree != null ? String(d.minDegree) : "none");
+    setLocation(`/admin/domains/${d.id}`);
   }
 
   function handleEditAccess() {
     if (!accessTarget) return;
-    const minDegree = accessDegree && accessDegree !== "none" ? parseInt(accessDegree) : null;
     updateAccess.mutate(
       {
         id: accessTarget.id,
         data: {
           accessLogic: accessLogic as DocumentDomainAccessUpdateInputAccessLogic,
           allowedRoleSlugs: accessRoles,
-          minDegree,
+          minDegree: accessDegree !== "none" ? parseInt(accessDegree, 10) : undefined,
         },
       },
       {
-        onSuccess: () => {
-          toast({ title: "Access rules updated" });
-          setAccessTarget(null);
-          invalidate();
-        },
+        onSuccess: () => { toast({ title: "Access rules updated" }); setAccessTarget(null); setLocation("/admin/domains"); invalidate(); },
         onError: (e: any) =>
           toast({ title: e?.data?.error ?? "Failed to update access rules", variant: "destructive" }),
       },
     );
   }
 
-  function toggleRole(slug: string, current: string[], set: (v: string[]) => void) {
-    if (current.includes(slug)) set(current.filter((s) => s !== slug));
-    else set([...current, slug]);
-  }
-
-  // Delete
   const [deleteTarget, setDeleteTarget] = useState<DocumentDomainItem | null>(null);
 
   function handleDelete() {
@@ -328,14 +384,15 @@ export default function AdminDomainsPage() {
   return (
     <AppLayout>
       <div className="p-6 max-w-6xl mx-auto">
+        {/* Page header */}
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-semibold text-foreground">Domains & Access Control</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Configure access rules for document domains. Access is calculated dynamically from roles and degrees.
+              Configure document domain access rules and member navigation visibility.
             </p>
           </div>
-          {(isPmSuper || isAdmin) && (
+          {activeTab === "domains" && (isPmSuper || isAdmin) && (
             <Button size="sm" onClick={() => setShowCreate(true)} className="shrink-0">
               <Plus className="h-4 w-4 mr-1.5" />
               New Domain
@@ -343,70 +400,194 @@ export default function AdminDomainsPage() {
           )}
         </div>
 
-        {!isPmSuper && isAdmin && (
-          <div className="flex items-start gap-2 p-3 rounded-md bg-muted/40 border border-border text-sm text-muted-foreground mb-6">
-            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-            <span>You can manage standard domains. Past Master Protected domains require PM Super Administrator access.</span>
-          </div>
+        {/* Tab bar */}
+        <div className="flex border-b border-border mb-6">
+          <button
+            onClick={() => setActiveTab("domains")}
+            className={cn(
+              "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
+              activeTab === "domains"
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Document Domains
+          </button>
+          <button
+            onClick={() => setActiveTab("navigation")}
+            className={cn(
+              "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
+              activeTab === "navigation"
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Navigation Menu
+            {navDirty && (
+              <span className="ml-2 inline-block w-1.5 h-1.5 rounded-full bg-amber-500 align-middle" />
+            )}
+          </button>
+        </div>
+
+        {/* ── Document Domains tab ─────────────────────────────────────── */}
+        {activeTab === "domains" && (
+          <>
+            {!isPmSuper && isAdmin && (
+              <div className="flex items-start gap-2 p-3 rounded-md bg-muted/40 border border-border text-sm text-muted-foreground mb-6">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>You can manage standard domains. Past Master Protected domains require PM Super Administrator access.</span>
+              </div>
+            )}
+
+            {isLoading ? (
+              <div className="space-y-8">
+                {[0, 1].map((s) => (
+                  <div key={s}>
+                    <Skeleton className="h-5 w-40 mb-4 rounded" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <Skeleton key={i} className="h-40 rounded-lg" />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : domains.length === 0 ? (
+              <Card className="border-card-border">
+                <CardContent className="py-12 text-center">
+                  <Shield className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">No domains configured yet.</p>
+                </CardContent>
+              </Card>
+            ) : (() => {
+              const generalDomains = domains.filter((d) => d.frame !== "ritual");
+              const ritualDomains = domains.filter((d) => d.frame === "ritual");
+              const showBoth = generalDomains.length > 0 && ritualDomains.length > 0;
+              return (
+                <div className="space-y-8">
+                  {generalDomains.length > 0 && (
+                    <div>
+                      <div className="mb-4">
+                        <h2 className="text-base font-semibold text-foreground">General Information</h2>
+                        <p className="text-sm text-muted-foreground mt-0.5">Access rules for administrative and member-facing domains.</p>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {generalDomains.map((d) => (
+                          <DomainCard key={d.id} domain={d} isPmSuper={isPmSuper} isAdmin={isAdmin} onEdit={openEdit} onEditAccess={openEditAccess} onDelete={setDeleteTarget} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {showBoth && <Separator />}
+                  {ritualDomains.length > 0 && (
+                    <div>
+                      <div className="mb-4">
+                        <h2 className="text-base font-semibold text-foreground">Ritual Information</h2>
+                        <p className="text-sm text-muted-foreground mt-0.5">Access rules for degree ritual materials and ceremonial resources.</p>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {ritualDomains.map((d) => (
+                          <DomainCard key={d.id} domain={d} isPmSuper={isPmSuper} isAdmin={isAdmin} onEdit={openEdit} onEditAccess={openEditAccess} onDelete={setDeleteTarget} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </>
         )}
 
-        {isLoading ? (
-          <div className="space-y-8">
-            {[0, 1].map((s) => (
-              <div key={s}>
-                <Skeleton className="h-5 w-40 mb-4 rounded" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-40 rounded-lg" />
-                  ))}
-                </div>
+        {/* ── Navigation Menu tab ──────────────────────────────────────── */}
+        {activeTab === "navigation" && (
+          <div className="max-w-2xl">
+            <p className="text-sm text-muted-foreground mb-5">
+              Control which menu items are visible to members and at what permission level. Changes take effect immediately for all logged-in users.
+            </p>
+
+            {navLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16 rounded-lg" />
+                ))}
               </div>
-            ))}
+            ) : (
+              <div className="space-y-2">
+                {NAV_ITEM_REGISTRY.map((reg) => {
+                  const cfg = getNavItem(reg.slug);
+                  const Icon = reg.icon;
+                  return (
+                    <div
+                      key={reg.slug}
+                      className={cn(
+                        "flex items-center gap-4 p-4 rounded-lg border transition-colors",
+                        cfg.enabled
+                          ? "bg-card border-card-border"
+                          : "bg-muted/30 border-border opacity-60"
+                      )}
+                    >
+                      <div className="rounded-md bg-primary/10 p-2 shrink-0">
+                        <Icon className="h-4 w-4 text-primary" />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground">{reg.label}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {cfg.enabled
+                            ? (MIN_LEVEL_OPTIONS.find((o) => o.value === cfg.minLevel)?.label ?? `Level ${cfg.minLevel}+`)
+                            : "Hidden from all members"}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <Select
+                          value={String(cfg.minLevel)}
+                          onValueChange={(v) => updateNavItem(reg.slug, { minLevel: parseInt(v, 10) })}
+                          disabled={!cfg.enabled}
+                        >
+                          <SelectTrigger className="w-44 h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MIN_LEVEL_OPTIONS.map((o) => (
+                              <SelectItem key={o.value} value={String(o.value)} className="text-xs">
+                                {o.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        <Switch
+                          checked={cfg.enabled}
+                          onCheckedChange={(v) => updateNavItem(reg.slug, { enabled: v })}
+                          aria-label={`Toggle ${reg.label}`}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {navDirty && (
+              <div className="flex items-center gap-3 mt-6 pt-5 border-t border-border">
+                <Button
+                  onClick={handleSaveNav}
+                  disabled={updateNavConfig.isPending}
+                  size="sm"
+                >
+                  {updateNavConfig.isPending ? "Saving…" : "Save Changes"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleDiscardNav}>
+                  Discard
+                </Button>
+              </div>
+            )}
           </div>
-        ) : domains.length === 0 ? (
-          <Card className="border-card-border">
-            <CardContent className="py-12 text-center">
-              <Shield className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">No domains configured yet.</p>
-            </CardContent>
-          </Card>
-        ) : (() => {
-          const generalDomains = domains.filter((d) => d.frame !== "ritual");
-          const ritualDomains = domains.filter((d) => d.frame === "ritual");
-          const showBoth = generalDomains.length > 0 && ritualDomains.length > 0;
-          return (
-            <div className="space-y-8">
-              {generalDomains.length > 0 && (
-                <div>
-                  <div className="mb-4">
-                    <h2 className="text-base font-semibold text-foreground">General Information</h2>
-                    <p className="text-sm text-muted-foreground mt-0.5">Access rules for administrative and member-facing domains.</p>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {generalDomains.map((d) => (
-                      <DomainCard key={d.id} domain={d} isPmSuper={isPmSuper} isAdmin={isAdmin} onEdit={openEdit} onEditAccess={openEditAccess} onDelete={setDeleteTarget} />
-                    ))}
-                  </div>
-                </div>
-              )}
-              {showBoth && <Separator />}
-              {ritualDomains.length > 0 && (
-                <div>
-                  <div className="mb-4">
-                    <h2 className="text-base font-semibold text-foreground">Ritual Information</h2>
-                    <p className="text-sm text-muted-foreground mt-0.5">Access rules for degree ritual materials and ceremonial resources.</p>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {ritualDomains.map((d) => (
-                      <DomainCard key={d.id} domain={d} isPmSuper={isPmSuper} isAdmin={isAdmin} onEdit={openEdit} onEditAccess={openEditAccess} onDelete={setDeleteTarget} />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })()}
+        )}
       </div>
+
+      {/* ── Dialogs (unchanged) ─────────────────────────────────────────────── */}
 
       {/* Create Domain Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>

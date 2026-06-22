@@ -2958,3 +2958,35 @@ export const ResetDocumentNoticeAcceptanceResponse = zod.object({
 })
 
 
+/**
+ * @summary Get navigation menu configuration
+ */
+export const GetNavConfigResponse = zod.object({
+  "items": zod.array(zod.object({
+  "slug": zod.enum(['dashboard', 'tracing-board', 'history', 'events', 'birthdays', 'documents']),
+  "enabled": zod.boolean(),
+  "minLevel": zod.number()
+}))
+})
+
+
+/**
+ * @summary Update navigation menu configuration (admin only)
+ */
+export const UpdateNavConfigBody = zod.object({
+  "items": zod.array(zod.object({
+  "slug": zod.enum(['dashboard', 'tracing-board', 'history', 'events', 'birthdays', 'documents']),
+  "enabled": zod.boolean(),
+  "minLevel": zod.number()
+}))
+})
+
+export const UpdateNavConfigResponse = zod.object({
+  "items": zod.array(zod.object({
+  "slug": zod.enum(['dashboard', 'tracing-board', 'history', 'events', 'birthdays', 'documents']),
+  "enabled": zod.boolean(),
+  "minLevel": zod.number()
+}))
+})
+
+

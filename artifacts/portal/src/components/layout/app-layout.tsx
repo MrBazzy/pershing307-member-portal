@@ -2,7 +2,7 @@ import { ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import pershingPortrait from "@assets/JohnJPershing_1781792629576.jpg";
-import { useLogout, useGetDocumentReviewCount, getGetDocumentReviewCountQueryKey, useGetBootstrapStatus } from "@workspace/api-client-react";
+import { useLogout, useGetDocumentReviewCount, getGetDocumentReviewCountQueryKey, useGetBootstrapStatus, useGetNavConfig, getGetNavConfigQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -24,13 +24,13 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-const MEMBER_NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/tracing-board", label: "Tracing Board", icon: BookOpen },
-  { href: "/history", label: "History", icon: Landmark },
-  { href: "/events", label: "Events", icon: CalendarDays },
-  { href: "/birthdays", label: "Birthdays", icon: Cake },
-  { href: "/documents", label: "Documents", icon: FolderOpen },
+const NAV_ITEM_REGISTRY: (NavItem & { slug: string })[] = [
+  { slug: "dashboard",     href: "/dashboard",     label: "Dashboard",     icon: LayoutDashboard },
+  { slug: "tracing-board", href: "/tracing-board", label: "Tracing Board", icon: BookOpen },
+  { slug: "history",       href: "/history",       label: "History",       icon: Landmark },
+  { slug: "events",        href: "/events",        label: "Events",        icon: CalendarDays },
+  { slug: "birthdays",     href: "/birthdays",     label: "Birthdays",     icon: Cake },
+  { slug: "documents",     href: "/documents",     label: "Documents",     icon: FolderOpen },
 ];
 
 const MANAGEMENT_ITEMS: NavItem[] = [
@@ -110,6 +110,16 @@ export function AppLayout({ children }: AppLayoutProps) {
   });
   const reviewPendingCount = reviewCountData?.pendingCount ?? 0;
 
+  const { data: navConfigData } = useGetNavConfig({
+    query: { enabled: !!user, queryKey: getGetNavConfigQueryKey() },
+  });
+
+  const visibleNavItems = NAV_ITEM_REGISTRY.filter((item) => {
+    const cfg = navConfigData?.items.find((c) => c.slug === item.slug);
+    if (cfg) return cfg.enabled && level >= cfg.minLevel;
+    return level >= VISITOR_LEVEL;
+  });
+
   const { data: bootstrapStatus } = useGetBootstrapStatus();
   const lodgeName = bootstrapStatus?.lodgeName ?? "Member Portal";
   const lodgeNumber = bootstrapStatus?.lodgeNumber;
@@ -137,19 +147,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {/* Dashboard — always shown to any authenticated user */}
-        <NavLink item={MEMBER_NAV_ITEMS[0]} onNav={onNav} />
-
-        {/* Tracing Board and History — visible to Visitors and above */}
-        {isVisitorOrAbove && (
-          <>
-            <NavLink item={MEMBER_NAV_ITEMS[1]} onNav={onNav} />
-            <NavLink item={MEMBER_NAV_ITEMS[2]} onNav={onNav} />
-          </>
-        )}
-
-        {/* Events and Birthdays — Member+ only */}
-        {isMemberOrAbove && MEMBER_NAV_ITEMS.slice(3).map((item) => (
+        {visibleNavItems.map((item) => (
           <NavLink key={item.href} item={item} onNav={onNav} />
         ))}
 
