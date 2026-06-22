@@ -9,3 +9,4 @@
 - [Pershing307 Domain Governance](pershing307-domain-governance.md) — DOMAIN-GOVERNANCE-001: domainProtectionLevel field, enforcement patterns, test fixture conventions.
 - [Pershing307 Member Management Redesign](pershing307-members-management.md) — create/delete flow, pre-created user invitation accept, 7-tab detail sheet.
 - [Drizzle nullable FK null-set bug](drizzle-nullable-fk-null-set.md) — Drizzle v0.45.2 silently no-ops .set({col:null}) on nullable FK cols; use raw sql`` template instead.
+- [Pershing307 Nav Config Feature](pershing307-nav-config.md) — configurable nav menu stored in configurationTable; AuditAction type must include all action strings or the build silently uses stale type.
