@@ -65,13 +65,13 @@ router.get("/status", async (_req, res) => {
       .from(configurationTable)
       .where(eq(configurationTable.lodgeId, lodge.id));
     const cfg = Object.fromEntries(configRows.map((r) => [r.key, r.value]));
-    res.json({
+    return res.json({
       bootstrapped: true,
       lodgeName: cfg["lodge_name"] ?? lodge.name,
       lodgeNumber: cfg["lodge_number"] ?? lodge.number,
     });
   } catch {
-    res.json({ bootstrapped: false });
+    return res.json({ bootstrapped: false });
   }
 });
 

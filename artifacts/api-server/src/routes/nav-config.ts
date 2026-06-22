@@ -99,7 +99,7 @@ router.put("/", requireAuth(), requireRole(ADMIN_LEVEL), async (req, res) => {
     ipAddress: getClientIp(req),
   });
 
-  res.json({ items });
+  return res.json({ items });
 });
 
 export default router;

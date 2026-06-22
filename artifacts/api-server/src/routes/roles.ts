@@ -98,7 +98,7 @@ router.patch("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, r
   const role = await db
     .select()
     .from(rolesTable)
-    .where(and(eq(rolesTable.id, req.params.id), eq(rolesTable.lodgeId, lodgeId)))
+    .where(and(eq(rolesTable.id, String(req.params.id)), eq(rolesTable.lodgeId, lodgeId)))
     .then((r) => r[0] ?? null);
 
   if (!role) { res.status(404).json({ error: "Role not found" }); return; }
@@ -164,7 +164,7 @@ router.delete("/:id", requireAuth(), requireRole(SITE_ADMIN_LEVEL), async (req, 
   const role = await db
     .select()
     .from(rolesTable)
-    .where(and(eq(rolesTable.id, req.params.id), eq(rolesTable.lodgeId, lodgeId)))
+    .where(and(eq(rolesTable.id, String(req.params.id)), eq(rolesTable.lodgeId, lodgeId)))
     .then((r) => r[0] ?? null);
 
   if (!role) { res.status(404).json({ error: "Role not found" }); return; }

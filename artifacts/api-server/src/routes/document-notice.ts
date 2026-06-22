@@ -31,6 +31,7 @@ router.get("/status", requireAuth(), async (req, res) => {
 
 router.post("/accept", requireAuth(), async (req, res) => {
   const lodgeId = await getLodgeId();
+  if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
   const userId = req.session!.userId!;
 
   const existing = await db.query.userDocumentNoticeAcceptanceTable.findFirst({
@@ -67,11 +68,12 @@ router.post("/accept", requireAuth(), async (req, res) => {
     ipAddress: getClientIp(req),
   });
 
-  res.json({ accepted: true, acceptedAt: row.acceptedAt, noticeVersion: CURRENT_NOTICE_VERSION });
+  return res.json({ accepted: true, acceptedAt: row.acceptedAt, noticeVersion: CURRENT_NOTICE_VERSION });
 });
 
 router.post("/reset", requireAuth(), requireRole(PM_SUPER_LEVEL), async (req, res) => {
   const lodgeId = await getLodgeId();
+  if (!lodgeId) { res.status(500).json({ error: "Lodge not configured" }); return; }
   const actorId = req.session!.userId!;
 
   const actor = await db
