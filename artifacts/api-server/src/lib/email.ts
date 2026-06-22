@@ -158,15 +158,26 @@ export async function sendEmail(opts: {
   return result.success;
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export function invitationEmailHtml(opts: {
   firstName: string;
   lodgeName: string;
   inviteUrl: string;
   expiryDays: number;
 }): string {
+  const name = escapeHtml(opts.firstName);
+  const lodge = escapeHtml(opts.lodgeName);
   return `
-    <p>Dear ${opts.firstName},</p>
-    <p>You have been invited to join the ${opts.lodgeName} Member Portal.</p>
+    <p>Dear ${name},</p>
+    <p>You have been invited to join the ${lodge} Member Portal.</p>
     <p>Please click the link below to accept your invitation and create your account:</p>
     <p><a href="${opts.inviteUrl}">${opts.inviteUrl}</a></p>
     <p>This invitation expires in ${opts.expiryDays} days.</p>
@@ -179,9 +190,11 @@ export function passwordResetEmailHtml(opts: {
   lodgeName: string;
   resetUrl: string;
 }): string {
+  const name = escapeHtml(opts.firstName);
+  const lodge = escapeHtml(opts.lodgeName);
   return `
-    <p>Dear ${opts.firstName},</p>
-    <p>A password reset was requested for your ${opts.lodgeName} Member Portal account.</p>
+    <p>Dear ${name},</p>
+    <p>A password reset was requested for your ${lodge} Member Portal account.</p>
     <p>Click the link below to set a new password:</p>
     <p><a href="${opts.resetUrl}">${opts.resetUrl}</a></p>
     <p>This link expires in 1 hour.</p>
