@@ -251,7 +251,14 @@ export default function AdminDomainsPage() {
           setPendingNav(null);
           setNavDirty(false);
         },
-        onError: () => toast({ title: "Failed to save navigation", variant: "destructive" }),
+        onError: (err: unknown) => {
+          const status = (err as { status?: number })?.status;
+          toast({
+            title: "Failed to save navigation",
+            description: status ? `Server returned ${status}` : "Network error — please try again",
+            variant: "destructive",
+          });
+        },
       },
     );
   }
