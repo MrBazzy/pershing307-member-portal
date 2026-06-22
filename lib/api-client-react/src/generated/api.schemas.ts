@@ -11,8 +11,6 @@ export interface HealthStatus {
 
 export interface BootstrapStatus {
   bootstrapped: boolean;
-  lodgeName?: string;
-  lodgeNumber?: string;
 }
 
 export interface BootstrapInput {
@@ -237,8 +235,6 @@ export interface UserDetail {
   birthdayVisibility?: UserDetailBirthdayVisibility;
   createdAt: string;
   roles: RoleDetail[];
-  /** @nullable */
-  noticeAcceptedAt?: string | null;
 }
 
 export interface UserDetailResult {
@@ -479,28 +475,58 @@ export interface Role {
   name: string;
   slug: string;
   permissionLevel: number;
+  /** @nullable */
+  description?: string | null;
   isSystem: boolean;
-}
-
-export interface RoleListResult {
-  roles: Role[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface RoleResult {
   role: Role;
 }
 
+export interface RoleListResult {
+  roles: Role[];
+}
+
 export interface RoleCreateInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
   name: string;
+  /**
+     * @minLength 1
+     * @maxLength 60
+     */
   slug: string;
+  /**
+     * @minimum 1
+     * @maximum 89
+     */
   permissionLevel: number;
+  /** @nullable */
   description?: string | null;
 }
 
 export interface RoleUpdateInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
   name?: string;
+  /**
+     * @minLength 1
+     * @maxLength 60
+     */
   slug?: string;
+  /**
+     * @minimum 1
+     * @maximum 89
+     */
   permissionLevel?: number;
+  /** @nullable */
   description?: string | null;
 }
 
@@ -1480,7 +1506,6 @@ export interface DocumentDomainItem {
   slug: string;
   frame: DocumentDomainItemFrame;
   description?: string | null;
-  domainProtectionLevel?: string | null;
   accessLogic: DocumentDomainItemAccessLogic;
   allowedRoleSlugs: string[];
   minDegree?: number | null;
@@ -1528,7 +1553,6 @@ export interface DocumentDomainCreateInput {
   frame?: DocumentDomainCreateInputFrame;
   /** @maxLength 1000 */
   description?: string | null;
-  domainProtectionLevel?: string;
   accessLogic: DocumentDomainCreateInputAccessLogic;
   allowedRoleSlugs?: string[];
   /**
@@ -1546,7 +1570,6 @@ export interface DocumentDomainUpdateInput {
   name?: string;
   /** @maxLength 1000 */
   description?: string | null;
-  domainProtectionLevel?: string;
 }
 
 export type DocumentDomainAccessUpdateInputAccessLogic = typeof DocumentDomainAccessUpdateInputAccessLogic[keyof typeof DocumentDomainAccessUpdateInputAccessLogic];
@@ -1680,8 +1703,6 @@ export interface MemberDetailItem {
   lastLoginAt?: string | null;
   roles: MemberDetailRoleItem[];
   degrees: MemberDetailDegreeItem[];
-  /** @nullable */
-  noticeAcceptedAt?: string | null;
 }
 
 export interface MemberDetailReport {
