@@ -62,9 +62,9 @@ externalPort = 3001
 SMTP_HOST = "smtp-auth.mailprotect.be"
 SMTP_PORT = "587"
 SMTP_USER = "portal@fmdmail.be"
-SMPT_PASS = "i654IaYKTaBUvciz"
 SMTP_FROM = "portal@fmdmail.be"
 SMTP_FROM_NAME = "Pershing 307 Portal"
+SMTP_PASS = "i654IaYKTaBUvciz"
 
 [userenv.development]
 VITE_ENV_NAME = "TDA"
