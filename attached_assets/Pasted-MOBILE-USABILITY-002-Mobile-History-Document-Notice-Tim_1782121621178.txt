@@ -1,0 +1,127 @@
+MOBILE-USABILITY-002 — Mobile History, Document Notice Timestamp, and Member List Usability
+
+STEP 0 — SAFETY FIRST
+
+Before making changes:
+
+1. Create Replit checkpoint/snapshot.
+2. Create git tag:
+
+v3.9-before-mobile-usability-fixes
+
+3. Confirm build passes.
+
+--------------------------------------------------
+ITEM 1 — HISTORY MOBILE NAVIGATION
+--------------------------------------------------
+
+Issue:
+On iPhone/mobile, the History section navigation goes beyond the screen width, especially around the General John J. Pershing section.
+
+Required behavior:
+
+Desktop:
+- Horizontal tabs may remain.
+
+Mobile/tablet:
+- Convert History sub-navigation to vertical stacked menu, accordion, or dropdown.
+- No horizontal scrolling.
+- No content wider than the viewport.
+- General John J. Pershing section must be fully readable on iPhone.
+
+Acceptance:
+- History page fits within phone width.
+- All History sections remain reachable.
+- No horizontal overflow.
+
+--------------------------------------------------
+ITEM 2 — DOCUMENT DISCLAIMER ACCEPTANCE TIMESTAMP
+--------------------------------------------------
+
+Issue:
+After a member accepts the Document Library disclaimer, it is not clearly shown when they accepted it.
+
+Required behavior:
+
+Store and show:
+- acceptedAt date/time
+- disclaimerVersion
+
+Collapsed view:
+Show:
+
+✓ Accepted on 22 Jun 2026 at 20:47
+
+Expanded view:
+At the bottom of the disclaimer, show:
+
+You accepted these rules on:
+22 Jun 2026 at 20:47
+
+Future-proof:
+- Keep disclaimer version support.
+- If disclaimer version changes later, users can be asked to accept again.
+
+Acceptance:
+- Acceptance timestamp visible after acceptance.
+- Timestamp remains visible after logout/login.
+- Works on mobile.
+
+--------------------------------------------------
+ITEM 3 — MEMBERS LIST CLICKABILITY
+--------------------------------------------------
+
+Issue:
+In Management → Members, the member list does not clearly show that a member row/name can be clicked to open the Member Detail page.
+
+Required behavior:
+
+Make member rows clearly actionable.
+
+Options:
+- Add an explicit button: View / Manage
+- Make the full row hover/clickable
+- Add cursor pointer on hover
+- Add visual affordance, e.g. chevron arrow →
+- Add tooltip: Open member details
+
+Recommended:
+
+Add a clear action button:
+
+View / Manage
+
+at the right side of each member row.
+
+Also make the member name clickable.
+
+Mobile:
+- Button should remain visible and easy to tap.
+- Avoid tiny icons only.
+
+Acceptance:
+- It is obvious how to open member details.
+- Row/name click works.
+- View / Manage button works.
+- Mobile users can easily tap it.
+
+--------------------------------------------------
+PRESERVE
+--------------------------------------------------
+
+Do not change:
+- member permissions
+- document permissions
+- access matrix
+- history content
+- document disclaimer text
+- audit logic
+
+--------------------------------------------------
+FINAL ACCEPTANCE
+--------------------------------------------------
+
+1. History works on iPhone without horizontal overflow.
+2. Document disclaimer shows accepted date/time.
+3. Members list clearly shows how to open member details.
+4. Build passes.

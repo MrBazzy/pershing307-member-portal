@@ -20,7 +20,9 @@ export const HealthCheckResponse = zod.object({
  * @summary Check if portal has been bootstrapped
  */
 export const GetBootstrapStatusResponse = zod.object({
-  "bootstrapped": zod.boolean()
+  "bootstrapped": zod.boolean(),
+  "lodgeName": zod.string().nullish(),
+  "lodgeNumber": zod.string().nullish()
 })
 
 
@@ -1100,6 +1102,7 @@ export const GetMemberDetailsReportResponse = zod.object({
   "dateOfBirth": zod.string().nullish(),
   "createdAt": zod.string(),
   "lastLoginAt": zod.string().nullish(),
+  "noticeAcceptedAt": zod.string().nullish(),
   "roles": zod.array(zod.object({
   "slug": zod.string(),
   "name": zod.string(),
@@ -2558,6 +2561,7 @@ export const ListDocumentDomainsResponse = zod.object({
   "accessLogic": zod.enum(['role_only', 'degree_only', 'role_or_degree', 'role_and_degree']),
   "allowedRoleSlugs": zod.array(zod.string()),
   "minDegree": zod.number().nullish(),
+  "domainProtectionLevel": zod.enum(['standard', 'past_master_protected']).nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }))
@@ -2584,7 +2588,8 @@ export const CreateDocumentDomainBody = zod.object({
   "description": zod.string().max(createDocumentDomainBodyDescriptionMax).nullish(),
   "accessLogic": zod.enum(['role_only', 'degree_only', 'role_or_degree', 'role_and_degree']),
   "allowedRoleSlugs": zod.array(zod.string()).optional(),
-  "minDegree": zod.number().min(1).max(createDocumentDomainBodyMinDegreeMax).nullish()
+  "minDegree": zod.number().min(1).max(createDocumentDomainBodyMinDegreeMax).nullish(),
+  "domainProtectionLevel": zod.enum(['standard', 'past_master_protected']).nullish()
 })
 
 
@@ -2605,6 +2610,7 @@ export const GetDocumentDomainResponse = zod.object({
   "accessLogic": zod.enum(['role_only', 'degree_only', 'role_or_degree', 'role_and_degree']),
   "allowedRoleSlugs": zod.array(zod.string()),
   "minDegree": zod.number().nullish(),
+  "domainProtectionLevel": zod.enum(['standard', 'past_master_protected']).nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -2639,6 +2645,7 @@ export const UpdateDocumentDomainResponse = zod.object({
   "accessLogic": zod.enum(['role_only', 'degree_only', 'role_or_degree', 'role_and_degree']),
   "allowedRoleSlugs": zod.array(zod.string()),
   "minDegree": zod.number().nullish(),
+  "domainProtectionLevel": zod.enum(['standard', 'past_master_protected']).nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -2685,6 +2692,7 @@ export const UpdateDocumentDomainAccessResponse = zod.object({
   "accessLogic": zod.enum(['role_only', 'degree_only', 'role_or_degree', 'role_and_degree']),
   "allowedRoleSlugs": zod.array(zod.string()),
   "minDegree": zod.number().nullish(),
+  "domainProtectionLevel": zod.enum(['standard', 'past_master_protected']).nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -2918,6 +2926,35 @@ export const ListDocumentReviewResponse = zod.object({
  */
 export const GetDocumentReviewCountResponse = zod.object({
   "pendingCount": zod.number()
+})
+
+
+/**
+ * @summary Get current user's document notice acceptance status
+ */
+export const GetDocumentNoticeStatusResponse = zod.object({
+  "accepted": zod.boolean(),
+  "acceptedAt": zod.string().nullish(),
+  "noticeVersion": zod.string()
+})
+
+
+/**
+ * @summary Accept the document library notice
+ */
+export const AcceptDocumentNoticeResponse = zod.object({
+  "accepted": zod.boolean(),
+  "acceptedAt": zod.string().nullish(),
+  "noticeVersion": zod.string()
+})
+
+
+/**
+ * @summary Reset all users' document notice acceptance (PM Super only)
+ */
+export const ResetDocumentNoticeAcceptanceResponse = zod.object({
+  "reset": zod.boolean(),
+  "usersReset": zod.number()
 })
 
 

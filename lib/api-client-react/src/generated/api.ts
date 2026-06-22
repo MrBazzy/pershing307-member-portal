@@ -66,6 +66,8 @@ import type {
   DocumentFolderUpdateInput,
   DocumentItem,
   DocumentListResult,
+  DocumentNoticeResetResult,
+  DocumentNoticeStatus,
   DocumentReviewCountResult,
   DocumentReviewListResult,
   DocumentSubfolderCreateInput,
@@ -10966,4 +10968,221 @@ export function useGetDocumentReviewCount<TData = Awaited<ReturnType<typeof getD
 
 
 
+
+export const getGetDocumentNoticeStatusUrl = () => {
+
+
+
+
+  return `/api/document-notice/status`
+}
+
+/**
+ * @summary Get current user's document notice acceptance status
+ */
+export const getDocumentNoticeStatus = async ( options?: RequestInit): Promise<DocumentNoticeStatus> => {
+
+  return customFetch<DocumentNoticeStatus>(getGetDocumentNoticeStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDocumentNoticeStatusQueryKey = () => {
+    return [
+    `/api/document-notice/status`
+    ] as const;
+    }
+
+
+export const getGetDocumentNoticeStatusQueryOptions = <TData = Awaited<ReturnType<typeof getDocumentNoticeStatus>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDocumentNoticeStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDocumentNoticeStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDocumentNoticeStatus>>> = ({ signal }) => getDocumentNoticeStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDocumentNoticeStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDocumentNoticeStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getDocumentNoticeStatus>>>
+export type GetDocumentNoticeStatusQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get current user's document notice acceptance status
+ */
+
+export function useGetDocumentNoticeStatus<TData = Awaited<ReturnType<typeof getDocumentNoticeStatus>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDocumentNoticeStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDocumentNoticeStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAcceptDocumentNoticeUrl = () => {
+
+
+
+
+  return `/api/document-notice/accept`
+}
+
+/**
+ * @summary Accept the document library notice
+ */
+export const acceptDocumentNotice = async ( options?: RequestInit): Promise<DocumentNoticeStatus> => {
+
+  return customFetch<DocumentNoticeStatus>(getAcceptDocumentNoticeUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAcceptDocumentNoticeMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptDocumentNotice>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof acceptDocumentNotice>>, TError,void, TContext> => {
+
+const mutationKey = ['acceptDocumentNotice'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acceptDocumentNotice>>, void> = () => {
+
+
+          return  acceptDocumentNotice(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AcceptDocumentNoticeMutationResult = NonNullable<Awaited<ReturnType<typeof acceptDocumentNotice>>>
+
+    export type AcceptDocumentNoticeMutationError = ErrorType<void>
+
+    /**
+ * @summary Accept the document library notice
+ */
+export const useAcceptDocumentNotice = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptDocumentNotice>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof acceptDocumentNotice>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAcceptDocumentNoticeMutationOptions(options));
+    }
+
+export const getResetDocumentNoticeAcceptanceUrl = () => {
+
+
+
+
+  return `/api/document-notice/reset`
+}
+
+/**
+ * @summary Reset all users' document notice acceptance (PM Super only)
+ */
+export const resetDocumentNoticeAcceptance = async ( options?: RequestInit): Promise<DocumentNoticeResetResult> => {
+
+  return customFetch<DocumentNoticeResetResult>(getResetDocumentNoticeAcceptanceUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getResetDocumentNoticeAcceptanceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetDocumentNoticeAcceptance>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resetDocumentNoticeAcceptance>>, TError,void, TContext> => {
+
+const mutationKey = ['resetDocumentNoticeAcceptance'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resetDocumentNoticeAcceptance>>, void> = () => {
+
+
+          return  resetDocumentNoticeAcceptance(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResetDocumentNoticeAcceptanceMutationResult = NonNullable<Awaited<ReturnType<typeof resetDocumentNoticeAcceptance>>>
+
+    export type ResetDocumentNoticeAcceptanceMutationError = ErrorType<void>
+
+    /**
+ * @summary Reset all users' document notice acceptance (PM Super only)
+ */
+export const useResetDocumentNoticeAcceptance = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetDocumentNoticeAcceptance>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resetDocumentNoticeAcceptance>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getResetDocumentNoticeAcceptanceMutationOptions(options));
+    }
 

@@ -462,7 +462,7 @@ function DegreesTab() {
   function updateField(idx: number, field: keyof DegreeDefinition, value: string | number) {
     setLocalDefs((prev) => {
       const copy = JSON.parse(JSON.stringify(prev ?? baseDefs)) as DegreeDefinition[];
-      (copy[idx] as Record<string, unknown>)[field] = value;
+      (copy[idx] as unknown as Record<string, unknown>)[field] = value;
       return copy;
     });
   }

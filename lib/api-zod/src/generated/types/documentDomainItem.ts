@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.2.0
  */
 import type { DocumentDomainItemAccessLogic } from './documentDomainItemAccessLogic';
+import type { DocumentDomainItemDomainProtectionLevel } from './documentDomainItemDomainProtectionLevel';
 import type { DocumentDomainItemFrame } from './documentDomainItemFrame';
 
 export interface DocumentDomainItem {
@@ -17,6 +18,7 @@ export interface DocumentDomainItem {
   accessLogic: DocumentDomainItemAccessLogic;
   allowedRoleSlugs: string[];
   minDegree?: number | null;
+  domainProtectionLevel?: DocumentDomainItemDomainProtectionLevel;
   createdAt: Date;
   updatedAt: Date;
 }

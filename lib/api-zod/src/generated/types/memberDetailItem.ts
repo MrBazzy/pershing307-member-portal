@@ -18,6 +18,7 @@ export interface MemberDetailItem {
   dateOfBirth?: string | null;
   createdAt: string;
   lastLoginAt?: string | null;
+  noticeAcceptedAt?: string | null;
   roles: MemberDetailRoleItem[];
   degrees: MemberDetailDegreeItem[];
 }

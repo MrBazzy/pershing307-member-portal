@@ -538,6 +538,7 @@ export default function AdminUsersPage() {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Last Login</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Joined</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -549,12 +550,13 @@ export default function AdminUsersPage() {
                       <td className="px-4 py-3"><Skeleton className="h-5 w-16" /></td>
                       <td className="px-4 py-3 hidden lg:table-cell"><Skeleton className="h-4 w-24" /></td>
                       <td className="px-4 py-3 hidden lg:table-cell"><Skeleton className="h-4 w-20" /></td>
+                      <td className="px-4 py-3"><Skeleton className="h-7 w-28 ml-auto" /></td>
                     </tr>
                   ))
                 : users.map((user) => (
-                    <tr key={user.id} className="hover:bg-muted/30 cursor-pointer transition-colors" onClick={() => setSelectedUserId(user.id)} data-testid={`row-user-${user.id}`}>
+                    <tr key={user.id} className="group hover:bg-muted/30 cursor-pointer transition-colors" onClick={() => setSelectedUserId(user.id)} data-testid={`row-user-${user.id}`}>
                       <td className="px-4 py-3">
-                        <p className="font-medium text-foreground">{user.firstName} {user.lastName}</p>
+                        <p className="font-medium text-foreground group-hover:underline decoration-muted-foreground/50 underline-offset-2">{user.firstName} {user.lastName}</p>
                         {user.membershipStatus && <p className="text-[11px] text-muted-foreground">{user.membershipStatus}</p>}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{user.email}</td>
@@ -577,6 +579,17 @@ export default function AdminUsersPage() {
                       </td>
                       <td className="px-4 py-3 text-muted-foreground text-xs hidden lg:table-cell">
                         {format(new Date(user.createdAt), "MMM d, yyyy")}
+                      </td>
+                      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-7 px-2.5"
+                          onClick={() => setSelectedUserId(user.id)}
+                        >
+                          View / Manage
+                          <ChevronRight className="h-3 w-3 ml-1" />
+                        </Button>
                       </td>
                     </tr>
                   ))}

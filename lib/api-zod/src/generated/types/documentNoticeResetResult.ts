@@ -6,8 +6,7 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface BootstrapStatus {
-  bootstrapped: boolean;
-  lodgeName?: string | null;
-  lodgeNumber?: string | null;
+export interface DocumentNoticeResetResult {
+  reset: boolean;
+  usersReset: number;
 }

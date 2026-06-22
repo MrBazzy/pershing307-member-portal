@@ -93,6 +93,13 @@ function formatDate(iso: string): string {
   });
 }
 
+function formatAcceptanceDateTime(iso: string): string {
+  const d = new Date(iso);
+  const date = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+  return `${date} at ${time}`;
+}
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -482,10 +489,17 @@ export default function DocumentsFolderPage({ id }: Props) {
                     onClick={() => setNoticeExpanded((v) => !v)}
                     className="w-full flex items-center gap-2 px-4 py-3 text-left"
                   >
-                    <Info className="h-4 w-4 text-amber-600 shrink-0" />
-                    <span className="text-sm font-semibold text-amber-900 dark:text-amber-200 flex-1">
-                      Document Library Notice
-                    </span>
+                    <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                        Document Library Notice
+                      </p>
+                      {noticeStatus?.acceptedAt && (
+                        <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                          ✓ Accepted on {formatAcceptanceDateTime(noticeStatus.acceptedAt as string)}
+                        </p>
+                      )}
+                    </div>
                     {noticeExpanded
                       ? <ChevronUp className="h-4 w-4 text-amber-600 shrink-0" />
                       : <ChevronDown className="h-4 w-4 text-amber-600 shrink-0" />}
@@ -554,6 +568,16 @@ export default function DocumentsFolderPage({ id }: Props) {
                           I have read and understood the Document Library Notice.
                         </span>
                       </label>
+                    )}
+
+                    {/* Acceptance timestamp — shown when expanded after acceptance */}
+                    {noticeAccepted && noticeStatus?.acceptedAt && (
+                      <div className="pt-3 mt-1 border-t border-amber-200 dark:border-amber-800 text-xs text-amber-700 dark:text-amber-400">
+                        You accepted these rules on:{" "}
+                        <span className="font-medium">
+                          {formatAcceptanceDateTime(noticeStatus.acceptedAt as string)}
+                        </span>
+                      </div>
                     )}
                   </div>
                 )}

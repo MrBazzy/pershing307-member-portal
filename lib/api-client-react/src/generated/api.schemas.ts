@@ -11,6 +11,8 @@ export interface HealthStatus {
 
 export interface BootstrapStatus {
   bootstrapped: boolean;
+  lodgeName?: string | null;
+  lodgeNumber?: string | null;
 }
 
 export interface BootstrapInput {
@@ -1500,6 +1502,14 @@ export const DocumentDomainItemAccessLogic = {
   role_and_degree: 'role_and_degree',
 } as const;
 
+export type DocumentDomainItemDomainProtectionLevel = typeof DocumentDomainItemDomainProtectionLevel[keyof typeof DocumentDomainItemDomainProtectionLevel] | null;
+
+
+export const DocumentDomainItemDomainProtectionLevel = {
+  standard: 'standard',
+  past_master_protected: 'past_master_protected',
+} as const;
+
 export interface DocumentDomainItem {
   id: string;
   name: string;
@@ -1509,6 +1519,7 @@ export interface DocumentDomainItem {
   accessLogic: DocumentDomainItemAccessLogic;
   allowedRoleSlugs: string[];
   minDegree?: number | null;
+  domainProtectionLevel?: DocumentDomainItemDomainProtectionLevel;
   createdAt: string;
   updatedAt: string;
 }
@@ -1539,6 +1550,14 @@ export const DocumentDomainCreateInputAccessLogic = {
   role_and_degree: 'role_and_degree',
 } as const;
 
+export type DocumentDomainCreateInputDomainProtectionLevel = typeof DocumentDomainCreateInputDomainProtectionLevel[keyof typeof DocumentDomainCreateInputDomainProtectionLevel] | null;
+
+
+export const DocumentDomainCreateInputDomainProtectionLevel = {
+  standard: 'standard',
+  past_master_protected: 'past_master_protected',
+} as const;
+
 export interface DocumentDomainCreateInput {
   /**
      * @minLength 1
@@ -1560,6 +1579,7 @@ export interface DocumentDomainCreateInput {
      * @maximum 3
      */
   minDegree?: number | null;
+  domainProtectionLevel?: DocumentDomainCreateInputDomainProtectionLevel;
 }
 
 export interface DocumentDomainUpdateInput {
@@ -1701,6 +1721,7 @@ export interface MemberDetailItem {
   dateOfBirth?: string | null;
   createdAt: string;
   lastLoginAt?: string | null;
+  noticeAcceptedAt?: string | null;
   roles: MemberDetailRoleItem[];
   degrees: MemberDetailDegreeItem[];
 }
@@ -1797,6 +1818,17 @@ export interface DocumentReviewListResult {
 
 export interface DocumentReviewCountResult {
   pendingCount: number;
+}
+
+export interface DocumentNoticeStatus {
+  accepted: boolean;
+  acceptedAt?: string | null;
+  noticeVersion: string;
+}
+
+export interface DocumentNoticeResetResult {
+  reset: boolean;
+  usersReset: number;
 }
 
 export type ListUsersParams = {

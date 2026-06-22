@@ -3496,6 +3496,59 @@ paths:
         "403":
           description: Admin only
 
+  /document-notice/status:
+    get:
+      operationId: getDocumentNoticeStatus
+      tags: [document-notice]
+      summary: Get current user's document notice acceptance status
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Notice acceptance status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentNoticeStatus"
+        "401":
+          description: Not authenticated
+
+  /document-notice/accept:
+    post:
+      operationId: acceptDocumentNotice
+      tags: [document-notice]
+      summary: Accept the document library notice
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Acceptance recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentNoticeStatus"
+        "401":
+          description: Not authenticated
+
+  /document-notice/reset:
+    post:
+      operationId: resetDocumentNoticeAcceptance
+      tags: [document-notice]
+      summary: Reset all users' document notice acceptance (PM Super only)
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Reset complete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentNoticeResetResult"
+        "401":
+          description: Not authenticated
+        "403":
+          description: PM Super only
+
 components:
   schemas:
     HealthStatus:
@@ -3511,6 +3564,12 @@ components:
       properties:
         bootstrapped:
           type: boolean
+        lodgeName:
+          type: string
+          nullable: true
+        lodgeNumber:
+          type: string
+          nullable: true
 
     BootstrapInput:
       type: object
@@ -5473,6 +5532,10 @@ components:
         minDegree:
           type: integer
           nullable: true
+        domainProtectionLevel:
+          type: string
+          enum: [standard, past_master_protected]
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -5526,6 +5589,10 @@ components:
           type: integer
           minimum: 1
           maximum: 3
+          nullable: true
+        domainProtectionLevel:
+          type: string
+          enum: [standard, past_master_protected]
           nullable: true
 
     DocumentDomainUpdateInput:
@@ -5711,6 +5778,9 @@ components:
         lastLoginAt:
           type: string
           nullable: true
+        noticeAcceptedAt:
+          type: string
+          nullable: true
         roles:
           type: array
           items:
@@ -5885,4 +5955,25 @@ components:
       required: [pendingCount]
       properties:
         pendingCount:
+          type: integer
+
+    DocumentNoticeStatus:
+      type: object
+      required: [accepted, noticeVersion]
+      properties:
+        accepted:
+          type: boolean
+        acceptedAt:
+          type: string
+          nullable: true
+        noticeVersion:
+          type: string
+
+    DocumentNoticeResetResult:
+      type: object
+      required: [reset, usersReset]
+      properties:
+        reset:
+          type: boolean
+        usersReset:
           type: integer

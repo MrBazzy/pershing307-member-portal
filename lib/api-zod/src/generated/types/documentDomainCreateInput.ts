@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.2.0
  */
 import type { DocumentDomainCreateInputAccessLogic } from './documentDomainCreateInputAccessLogic';
+import type { DocumentDomainCreateInputDomainProtectionLevel } from './documentDomainCreateInputDomainProtectionLevel';
 import type { DocumentDomainCreateInputFrame } from './documentDomainCreateInputFrame';
 
 export interface DocumentDomainCreateInput {
@@ -29,4 +30,5 @@ export interface DocumentDomainCreateInput {
      * @maximum 3
      */
   minDegree?: number | null;
+  domainProtectionLevel?: DocumentDomainCreateInputDomainProtectionLevel;
 }
