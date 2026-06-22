@@ -27,14 +27,21 @@ node_modules
 !.vscode/launch.json
 !.vscode/extensions.json
 
+# environment & secrets — never commit these
+.env
+.env.*
+!.env.example
+!.env.test
+
+# logs
+*.log
+logs/
+
 # misc
 /.sass-cache
 /connect.lock
 /coverage
 /libpeerconnection.log
-npm-debug.log
-yarn-error.log
-testem.log
 /typings
 
 # System Files
@@ -47,3 +54,21 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+# Environment variables
+.env
+.env.*
+
+# Production artifacts
+build/
+dist/
+
+# Logs
+logs/
+*.log
+
+# PM2
+.pm2/
+
+# Local databases
+*.sqlite
+*.sqlite3
