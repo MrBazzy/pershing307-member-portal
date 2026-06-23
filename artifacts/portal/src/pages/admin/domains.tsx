@@ -345,7 +345,7 @@ export default function AdminDomainsPage() {
     setAccessLogic(d.accessLogic as any);
     setAccessRoles(d.allowedRoleSlugs ?? []);
     setAccessDegree(d.minDegree != null ? String(d.minDegree) : "none");
-    setLocation(`/admin/domains/${d.id}`);
+    setLocation(`/admin/domains/${d.id}/access`);
   }
 
   function handleEditAccess() {
