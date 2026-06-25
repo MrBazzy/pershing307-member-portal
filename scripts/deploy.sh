@@ -49,6 +49,19 @@ fail() {
 }
 info() { echo "  ${YELLOW}--${RESET}  $1"; }
 
+# preflight_fail: stopt deployment met gebruikersgericht advies (vóór stap 1)
+preflight_fail() {
+  local check="$1"
+  local advice="$2"
+  echo
+  echo "${RED}${BOLD}==========================================${RESET}"
+  echo "${RED}${BOLD} Preflight check mislukt: ${check}${RESET}"
+  echo "${RED}${BOLD}==========================================${RESET}"
+  echo "  ${advice}"
+  echo
+  exit 1
+}
+
 # ---------------------------------------------------------------------------
 # Koptekst
 # ---------------------------------------------------------------------------
@@ -57,6 +70,70 @@ echo "${BOLD}==========================================${RESET}"
 echo "${BOLD} Pershing307 Deployment${RESET}"
 echo " $(date '+%Y-%m-%d %H:%M:%S')"
 echo "${BOLD}==========================================${RESET}"
+
+# ---------------------------------------------------------------------------
+# PREFLIGHT CHECKS — vóór deployment
+# ---------------------------------------------------------------------------
+echo
+echo "${BOLD}=== Preflight ===${RESET}"
+
+# 1. GitHub SSH bereikbaar
+_SSH_OUT=$(ssh -T git@github.com \
+  -o ConnectTimeout=10 \
+  -o BatchMode=yes \
+  -o StrictHostKeyChecking=accept-new \
+  2>&1 || true)
+if echo "$_SSH_OUT" | grep -q "successfully authenticated"; then
+  ok "GitHub SSH bereikbaar"
+else
+  preflight_fail "GitHub SSH niet bereikbaar" \
+    "Controleer of de SSH-sleutel van deze server is toegevoegd aan GitHub.\n  Voer uit: ssh-keygen -t ed25519 && cat ~/.ssh/id_ed25519.pub\n  Voeg de sleutel toe via: https://github.com/settings/keys"
+fi
+unset _SSH_OUT
+
+# 2. Huidige branch is main
+_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+if [ "$_BRANCH" = "main" ]; then
+  ok "Huidige branch is main"
+else
+  preflight_fail "Verkeerde branch: ${_BRANCH}" \
+    "Deployment vereist de main-branch.\n  Schakel over met: git checkout main"
+fi
+unset _BRANCH
+
+# 3. Working tree is clean
+_DIRTY=$(git status --porcelain 2>/dev/null)
+if [ -z "$_DIRTY" ]; then
+  ok "Working tree is schoon"
+else
+  echo "  Gewijzigde bestanden:"
+  echo "$_DIRTY" | head -10 | sed 's/^/    /'
+  preflight_fail "Uncommitted wijzigingen aanwezig" \
+    "Commit of stash de wijzigingen eerst:\n  git stash   of   git commit -am 'beschrijving'"
+fi
+unset _DIRTY
+
+# 4 & 5. Ahead / behind origin/main (haal eerst remote refs op)
+git fetch origin main --quiet 2>/dev/null || true
+
+_AHEAD=$(git rev-list origin/main..HEAD --count 2>/dev/null || echo "0")
+_BEHIND=$(git rev-list HEAD..origin/main --count 2>/dev/null || echo "0")
+
+if [ "$_AHEAD" -gt 0 ]; then
+  preflight_fail "Lokale branch is ${_AHEAD} commit(s) voor op origin/main" \
+    "Er staan lokale commits die nog niet naar GitHub zijn gepusht.\n  Push eerst: git push origin main"
+fi
+ok "Lokale branch is niet ahead van origin/main"
+
+if [ "$_BEHIND" -gt 0 ]; then
+  preflight_fail "Lokale branch is ${_BEHIND} commit(s) achter op origin/main" \
+    "De server heeft niet de laatste code. Dit zou git pull moeten oplossen.\n  Voer uit: git pull origin main"
+fi
+ok "Lokale branch is niet behind origin/main"
+
+unset _AHEAD _BEHIND
+
+echo "  ${GREEN}Preflight geslaagd — deployment start${RESET}"
 
 # ---------------------------------------------------------------------------
 # Stap 1 — Controleer working directory
