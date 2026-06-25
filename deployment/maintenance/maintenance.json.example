@@ -1,0 +1,10 @@
+{
+  "enabled": true,
+  "lodgeName": "Pershing No. 307",
+  "title": "Scheduled Maintenance",
+  "reason": "Database upgrade and server patching",
+  "description": "We are upgrading the database and applying security patches to improve stability and performance.",
+  "startTime": "2026-06-25T15:00:00+0200",
+  "expectedEndTime": "2026-06-25T16:00:00+0200",
+  "durationMinutes": 60
+}

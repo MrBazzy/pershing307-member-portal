@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="refresh" content="300">
+  <title>Maintenance — Masonic Lodge Portal</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b27;
+      --border:    #2a3148;
+      --gold:      #c9a84c;
+      --gold-dim:  #8a6e30;
+      --text:      #ddd8cc;
+      --text-dim:  #8a8070;
+      --red:       #c0392b;
+      --radius:    10px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      line-height: 1.6;
+    }
+
+    /* ── Emblem ──────────────────────────────────────────── */
+    .emblem {
+      margin-bottom: 1.5rem;
+      opacity: .85;
+    }
+
+    .emblem svg {
+      width: 80px;
+      height: 80px;
+      display: block;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    .site-title {
+      font-size: 0.78rem;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      margin-bottom: .35rem;
+      text-align: center;
+    }
+
+    .lodge-name {
+      font-size: 1.45rem;
+      font-weight: 600;
+      color: var(--gold);
+      text-align: center;
+      margin-bottom: 2.5rem;
+      letter-spacing: .04em;
+    }
+
+    /* ── Card ───────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 560px;
+      padding: 2rem 2.25rem;
+    }
+
+    .maint-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: .6rem;
+    }
+
+    .maint-message {
+      font-size: .92rem;
+      color: var(--text-dim);
+      margin-bottom: 1.75rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Detail grid ─────────────────────────────────────── */
+    .details {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: .45rem 1.2rem;
+      font-size: .88rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .details .label {
+      color: var(--text-dim);
+      white-space: nowrap;
+      padding-top: .05rem;
+    }
+
+    .details .value {
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .details .value.reason {
+      font-style: italic;
+    }
+
+    /* ── Countdown ───────────────────────────────────────── */
+    .countdown-wrap {
+      border-top: 1px solid var(--border);
+      padding-top: 1.5rem;
+      text-align: center;
+    }
+
+    .countdown-label {
+      font-size: .75rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: .5rem;
+    }
+
+    .countdown-value {
+      font-size: 3rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      color: var(--gold);
+      font-variant-numeric: tabular-nums;
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    .countdown-value.overdue {
+      color: var(--red);
+      font-size: 1.05rem;
+      font-family: inherit;
+      font-weight: 600;
+      line-height: 1.5;
+      letter-spacing: normal;
+    }
+
+    /* ── Footer ─────────────────────────────────────────── */
+    .footer {
+      margin-top: 2.5rem;
+      font-size: .75rem;
+      color: var(--text-dim);
+      text-align: center;
+    }
+
+    /* ── Loading / error ─────────────────────────────────── */
+    .loading {
+      color: var(--text-dim);
+      font-size: .95rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Masonic compass-and-square emblem (SVG, no external deps) -->
+  <div class="emblem">
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"
+         aria-hidden="true">
+      <!-- Square (bottom tool, arms pointing down) -->
+      <path d="M28 30 L50 72 L72 30" stroke="#c9a84c" stroke-width="4.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Compass (top tool, arms pointing up) -->
+      <path d="M32 72 L50 28 L68 72" stroke="#8a6e30" stroke-width="4.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- G in centre -->
+      <text x="50" y="56" text-anchor="middle" dominant-baseline="middle"
+            font-family="Georgia, serif" font-size="16" fill="#c9a84c"
+            font-weight="bold">G</text>
+    </svg>
+  </div>
+
+  <div class="site-title">Masonic Lodge Portal</div>
+  <div class="lodge-name" id="lodge-name">Pershing No. 307</div>
+
+  <div class="card" id="card">
+    <p class="loading">Loading maintenance information&hellip;</p>
+  </div>
+
+  <div class="footer" id="footer"></div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    var REFRESH_INTERVAL = 1000; // ms
+    var endTime = null;
+    var timer   = null;
+
+    /* ── Helpers ───────────────────────────────────────── */
+
+    function pad(n) {
+      return String(n).padStart(2, '0');
+    }
+
+    function formatDateTime(iso) {
+      try {
+        var d = new Date(iso);
+        if (isNaN(d)) return iso;
+        return d.toLocaleString('en-GB', {
+          weekday: 'short', year: 'numeric', month: 'short',
+          day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+      } catch (e) { return iso; }
+    }
+
+    function renderCountdown() {
+      var el = document.getElementById('countdown-value');
+      if (!el || !endTime) return;
+
+      var now  = Date.now();
+      var diff = endTime - now;
+
+      if (diff <= 0) {
+        el.className = 'countdown-value overdue';
+        el.textContent = 'Maintenance is taking longer than expected.';
+        if (timer) { clearInterval(timer); timer = null; }
+        return;
+      }
+
+      var totalSec = Math.floor(diff / 1000);
+      var h = Math.floor(totalSec / 3600);
+      var m = Math.floor((totalSec % 3600) / 60);
+      var s = totalSec % 60;
+
+      el.className = 'countdown-value';
+      el.textContent = h > 0
+        ? pad(h) + ':' + pad(m) + ':' + pad(s)
+        : pad(m) + ':' + pad(s);
+    }
+
+    /* ── Render ─────────────────────────────────────────── */
+
+    function renderMaintenance(data) {
+      /* lodge name */
+      if (data.lodgeName) {
+        document.getElementById('lodge-name').textContent = data.lodgeName;
+      }
+
+      /* parse end time */
+      if (data.expectedEndTime) {
+        endTime = new Date(data.expectedEndTime).getTime();
+      }
+
+      /* build card HTML */
+      var html = '';
+
+      html += '<div class="maint-title">' + esc(data.title || 'Scheduled Maintenance') + '</div>';
+      html += '<p class="maint-message">The portal is temporarily unavailable due to scheduled maintenance.</p>';
+
+      html += '<div class="details">';
+
+      if (data.reason) {
+        html += '<span class="label">Reason</span>';
+        html += '<span class="value reason">' + esc(data.reason) + '</span>';
+      }
+
+      if (data.description) {
+        html += '<span class="label">Details</span>';
+        html += '<span class="value">' + esc(data.description) + '</span>';
+      }
+
+      if (data.startTime) {
+        html += '<span class="label">Started at</span>';
+        html += '<span class="value">' + esc(formatDateTime(data.startTime)) + '</span>';
+      }
+
+      if (data.durationMinutes) {
+        html += '<span class="label">Expected duration</span>';
+        html += '<span class="value">' + esc(String(data.durationMinutes)) + ' minutes</span>';
+      }
+
+      if (data.expectedEndTime) {
+        html += '<span class="label">Expected completion</span>';
+        html += '<span class="value">' + esc(formatDateTime(data.expectedEndTime)) + '</span>';
+      }
+
+      html += '</div>';
+
+      /* countdown */
+      html += '<div class="countdown-wrap">';
+      html += '<div class="countdown-label">Time remaining</div>';
+      html += '<div class="countdown-value" id="countdown-value">--:--</div>';
+      html += '</div>';
+
+      document.getElementById('card').innerHTML = html;
+
+      /* start ticker */
+      renderCountdown();
+      timer = setInterval(renderCountdown, REFRESH_INTERVAL);
+    }
+
+    function renderError() {
+      document.getElementById('card').innerHTML =
+        '<p class="maint-title">Scheduled Maintenance</p>' +
+        '<p class="maint-message" style="margin-top:.75rem">' +
+        'The portal is temporarily unavailable due to scheduled maintenance.<br>' +
+        'Please check back later.' +
+        '</p>';
+    }
+
+    function esc(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    /* ── Footer timestamp ───────────────────────────────── */
+    document.getElementById('footer').textContent =
+      'Page loaded at ' + new Date().toLocaleTimeString('en-GB') +
+      '  ·  Auto-refreshes every 5 minutes';
+
+    /* ── Fetch maintenance.json ─────────────────────────── */
+    fetch('./maintenance.json?_=' + Date.now())
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        if (data && data.enabled) {
+          renderMaintenance(data);
+        } else {
+          renderError();
+        }
+      })
+      .catch(function () {
+        renderError();
+      });
+  })();
+  </script>
+</body>
+</html>

@@ -65,3 +65,8 @@ Thumbs.db
 
 # Server backups (nooit naar GitHub)
 backups/
+
+# Maintenance mode runtime bestanden (server-side, niet in Git)
+maintenance.json
+maintenance-history.log
+_portal-index.bak
