@@ -127,7 +127,7 @@ else
 
   # SMTP-sleutels zijn optioneel: WARN in plaats van FAIL
   SMTP_FOUND=0
-  for KEY in SMTP_HOST SMTP_PORT SMTP_USERNAME SMTP_PASSWORD; do
+  for KEY in SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS; do
     if env_key_present "$KEY"; then
       ok "$KEY aanwezig"
       SMTP_FOUND=$((SMTP_FOUND + 1))
