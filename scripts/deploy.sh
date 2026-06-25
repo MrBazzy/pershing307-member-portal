@@ -301,6 +301,27 @@ pm2 restart "$PM2_PROCESS" 2>&1 | sed 's/^/  /' \
   || fail "pm2 restart $PM2_PROCESS mislukt"
 ok "PM2 proces $PM2_PROCESS herstart"
 
+# Wacht tot de API daadwerkelijk reageert (max 30 sec, poll elke 2 sec)
+info "Waiting for API readiness..."
+_API_URL="http://127.0.0.1:3000/api/bootstrap/status"
+_API_TIMEOUT=30
+_API_ELAPSED=0
+_API_READY=0
+while [ "$_API_ELAPSED" -lt "$_API_TIMEOUT" ]; do
+  _HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 2 "$_API_URL" 2>/dev/null || true)
+  if [ "$_HTTP_CODE" = "200" ]; then
+    _API_READY=1
+    break
+  fi
+  sleep 2
+  _API_ELAPSED=$(( _API_ELAPSED + 2 ))
+done
+if [ "$_API_READY" -ne 1 ]; then
+  fail "API niet bereikbaar na ${_API_TIMEOUT} seconden  (${_API_URL} gaf geen HTTP 200)"
+fi
+ok "API ready after ${_API_ELAPSED} seconds"
+unset _API_URL _API_TIMEOUT _API_ELAPSED _API_READY _HTTP_CODE
+
 # ---------------------------------------------------------------------------
 # Stap 12 — Nginx configuratie testen
 # ---------------------------------------------------------------------------
