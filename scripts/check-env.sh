@@ -1,0 +1,209 @@
+#!/usr/bin/env bash
+# check-env.sh — Pershing307 TDA environment validator
+# Alleen controleren, geen wijzigingen, geen secrets tonen.
+# Gebruik: bash scripts/check-env.sh
+
+# ---------------------------------------------------------------------------
+# Kleurcodes (alleen als terminal dit ondersteunt)
+# ---------------------------------------------------------------------------
+if [ -t 1 ] && command -v tput >/dev/null 2>&1 && tput colors >/dev/null 2>&1; then
+  GREEN=$(tput setaf 2)
+  RED=$(tput setaf 1)
+  YELLOW=$(tput setaf 3)
+  BOLD=$(tput bold)
+  RESET=$(tput sgr0)
+else
+  GREEN="" RED="" YELLOW="" BOLD="" RESET=""
+fi
+
+PASS="${GREEN}✓${RESET}"
+FAIL="${RED}✗${RESET}"
+WARN="${YELLOW}!${RESET}"
+
+# ---------------------------------------------------------------------------
+# Vaste paden (aanpassen aan serverinrichting)
+# ---------------------------------------------------------------------------
+PROJECT_DIR="/home/barry/apps/pershing307"
+ENV_FILE="${PROJECT_DIR}/.env"
+WEBROOT="/var/www/pershing307"
+UPLOAD_DIR="${WEBROOT}/uploads"
+
+# ---------------------------------------------------------------------------
+# Bijhouden van fouten
+# ---------------------------------------------------------------------------
+ERRORS=0
+
+ok()   { echo "  ${PASS}  $1"; }
+fail() { echo "  ${FAIL}  $1"; ERRORS=$((ERRORS + 1)); }
+warn() { echo "  ${WARN}  $1"; }
+
+section() { echo; echo "${BOLD}=== $1 ===${RESET}"; }
+
+# ---------------------------------------------------------------------------
+# Helper: controleer of een sleutel aanwezig is in .env (waarde NIET tonen)
+# ---------------------------------------------------------------------------
+env_key_present() {
+  local key="$1"
+  if [ ! -f "$ENV_FILE" ]; then
+    return 1
+  fi
+  # Zoek naar KEY= of KEY =  (met of zonder spatie rond =)
+  grep -qE "^[[:space:]]*${key}[[:space:]]*=" "$ENV_FILE" 2>/dev/null
+}
+
+# ---------------------------------------------------------------------------
+# Koptekst
+# ---------------------------------------------------------------------------
+echo
+echo "${BOLD}=========================================${RESET}"
+echo "${BOLD} Pershing307 Environment Validation${RESET}"
+echo " $(date '+%Y-%m-%d %H:%M:%S')"
+echo "${BOLD}=========================================${RESET}"
+
+# ---------------------------------------------------------------------------
+# PROJECT
+# ---------------------------------------------------------------------------
+section "Project"
+
+if [ -d "$PROJECT_DIR" ]; then
+  ok "Project directory aanwezig  ($PROJECT_DIR)"
+else
+  fail "Project directory ontbreekt  ($PROJECT_DIR)"
+fi
+
+if [ -d "${PROJECT_DIR}/.git" ]; then
+  ok "Git repository aanwezig"
+else
+  fail "Git repository ontbreekt"
+fi
+
+if [ -f "$ENV_FILE" ]; then
+  ok ".env bestand aanwezig"
+else
+  fail ".env bestand ontbreekt  ($ENV_FILE)"
+fi
+
+# ---------------------------------------------------------------------------
+# RUNTIME
+# ---------------------------------------------------------------------------
+section "Runtime"
+
+if command -v node >/dev/null 2>&1; then
+  NODE_VER=$(node --version 2>/dev/null || echo "?")
+  ok "Node.js geïnstalleerd  ($NODE_VER)"
+else
+  fail "Node.js niet gevonden"
+fi
+
+if command -v pnpm >/dev/null 2>&1; then
+  PNPM_VER=$(pnpm --version 2>/dev/null || echo "?")
+  ok "pnpm geïnstalleerd  ($PNPM_VER)"
+else
+  fail "pnpm niet gevonden"
+fi
+
+if command -v pm2 >/dev/null 2>&1; then
+  PM2_VER=$(pm2 --version 2>/dev/null || echo "?")
+  ok "PM2 geïnstalleerd  ($PM2_VER)"
+else
+  fail "PM2 niet gevonden"
+fi
+
+# ---------------------------------------------------------------------------
+# ENVIRONMENT VARIABLES (waarden worden NOOIT getoond)
+# ---------------------------------------------------------------------------
+section "Environment"
+
+if [ ! -f "$ENV_FILE" ]; then
+  warn "Sla Environment-checks over — .env ontbreekt"
+else
+  for KEY in DATABASE_URL SESSION_SECRET; do
+    if env_key_present "$KEY"; then
+      ok "$KEY aanwezig"
+    else
+      fail "$KEY MISSING"
+    fi
+  done
+
+  # SMTP-sleutels zijn optioneel: WARN in plaats van FAIL
+  SMTP_FOUND=0
+  for KEY in SMTP_HOST SMTP_PORT SMTP_USERNAME SMTP_PASSWORD; do
+    if env_key_present "$KEY"; then
+      ok "$KEY aanwezig"
+      SMTP_FOUND=$((SMTP_FOUND + 1))
+    else
+      warn "$KEY MISSING  (optioneel)"
+    fi
+  done
+
+  if [ "$SMTP_FOUND" -eq 0 ]; then
+    warn "Geen SMTP-sleutels geconfigureerd — e-mail uitgeschakeld"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# DATABASE
+# ---------------------------------------------------------------------------
+section "Database"
+
+if systemctl is-active --quiet postgresql 2>/dev/null; then
+  ok "PostgreSQL service actief"
+else
+  fail "PostgreSQL service niet actief"
+fi
+
+# pg_isready controleert of de server verbindingen accepteert
+if pg_isready -q 2>/dev/null; then
+  ok "Database bereikbaar  (pg_isready)"
+else
+  fail "Database niet bereikbaar"
+fi
+
+# ---------------------------------------------------------------------------
+# WEB
+# ---------------------------------------------------------------------------
+section "Web"
+
+if systemctl is-active --quiet nginx 2>/dev/null; then
+  ok "Nginx actief"
+else
+  fail "Nginx niet actief"
+fi
+
+if [ -d "$WEBROOT" ]; then
+  ok "Webroot aanwezig  ($WEBROOT)"
+else
+  fail "Webroot ontbreekt  ($WEBROOT)"
+fi
+
+# ---------------------------------------------------------------------------
+# PERMISSIONS
+# ---------------------------------------------------------------------------
+section "Permissions"
+
+if [ -d "$UPLOAD_DIR" ]; then
+  ok "Upload directory aanwezig  ($UPLOAD_DIR)"
+else
+  warn "Upload directory ontbreekt  ($UPLOAD_DIR)"
+fi
+
+if [ -d "$WEBROOT" ] && [ -r "$WEBROOT" ]; then
+  ok "Webroot leesbaar"
+else
+  fail "Webroot niet leesbaar"
+fi
+
+# ---------------------------------------------------------------------------
+# RESULTAAT
+# ---------------------------------------------------------------------------
+echo
+echo "${BOLD}=========================================${RESET}"
+if [ "$ERRORS" -eq 0 ]; then
+  echo "${GREEN}${BOLD} Environment Ready${RESET}"
+else
+  echo "${RED}${BOLD} Environment NOT Ready  (${ERRORS} fout(en))${RESET}"
+fi
+echo "${BOLD}=========================================${RESET}"
+echo
+
+exit "$ERRORS"
