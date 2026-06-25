@@ -82,8 +82,12 @@ function BootstrapCheck({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!isLoading && status && !status.bootstrapped && location !== "/bootstrap") {
-      setLocation("/bootstrap");
+    if (!isLoading && status) {
+      if (!status.bootstrapped && location !== "/bootstrap") {
+        setLocation("/bootstrap");
+      } else if (status.bootstrapped && location === "/bootstrap") {
+        setLocation("/login");
+      }
     }
   }, [isLoading, status, setLocation, location]);
 

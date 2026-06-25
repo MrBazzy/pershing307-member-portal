@@ -3,7 +3,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocation } from "wouter";
-import { useRunBootstrap } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRunBootstrap, getGetBootstrapStatusQueryKey } from "@workspace/api-client-react";
 import { AuthLayout } from "@/components/layout/auth-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, ChevronRight, ChevronLeft } from "lucide-react";
+import { Loader2, CheckCircle, ChevronRight, ChevronLeft, AlertCircle } from "lucide-react";
 import { PasswordStrength } from "@/components/password-strength";
 import { cn } from "@/lib/utils";
 
@@ -47,9 +48,20 @@ const adminSchema = z.object({
 
 const emailSchema = z.object({
   smtpHost: z.string().optional(),
-  smtpPort: z.string().optional(),
+  smtpPort: z
+    .string()
+    .optional()
+    .refine((v) => !v || /^\d+$/.test(v), { message: "Port must be a number" })
+    .refine((v) => !v || (parseInt(v, 10) > 0 && parseInt(v, 10) <= 65535), {
+      message: "Port must be between 1 and 65535",
+    }),
   smtpUser: z.string().optional(),
-  smtpFromEmail: z.string().optional(),
+  smtpFromEmail: z
+    .string()
+    .optional()
+    .refine((v) => !v || z.string().email().safeParse(v).success, {
+      message: "Enter a valid email address",
+    }),
   smtpFromName: z.string().optional(),
 });
 
@@ -61,15 +73,21 @@ type FullData = LodgeValues & AdminValues & EmailValues;
 
 const STEPS = ["Lodge", "Administrator", "Email", "Review"];
 
+const LODGE_FIELDS = new Set(["lodgeName", "lodgeNumber", "timezone"]);
+const ADMIN_FIELDS = new Set(["adminEmail", "adminFirstName", "adminLastName", "adminPassword"]);
+const EMAIL_FIELDS = new Set(["smtpHost", "smtpPort", "smtpUser", "smtpFromEmail", "smtpFromName"]);
+
 export default function BootstrapPage() {
   const [step, setStep] = useState(0);
   const [lodgeData, setLodgeData] = useState<LodgeValues | null>(null);
   const [adminData, setAdminData] = useState<AdminValues | null>(null);
   const [emailData, setEmailData] = useState<EmailValues>({});
   const [success, setSuccess] = useState(false);
+  const [alreadyBootstrapped, setAlreadyBootstrapped] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const runBootstrap = useRunBootstrap();
+  const queryClient = useQueryClient();
 
   const lodgeForm = useForm<LodgeValues>({
     resolver: zodResolver(lodgeSchema),
@@ -108,6 +126,8 @@ export default function BootstrapPage() {
 
     const payload: FullData = { ...lodgeData, ...adminData, ...emailData };
 
+    const smtpPort = payload.smtpPort || (payload.smtpHost ? "587" : null);
+
     runBootstrap.mutate(
       {
         data: {
@@ -119,20 +139,72 @@ export default function BootstrapPage() {
           adminLastName: payload.adminLastName,
           adminPassword: payload.adminPassword,
           smtpHost: payload.smtpHost || null,
-          smtpPort: payload.smtpPort || null,
+          smtpPort,
           smtpUser: payload.smtpUser || null,
           smtpFromEmail: payload.smtpFromEmail || null,
           smtpFromName: payload.smtpFromName || null,
         },
       },
       {
-        onSuccess: () => setSuccess(true),
-        onError: () => {
-          toast({ title: "Setup failed", description: "An error occurred during setup. Please check the form and try again.", variant: "destructive" });
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetBootstrapStatusQueryKey() });
+          setSuccess(true);
+        },
+        onError: (error: any) => {
+          if (error?.status === 409) {
+            setAlreadyBootstrapped(true);
+            return;
+          }
+
+          if (error?.status === 400 && Array.isArray(error?.data?.issues)) {
+            const issues = error.data.issues as Array<{ path: string[]; message: string }>;
+            for (const issue of issues) {
+              const field = issue.path[0] as string | undefined;
+              if (!field) continue;
+              if (LODGE_FIELDS.has(field)) {
+                lodgeForm.setError(field as keyof LodgeValues, { message: issue.message });
+                setStep(0);
+                return;
+              }
+              if (ADMIN_FIELDS.has(field)) {
+                adminForm.setError(field as keyof AdminValues, { message: issue.message });
+                setStep(1);
+                return;
+              }
+              if (EMAIL_FIELDS.has(field)) {
+                emailForm.setError(field as keyof EmailValues, { message: issue.message });
+                setStep(2);
+                return;
+              }
+            }
+          }
+
+          const description =
+            (error?.data as any)?.error ??
+            "An error occurred during setup. Please check the form and try again.";
+          toast({ title: "Setup failed", description, variant: "destructive" });
         },
       }
     );
   };
+
+  if (alreadyBootstrapped) {
+    return (
+      <AuthLayout title="Already Set Up" subtitle="This portal has already been configured">
+        <div className="text-center py-4">
+          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 mx-auto mb-4">
+            <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+          </div>
+          <p className="text-sm text-muted-foreground mb-6">
+            This portal has already been set up. Please log in with your administrator credentials.
+          </p>
+          <Button className="w-full" onClick={() => setLocation("/login")} data-testid="button-go-to-login">
+            Go to Login
+          </Button>
+        </div>
+      </AuthLayout>
+    );
+  }
 
   if (success) {
     return (
@@ -307,6 +379,7 @@ export default function BootstrapPage() {
                   <FormControl>
                     <Input {...field} placeholder="587" data-testid="input-smtp-port" />
                   </FormControl>
+                  <FormDescription className="text-[11px]">Default: 587</FormDescription>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -373,7 +446,7 @@ export default function BootstrapPage() {
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Email</p>
                 <div className="bg-muted/50 rounded-sm border border-border p-3 space-y-1.5">
                   <ReviewRow label="Host" value={emailData.smtpHost} />
-                  {emailData.smtpPort && <ReviewRow label="Port" value={emailData.smtpPort} />}
+                  <ReviewRow label="Port" value={emailData.smtpPort || "587 (default)"} />
                   {emailData.smtpFromEmail && <ReviewRow label="From" value={emailData.smtpFromEmail} />}
                 </div>
               </div>
