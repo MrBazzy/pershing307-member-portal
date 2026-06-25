@@ -72,12 +72,17 @@ else
   check "Nginx service" "fail"
 fi
 
-# --- UFW status ---
-if ufw status 2>/dev/null | grep -q "Status: active"; then
-  check "UFW firewall (actief)" "ok"
+# --- UFW status (vereist sudo voor ufw status) ---
+_UFW_OUT=$(sudo ufw status 2>/dev/null)
+_UFW_ACTIVE=$(echo "$_UFW_OUT" | grep -c "Status: active" || true)
+_UFW_SSH=$(echo "$_UFW_OUT" | grep -c "OpenSSH\|22/tcp" || true)
+_UFW_HTTP=$(echo "$_UFW_OUT" | grep -c "80/tcp\|Nginx\|Apache" || true)
+if [ "$_UFW_ACTIVE" -gt 0 ] && [ "$_UFW_SSH" -gt 0 ] && [ "$_UFW_HTTP" -gt 0 ]; then
+  check "UFW firewall actief met SSH en HTTP" "ok"
 else
-  check "UFW firewall (actief)" "fail"
+  check "UFW firewall actief met SSH en HTTP" "fail"
 fi
+unset _UFW_OUT _UFW_ACTIVE _UFW_SSH _UFW_HTTP
 
 # --- Disk usage (/ mag niet meer dan 90% vol zijn) ---
 DISK_PCT=$(df / 2>/dev/null | awk 'NR==2 {gsub(/%/,"",$5); print $5}')
