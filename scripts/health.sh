@@ -3,8 +3,6 @@
 # Alleen lezen, geen wijzigingen, geen secrets.
 # Gebruik: bash scripts/health.sh
 
-set -euo pipefail
-
 OK="[ OK ]"
 FAIL="[FAIL]"
 
@@ -37,12 +35,18 @@ else
   check "PostgreSQL cluster (online)" "fail"
 fi
 
-# --- PM2 process pershing307-api ---
-if su -s /bin/bash barry -c "pm2 list 2>/dev/null" 2>/dev/null \
-     | grep -q "pershing307-api"; then
+# --- PM2 process pershing307-api (list) ---
+if pm2 list 2>/dev/null | grep -q "pershing307-api"; then
   check "PM2 proces pershing307-api" "ok"
 else
   check "PM2 proces pershing307-api" "fail"
+fi
+
+# --- PM2 process pershing307-api (online status) ---
+if pm2 describe pershing307-api 2>/dev/null | grep -q "online"; then
+  check "PM2 status pershing307-api (online)" "ok"
+else
+  check "PM2 status pershing307-api (online)" "fail"
 fi
 
 # --- API endpoint /api/bootstrap/status ---
@@ -76,7 +80,7 @@ else
 fi
 
 # --- Disk usage (/ mag niet meer dan 90% vol zijn) ---
-DISK_PCT=$(df / | awk 'NR==2 {gsub(/%/,"",$5); print $5}')
+DISK_PCT=$(df / 2>/dev/null | awk 'NR==2 {gsub(/%/,"",$5); print $5}')
 if [ "${DISK_PCT:-100}" -lt 90 ]; then
   check "Schijfruimte / (${DISK_PCT}% gebruikt)" "ok"
 else
@@ -84,7 +88,7 @@ else
 fi
 
 # --- Memory (minder dan 95% in gebruik) ---
-MEM_PCT=$(free | awk '/^Mem:/ {printf "%d", $3/$2*100}')
+MEM_PCT=$(free 2>/dev/null | awk '/^Mem:/ {printf "%d", $3/$2*100}')
 if [ "${MEM_PCT:-100}" -lt 95 ]; then
   check "Geheugen (${MEM_PCT}% in gebruik)" "ok"
 else
