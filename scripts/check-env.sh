@@ -26,7 +26,6 @@ WARN="${YELLOW}!${RESET}"
 PROJECT_DIR="/home/barry/apps/pershing307"
 ENV_FILE="${PROJECT_DIR}/.env"
 WEBROOT="/var/www/pershing307"
-UPLOAD_DIR="${WEBROOT}/uploads"
 
 # ---------------------------------------------------------------------------
 # Bijhouden van fouten
@@ -181,16 +180,33 @@ fi
 # ---------------------------------------------------------------------------
 section "Permissions"
 
-if [ -d "$UPLOAD_DIR" ]; then
-  ok "Upload directory aanwezig  ($UPLOAD_DIR)"
-else
-  warn "Upload directory ontbreekt  ($UPLOAD_DIR)"
-fi
-
 if [ -d "$WEBROOT" ] && [ -r "$WEBROOT" ]; then
   ok "Webroot leesbaar"
 else
   fail "Webroot niet leesbaar"
+fi
+
+# Privé document-opslag via PRIVATE_OBJECT_DIR in .env
+_PRIV_DIR=""
+if [ -f "$ENV_FILE" ]; then
+  _PRIV_DIR=$(grep -E "^[[:space:]]*PRIVATE_OBJECT_DIR[[:space:]]*=" "$ENV_FILE" \
+    | head -1 | sed 's/^[^=]*=[[:space:]]*//' | tr -d '"'"'"' ' 2>/dev/null || true)
+fi
+
+if [ -z "$_PRIV_DIR" ]; then
+  warn "PRIVATE_OBJECT_DIR niet geconfigureerd — document storage niet ingesteld"
+elif [ -d "$_PRIV_DIR" ]; then
+  ok "Privé document directory aanwezig"
+else
+  fail "Privé document directory ontbreekt  (pad uit PRIVATE_OBJECT_DIR)"
+fi
+unset _PRIV_DIR
+
+# Publieke object zoekpaden aanwezig (waarde niet getoond)
+if [ -f "$ENV_FILE" ] && env_key_present "PUBLIC_OBJECT_SEARCH_PATHS"; then
+  ok "PUBLIC_OBJECT_SEARCH_PATHS geconfigureerd"
+else
+  warn "PUBLIC_OBJECT_SEARCH_PATHS niet geconfigureerd  (optioneel)"
 fi
 
 # ---------------------------------------------------------------------------
