@@ -210,6 +210,33 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# DEPLOYMENT PERMISSIONS
+# ---------------------------------------------------------------------------
+section "Deployment Permissions"
+
+# Helper: slaagt als sudo -n het commando uitvoert (ook al faalt het commando zelf).
+# Mislukt alleen als sudo zegt dat een wachtwoord vereist is of de actie niet is toegestaan.
+_check_sudo_perm() {
+  local label="$1"; shift
+  local _out _rc=0
+  _out=$(sudo -n "$@" 2>&1 </dev/null) || _rc=$?
+  if echo "$_out" | grep -qiE \
+       "password is required|a password|not allowed|not in sudoers|may not run|Sorry"; then
+    fail "Deployment-permissie ontbreekt: sudo ${label}  (voeg toe aan /etc/sudoers.d/barry-deploy)"
+  else
+    ok "sudo ${label}"
+  fi
+}
+
+_check_sudo_perm "rsync --version"           rsync --version
+_check_sudo_perm "chown --version"           chown --version
+_check_sudo_perm "nginx -t"                  nginx -t
+_check_sudo_perm "systemctl reload nginx"    systemctl reload nginx
+_check_sudo_perm "ufw status"                ufw status
+
+unset -f _check_sudo_perm
+
+# ---------------------------------------------------------------------------
 # RESULTAAT
 # ---------------------------------------------------------------------------
 echo

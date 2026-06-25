@@ -76,7 +76,7 @@ fi
 _UFW_OUT=$(sudo -n ufw status 2>/dev/null)
 _UFW_RC=$?
 if [ "$_UFW_RC" -ne 0 ]; then
-  echo "[WARN] UFW firewall kan niet zonder sudo gecontroleerd worden"
+  echo "[WARN] UFW controle niet mogelijk (passwordless sudo ontbreekt)"
 else
   _UFW_ACTIVE=$(echo "$_UFW_OUT" | grep -c "Status: active" || true)
   _UFW_SSH=$(echo "$_UFW_OUT" | grep -c "OpenSSH\|22/tcp" || true)

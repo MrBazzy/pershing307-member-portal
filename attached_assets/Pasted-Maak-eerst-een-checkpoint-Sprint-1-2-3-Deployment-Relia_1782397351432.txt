@@ -1,0 +1,135 @@
+Maak eerst een checkpoint.
+
+Sprint 1.2.3 – Deployment Reliability Improvements
+
+Doel:
+Verbeter de deployment- en health-scripts zodat een deployment volledig automatisch en betrouwbaar kan verlopen zonder handmatige tussenkomst.
+
+========================================
+1. Fix DATABASE_URL tijdens deployment
+========================================
+
+Probleem:
+Stap 8 van deploy.sh faalt met:
+
+DATABASE_URL, ensure the database is provisioned
+
+Oorzaak:
+.env wordt wel gecontroleerd, maar niet geëxporteerd naar subprocessen.
+
+Aanpassing:
+
+- Laad helemaal aan het begin van deploy.sh (nadat PROJECT_DIR en .env gecontroleerd zijn):
+
+set -a
+source "$PROJECT_DIR/.env"
+set +a
+
+- Print nooit waarden uit .env.
+- Controleer expliciet dat DATABASE_URL aanwezig is vóór Stap 8.
+- Indien DATABASE_URL ontbreekt:
+
+Deployment failed
+DATABASE_URL missing from environment.
+
+- Stap 8 moet daarna probleemloos kunnen uitvoeren:
+
+cd lib/db && pnpm push
+
+========================================
+2. Verbeter health.sh UFW controle
+========================================
+
+Momenteel verschijnt:
+
+[WARN] UFW firewall kan niet zonder sudo gecontroleerd worden
+
+Dat willen we oplossen.
+
+Gebruik:
+
+sudo -n ufw status
+
+Documenteer dat hiervoor passwordless sudo nodig is.
+
+Controleer:
+
+- firewall actief
+- OpenSSH toegestaan
+- HTTP (80/tcp) toegestaan
+
+Indien alles correct:
+
+[ OK ] UFW firewall actief met SSH en HTTP
+
+Indien sudo ontbreekt:
+
+[WARN] UFW controle niet mogelijk (passwordless sudo ontbreekt)
+
+Geen interactieve sudo prompts.
+
+========================================
+3. Deployment Permissions toevoegen
+========================================
+
+Voeg aan check-env.sh een extra blok toe:
+
+=== Deployment Permissions ===
+
+Controleer:
+
+✓ sudo rsync
+✓ sudo chown
+✓ sudo nginx -t
+✓ sudo systemctl reload nginx
+✓ sudo ufw status
+
+Gebruik steeds:
+
+sudo -n
+
+Indien één ontbreekt:
+
+Environment NOT Ready
+
+Toon exact welke permissie ontbreekt.
+
+========================================
+4. Verbeter deploy.sh logging
+========================================
+
+Bij elke stap:
+
+- starttijd
+- eindtijd
+- duur in seconden
+
+Bijvoorbeeld:
+
+[Stap 7] pnpm build
+
+Started : 14:22:01
+Finished: 14:22:09
+Duration: 8 sec
+
+Deployment successful
+
+Total deployment time:
+42 sec
+
+========================================
+5. Geen functionele wijzigingen
+========================================
+
+Niet wijzigen:
+
+- applicatielogica
+- database model
+- frontend
+- backend routes
+
+Alleen operations scripts.
+
+Commit message:
+
+Improve deployment reliability and validation

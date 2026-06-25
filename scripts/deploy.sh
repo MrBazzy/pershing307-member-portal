@@ -28,14 +28,33 @@ PROJECT_DIR="/home/barry/apps/pershing307"
 WEBROOT="/var/www/pershing307"
 PM2_PROCESS="pershing307-api"
 STEP=0
+_DEPLOY_START=$(date +%s)
+_STEP_START=0
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 step() {
-  STEP=$((STEP + 1))
+  # Sluit vorige stap af met timing
+  if [ "$_STEP_START" -gt 0 ]; then
+    _STEP_END=$(date +%s)
+    _DUR=$(( _STEP_END - _STEP_START ))
+    echo "  Finished: $(date '+%H:%M:%S')  |  Duration: ${_DUR} sec"
+  fi
+  STEP=$(( STEP + 1 ))
+  _STEP_START=$(date +%s)
   echo
   echo "${BOLD}[Stap ${STEP}] $1${RESET}"
+  echo "  Started : $(date '+%H:%M:%S')"
+}
+
+finish_last_step() {
+  if [ "$_STEP_START" -gt 0 ]; then
+    _STEP_END=$(date +%s)
+    _DUR=$(( _STEP_END - _STEP_START ))
+    echo "  Finished: $(date '+%H:%M:%S')  |  Duration: ${_DUR} sec"
+    _STEP_START=0
+  fi
 }
 
 ok()   { echo "  ${GREEN}OK${RESET}  $1"; }
@@ -146,6 +165,16 @@ if [ "$CURRENT_DIR" != "$PROJECT_DIR" ]; then
 fi
 ok "Working directory correct  ($PROJECT_DIR)"
 
+# Laad .env in de omgeving voor subprocessen (waarden worden nooit geprint)
+if [ ! -f "${PROJECT_DIR}/.env" ]; then
+  fail ".env bestand ontbreekt in ${PROJECT_DIR}"
+fi
+set -a
+# shellcheck source=/dev/null
+source "${PROJECT_DIR}/.env"
+set +a
+ok ".env geladen in omgeving"
+
 # ---------------------------------------------------------------------------
 # Stap 2 — Controleer git status (geen lokale wijzigingen)
 # ---------------------------------------------------------------------------
@@ -230,6 +259,11 @@ ok "Build geslaagd"
 # ---------------------------------------------------------------------------
 step "Database schema update"
 
+if [ -z "${DATABASE_URL:-}" ]; then
+  fail "DATABASE_URL missing from environment. Controleer of DATABASE_URL aanwezig is in ${PROJECT_DIR}/.env"
+fi
+ok "DATABASE_URL aanwezig"
+
 (cd lib/db && pnpm push 2>&1 | sed 's/^/  /') \
   || fail "Database schema update mislukt"
 ok "Schema bijgewerkt"
@@ -302,9 +336,13 @@ ok "Server gezond na deployment"
 # ---------------------------------------------------------------------------
 # Stap 15 — Afsluiting
 # ---------------------------------------------------------------------------
+finish_last_step
+_TOTAL=$(( $(date +%s) - _DEPLOY_START ))
+
 echo
 echo "${GREEN}${BOLD}==========================================${RESET}"
 echo "${GREEN}${BOLD} Deployment successful  (${STEP} stappen)${RESET}"
 echo " $(date '+%Y-%m-%d %H:%M:%S')"
+echo "${GREEN}${BOLD} Total deployment time: ${_TOTAL} sec${RESET}"
 echo "${GREEN}${BOLD}==========================================${RESET}"
 echo
