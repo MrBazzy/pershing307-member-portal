@@ -62,3 +62,6 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Server backups (nooit naar GitHub)
+backups/
