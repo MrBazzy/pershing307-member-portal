@@ -11,6 +11,7 @@ import { sendEmail, passwordResetEmailHtml } from "../lib/email";
 import { getConfig, getConfigNumber, getLodgeId } from "../lib/config";
 import { requireAuth } from "../middlewares/requireAuth";
 import { invalidateUserSessions } from "../lib/sessions";
+import { logger } from "../lib/logger";
 import { checkPasswordHistory, recordPasswordHistory } from "../lib/password-history";
 import twoFactorRouter from "./two-factor";
 import speakeasy from "speakeasy";
@@ -198,6 +199,30 @@ router.post("/login", loginRateLimit, async (req, res) => {
   req.session.lodgeId = user.lodgeId;
   req.session.twoFactorVerified = false;
 
+  // [DEBUG-SESSION] Log session state before explicit save.
+  // Remove once root cause is confirmed.
+  logger.info({
+    msg: "[DEBUG-SESSION] login: session populated, saving to store",
+    sessionId: req.session.id,
+    userId: user.id,
+  });
+
+  // Explicitly save the session before sending the response.
+  // Without this, express-session starts the PostgreSQL write asynchronously
+  // when res.end() is called. If the client immediately requests /api/auth/me
+  // the session row may not yet be committed, causing a 401.
+  await new Promise<void>((resolve, reject) => {
+    req.session.save((err) => {
+      if (err) {
+        logger.error({ msg: "[DEBUG-SESSION] login: session save FAILED", err, sessionId: req.session.id });
+        reject(err);
+      } else {
+        logger.info({ msg: "[DEBUG-SESSION] login: session saved OK", sessionId: req.session.id });
+        resolve();
+      }
+    });
+  });
+
   await writeAuditLog({ lodgeId: user.lodgeId, actorId: user.id, actorEmail: user.email, action: "LOGIN", ipAddress: ip, userAgent: ua });
 
   const roles = await db
@@ -205,6 +230,22 @@ router.post("/login", loginRateLimit, async (req, res) => {
     .from(userRolesTable)
     .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
     .where(eq(userRolesTable.userId, user.id));
+
+  // [DEBUG-SESSION] Log Set-Cookie header presence before sending response.
+  // Remove once root cause is confirmed.
+  const setCookieHeader = res.getHeader("set-cookie");
+  logger.info({
+    msg: "[DEBUG-SESSION] login: sending response",
+    sessionId: req.session.id,
+    setCookiePresent: !!setCookieHeader,
+    setCookieCount: Array.isArray(setCookieHeader) ? setCookieHeader.length : (setCookieHeader ? 1 : 0),
+    // Log cookie attributes only (not the value)
+    setCookieAttribs: Array.isArray(setCookieHeader)
+      ? setCookieHeader.map((c: string) => c.replace(/portal\.sid=[^;]+/, "portal.sid=<redacted>"))
+      : typeof setCookieHeader === "string"
+        ? setCookieHeader.replace(/portal\.sid=[^;]+/, "portal.sid=<redacted>")
+        : null,
+  });
 
   res.json({
     user: {
@@ -305,6 +346,27 @@ router.post("/login/2fa", twoFaRateLimit, async (req, res) => {
   req.session.lodgeId = user.lodgeId;
   req.session.twoFactorVerified = true;
 
+  // [DEBUG-SESSION] Log session state before explicit save.
+  // Remove once root cause is confirmed.
+  logger.info({
+    msg: "[DEBUG-SESSION] login/2fa: session populated, saving to store",
+    sessionId: req.session.id,
+    userId: user.id,
+  });
+
+  // Explicitly save before responding — same race-condition fix as the regular login route.
+  await new Promise<void>((resolve, reject) => {
+    req.session.save((err) => {
+      if (err) {
+        logger.error({ msg: "[DEBUG-SESSION] login/2fa: session save FAILED", err, sessionId: req.session.id });
+        reject(err);
+      } else {
+        logger.info({ msg: "[DEBUG-SESSION] login/2fa: session saved OK", sessionId: req.session.id });
+        resolve();
+      }
+    });
+  });
+
   await writeAuditLog({ lodgeId: user.lodgeId, actorId: user.id, actorEmail: user.email, action: "LOGIN_2FA", ipAddress: ip, userAgent: ua });
 
   const roles = await db
@@ -312,6 +374,20 @@ router.post("/login/2fa", twoFaRateLimit, async (req, res) => {
     .from(userRolesTable)
     .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
     .where(eq(userRolesTable.userId, user.id));
+
+  // [DEBUG-SESSION] Log Set-Cookie header presence before sending response.
+  // Remove once root cause is confirmed.
+  const setCookieHeader2fa = res.getHeader("set-cookie");
+  logger.info({
+    msg: "[DEBUG-SESSION] login/2fa: sending response",
+    sessionId: req.session.id,
+    setCookiePresent: !!setCookieHeader2fa,
+    setCookieAttribs: Array.isArray(setCookieHeader2fa)
+      ? setCookieHeader2fa.map((c: string) => c.replace(/portal\.sid=[^;]+/, "portal.sid=<redacted>"))
+      : typeof setCookieHeader2fa === "string"
+        ? setCookieHeader2fa.replace(/portal\.sid=[^;]+/, "portal.sid=<redacted>")
+        : null,
+  });
 
   res.json({
     user: {
@@ -347,6 +423,19 @@ router.post("/logout", requireAuth(), async (req, res) => {
 });
 
 router.get("/me", async (req, res) => {
+  // [DEBUG-SESSION] Log incoming session state to diagnose 401 after login.
+  // Remove once root cause is confirmed.
+  logger.info({
+    msg: "[DEBUG-SESSION] /me: incoming request",
+    sessionId: req.session?.id ?? null,
+    hasCookieHeader: !!req.headers.cookie,
+    hasPortalSid: typeof req.headers.cookie === "string"
+      ? req.headers.cookie.includes("portal.sid")
+      : false,
+    sessionUserId: req.session?.userId ?? null,
+    sessionKeys: req.session ? Object.keys(req.session).filter((k) => k !== "cookie") : [],
+  });
+
   // Force-logout check (mirrors requireAuth behaviour)
   if (req.session?.forceLogout) {
     req.session.destroy(() => {});
