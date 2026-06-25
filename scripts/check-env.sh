@@ -124,6 +124,20 @@ else
     fi
   done
 
+  # COOKIE_SECURE: optioneel — WARN met uitleg als afwezig of "false" op productie
+  if env_key_present "COOKIE_SECURE"; then
+    _CS_VAL=$(grep -E "^[[:space:]]*COOKIE_SECURE[[:space:]]*=" "$ENV_FILE" \
+      | head -1 | sed 's/^[^=]*=[[:space:]]*//' | tr -d '"'"'"' ' 2>/dev/null || true)
+    if [ "$_CS_VAL" = "true" ]; then
+      ok "COOKIE_SECURE=true  (session cookie vereist HTTPS)"
+    else
+      warn "COOKIE_SECURE=false  (HTTP toegestaan — niet geschikt voor HTTPS productie)"
+    fi
+    unset _CS_VAL
+  else
+    warn "COOKIE_SECURE niet ingesteld  (standaard: false — stel in op true voor HTTPS productie)"
+  fi
+
   # SMTP-sleutels zijn optioneel: WARN in plaats van FAIL
   SMTP_FOUND=0
   for KEY in SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS; do
