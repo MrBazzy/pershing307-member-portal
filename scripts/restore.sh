@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
 # restore.sh — Pershing307 TDA server restore vanuit backup
-# Gebruik: bash scripts/restore.sh
+#
+# Gebruik (normaal):  bash scripts/restore.sh
+# Gebruik (verify):   bash scripts/restore.sh --verify backups/example.tar.gz
 #
 # Herstelt een eerder gemaakte backup (gemaakt door backup.sh):
 #   - .env bestand
 #   - private/ map (indien aanwezig in backup)
 #   - PostgreSQL database (pg_restore)
 #
-# WAARSCHUWING: Dit script overschrijft bestaande data.
-# Expliciete bevestiging (typ: RESTORE) is vereist.
-# Secrets worden nooit op het scherm getoond.
+# Veiligheidsregels:
+#   - Vereist exacte bevestiging "RESTORE" voor aanvang
+#   - Controleert SHA256-checksum indien aanwezig
+#   - Weigert backups met een onbekend/niet-ondersteund formaat
+#   - Secrets worden nooit op het scherm getoond
+#   - Stopt onmiddellijk bij fouten (set -euo pipefail)
 
 set -euo pipefail
 
@@ -31,6 +36,9 @@ BACKUP_ROOT="${PROJECT_DIR}/backups"
 PM2_PROCESS="pershing307-api"
 RESTORE_TMP=""
 
+# Ondersteunde backupformaat-versies (spatie-gescheiden)
+SUPPORTED_VERSIONS="1"
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -38,7 +46,7 @@ ok()      { echo "  ${GREEN}OK${RESET}  $1"; }
 fail()    {
   echo
   echo "${RED}${BOLD}==========================================${RESET}"
-  echo "${RED}${BOLD} Restore failed: $1${RESET}"
+  echo "${RED}${BOLD} Mislukt: $1${RESET}"
   echo "${RED}${BOLD}==========================================${RESET}"
   echo
   exit 1
@@ -47,14 +55,202 @@ warn()    { echo "  ${YELLOW}!!${RESET}  $1"; }
 info()    { echo "  --  $1"; }
 section() { echo; echo "${BOLD}=== $1 ===${RESET}"; echo; }
 
+# Dotted-line weergave voor verify-output
+# Gebruik: _dotline "Label" "STATUS"  [optioneel kleur-prefix voor status]
+_dotline() {
+  local label="$1" status="$2"
+  local total=28
+  local dots=""
+  local i
+  for ((i=${#label}; i<total; i++)); do dots="${dots}."; done
+  printf "  %s %s %s\n" "${label}" "${dots}" "${status}"
+}
+
 # Ruim tijdelijke extractiemap op bij elk exit (normaal of bij fout)
 _cleanup() {
-  [ -n "${RESTORE_TMP:-}" ] && rm -rf "$RESTORE_TMP" 2>/dev/null || true
+  [ -n "${RESTORE_TMP:-}" ] && rm -rf "${RESTORE_TMP}" 2>/dev/null || true
 }
 trap _cleanup EXIT
 
 # ---------------------------------------------------------------------------
-# Koptekst
+# --verify modus
+# ---------------------------------------------------------------------------
+_verify_archive() {
+  local archive="$1"
+
+  # Maak pad absoluut als het relatief is
+  if [[ "${archive}" != /* ]]; then
+    archive="${PROJECT_DIR}/${archive}"
+  fi
+
+  local archive_name
+  archive_name=$(basename "${archive}")
+
+  echo
+  echo "${BOLD}==========================================${RESET}"
+  echo "${BOLD} Backup verificatie${RESET}"
+  echo " ${archive_name}"
+  echo "${BOLD}==========================================${RESET}"
+  echo
+
+  [ -f "${archive}" ] || fail "Archief niet gevonden: ${archive}"
+
+  local ok_txt="${GREEN}OK${RESET}"
+  local fail_txt="${RED}FAIL${RESET}"
+  local na_txt="${YELLOW}n.v.t.${RESET}"
+
+  local overall_ok=true
+
+  # 1. Archief-integriteit (kan het geopend worden?)
+  if tar -tzf "${archive}" >/dev/null 2>&1; then
+    _dotline "Archive integrity" "${ok_txt}"
+  else
+    _dotline "Archive integrity" "${fail_txt}"
+    echo
+    echo "  ${RED}Archief is beschadigd of geen geldig .tar.gz bestand.${RESET}"
+    echo
+    return 1
+  fi
+
+  # Uitpakken in tijdelijke map voor verdere controles
+  local vtmp
+  vtmp=$(mktemp -d "${PROJECT_DIR}/.verify-tmp-XXXXXX")
+
+  # Verwijder vtmp altijd bij terugkeer uit deze functie
+  # (trap EXIT verwijdert RESTORE_TMP; vtmp apart afhandelen)
+  local _vtmp_ref="${vtmp}"
+  # shellcheck disable=SC2064
+  trap "rm -rf '${_vtmp_ref}' 2>/dev/null || true; ${RESTORE_TMP:+rm -rf '${RESTORE_TMP}' 2>/dev/null || true}" EXIT
+
+  tar -xzf "${archive}" -C "${vtmp}" 2>/dev/null \
+    || { echo "  ${RED}Uitpakken mislukt.${RESET}"; echo; return 1; }
+
+  local vname
+  vname=$(basename "${archive}" .tar.gz)
+  local vdir="${vtmp}/${vname}"
+
+  if [ ! -d "${vdir}" ]; then
+    echo "  ${RED}Verwachte map ontbreekt in archief: ${vname}/${RESET}"
+    echo
+    return 1
+  fi
+
+  # 2. Database dump
+  if [ -f "${vdir}/database.dump" ]; then
+    _dotline "Database dump" "${ok_txt}"
+  else
+    _dotline "Database dump" "${fail_txt}"
+    overall_ok=false
+  fi
+
+  # 3. Environment file
+  if [ -f "${vdir}/.env" ]; then
+    _dotline "Environment file" "${ok_txt}"
+  else
+    _dotline "Environment file" "${fail_txt}"
+    overall_ok=false
+  fi
+
+  # 4. Private storage (optioneel — WARN maar geen FAIL)
+  if [ -d "${vdir}/private" ]; then
+    _dotline "Private storage" "${ok_txt}"
+  else
+    _dotline "Private storage" "${YELLOW}niet aanwezig${RESET}"
+  fi
+
+  # 5. Metadata (README + timestamp + git-commit)
+  local meta_ok=true
+  [ -f "${vdir}/README.txt"     ] || meta_ok=false
+  [ -f "${vdir}/timestamp.txt"  ] || meta_ok=false
+  [ -f "${vdir}/git-commit.txt" ] || meta_ok=false
+
+  if ${meta_ok}; then
+    _dotline "Metadata" "${ok_txt}"
+  else
+    _dotline "Metadata" "${fail_txt}"
+    overall_ok=false
+  fi
+
+  # 6. Backup versie
+  if [ -f "${vdir}/version.txt" ]; then
+    local ver
+    ver=$(tr -d '[:space:]' < "${vdir}/version.txt")
+    local ver_ok=false
+    for sv in ${SUPPORTED_VERSIONS}; do
+      [ "${ver}" = "${sv}" ] && ver_ok=true && break
+    done
+    if ${ver_ok}; then
+      _dotline "Backup versie" "v${ver}  ${ok_txt}"
+    else
+      _dotline "Backup versie" "v${ver}  ${RED}niet ondersteund${RESET}"
+      overall_ok=false
+    fi
+  else
+    _dotline "Backup versie" "${YELLOW}onbekend (oudere backup)${RESET}"
+  fi
+
+  # 7. SHA256 checksum
+  if [ -f "${archive}.sha256" ]; then
+    local expected actual
+    expected=$(awk '{print $1}' "${archive}.sha256")
+    actual=$(sha256sum "${archive}" | awk '{print $1}')
+    if [ "${expected}" = "${actual}" ]; then
+      _dotline "SHA256 checksum" "${ok_txt}"
+    else
+      _dotline "SHA256 checksum" "${fail_txt}"
+      overall_ok=false
+    fi
+  else
+    _dotline "SHA256 checksum" "${na_txt} (geen .sha256 bestand)"
+  fi
+
+  echo
+
+  # Informatieve details
+  if [ -f "${vdir}/timestamp.txt" ]; then
+    echo "  Backup-datum  : $(cat "${vdir}/timestamp.txt")"
+  fi
+  if [ -f "${vdir}/git-commit.txt" ]; then
+    echo "  Git commit    : $(cat "${vdir}/git-commit.txt")"
+  fi
+  echo
+
+  # Eindoordeel
+  if ${overall_ok}; then
+    echo "${GREEN}${BOLD}Backup verification successful.${RESET}"
+    echo
+    rm -rf "${vtmp}" 2>/dev/null || true
+    return 0
+  else
+    echo "${RED}${BOLD}Backup verification failed.${RESET}"
+    echo "  Een of meer verplichte componenten ontbreken of zijn ongeldig."
+    echo
+    rm -rf "${vtmp}" 2>/dev/null || true
+    return 1
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Argumentverwerking
+# ---------------------------------------------------------------------------
+if [ "${1:-}" = "--verify" ]; then
+  if [ -z "${2:-}" ]; then
+    echo "Gebruik: $0 --verify <pad-naar-backup.tar.gz>"
+    exit 1
+  fi
+
+  # Working directory check ook voor verify
+  CURRENT_DIR=$(pwd)
+  if [ "${CURRENT_DIR}" != "${PROJECT_DIR}" ]; then
+    fail "Script moet vanuit ${PROJECT_DIR} worden uitgevoerd (nu: ${CURRENT_DIR})"
+  fi
+
+  _verify_archive "$2"
+  exit $?
+fi
+
+# ---------------------------------------------------------------------------
+# Normale restore modus — koptekst
 # ---------------------------------------------------------------------------
 echo
 echo "${BOLD}==========================================${RESET}"
@@ -71,7 +267,7 @@ echo
 # Working directory
 # ---------------------------------------------------------------------------
 CURRENT_DIR=$(pwd)
-if [ "$CURRENT_DIR" != "$PROJECT_DIR" ]; then
+if [ "${CURRENT_DIR}" != "${PROJECT_DIR}" ]; then
   fail "Script moet vanuit ${PROJECT_DIR} worden uitgevoerd (nu: ${CURRENT_DIR})"
 fi
 
@@ -80,7 +276,6 @@ fi
 # ---------------------------------------------------------------------------
 section "Stap 1 — Beschikbare backups"
 
-# Verzamel .tar.gz bestanden, nieuwste eerst
 BACKUPS=()
 while IFS= read -r f; do
   BACKUPS+=("$f")
@@ -93,7 +288,9 @@ fi
 for i in "${!BACKUPS[@]}"; do
   BNAME=$(basename "${BACKUPS[$i]}")
   BSIZE=$(du -sh "${BACKUPS[$i]}" 2>/dev/null | cut -f1 || echo "?")
-  printf "    [%d] %s  (%s)\n" "$((i + 1))" "$BNAME" "$BSIZE"
+  HAS_CS=""
+  [ -f "${BACKUPS[$i]}.sha256" ] && HAS_CS="  ✓ checksum"
+  printf "    [%d] %s  (%s)%s\n" "$((i + 1))" "${BNAME}" "${BSIZE}" "${HAS_CS}"
 done
 echo
 
@@ -113,11 +310,35 @@ while true; do
 done
 
 SELECTED_ARCHIVE="${BACKUPS[$((CHOSEN_IDX - 1))]}"
-SELECTED_NAME=$(basename "$SELECTED_ARCHIVE" .tar.gz)
+SELECTED_NAME=$(basename "${SELECTED_ARCHIVE}" .tar.gz)
 ok "Geselecteerd: $(basename "${SELECTED_ARCHIVE}")"
 
 # ---------------------------------------------------------------------------
-# Stap 3 — Backup uitpakken en inspecteren
+# Stap 2b — SHA256 checksum verificatie
+# ---------------------------------------------------------------------------
+CHECKSUM_FILE="${SELECTED_ARCHIVE}.sha256"
+if [ -f "${CHECKSUM_FILE}" ]; then
+  section "Stap 2b — SHA256 checksum verificatie"
+  info "Verificeert integriteit van het archief..."
+  EXPECTED_HASH=$(awk '{print $1}' "${CHECKSUM_FILE}")
+  ACTUAL_HASH=$(sha256sum "${SELECTED_ARCHIVE}" | awk '{print $1}')
+  if [ "${EXPECTED_HASH}" = "${ACTUAL_HASH}" ]; then
+    ok "SHA256 checksum correct"
+  else
+    echo
+    echo "${RED}${BOLD}  CHECKSUM MISMATCH${RESET}"
+    echo "${RED}  De checksum van het archief komt niet overeen met ${CHECKSUM_FILE}.${RESET}"
+    echo "${RED}  Het archief is mogelijk beschadigd of gemanipuleerd.${RESET}"
+    echo "${RED}  Restore is afgebroken.${RESET}"
+    echo
+    exit 1
+  fi
+else
+  info "Geen .sha256 bestand aanwezig — checksum overgeslagen"
+fi
+
+# ---------------------------------------------------------------------------
+# Stap 3 — Backup uitpakken, versie + inhoud controleren
 # ---------------------------------------------------------------------------
 section "Stap 3 — Backup inspecteren"
 
@@ -130,11 +351,33 @@ if [ ! -d "${RESTORE_DIR}" ]; then
   fail "Verwachte map ontbreekt in archief: ${SELECTED_NAME}/"
 fi
 
+# Versiecheck
+if [ -f "${RESTORE_DIR}/version.txt" ]; then
+  BACKUP_VERSION=$(tr -d '[:space:]' < "${RESTORE_DIR}/version.txt")
+  VERSION_OK=false
+  for sv in ${SUPPORTED_VERSIONS}; do
+    [ "${BACKUP_VERSION}" = "${sv}" ] && VERSION_OK=true && break
+  done
+  if ${VERSION_OK}; then
+    ok "Backupformaat v${BACKUP_VERSION} wordt ondersteund"
+  else
+    echo
+    echo "${RED}${BOLD}  NIET-ONDERSTEUNDE BACKUPVERSIE${RESET}"
+    echo "${RED}  Backupversie: v${BACKUP_VERSION}${RESET}"
+    echo "${RED}  Ondersteund : v${SUPPORTED_VERSIONS// /, v}${RESET}"
+    echo "${RED}  Restore is afgebroken.${RESET}"
+    echo
+    exit 1
+  fi
+else
+  warn "version.txt ontbreekt — oudere backup (geen versiecontrole mogelijk)"
+fi
+
 BACKUP_TS=$(cat  "${RESTORE_DIR}/timestamp.txt"   2>/dev/null || echo "onbekend")
 BACKUP_GIT=$(cat "${RESTORE_DIR}/git-commit.txt"  2>/dev/null || echo "onbekend")
-HAS_ENV=$(    [ -f "${RESTORE_DIR}/.env"            ] && echo "ja" || echo "nee")
-HAS_DB=$(     [ -f "${RESTORE_DIR}/database.dump"   ] && echo "ja" || echo "nee")
-HAS_PRIVATE=$([ -d "${RESTORE_DIR}/private"         ] && echo "ja" || echo "nee")
+HAS_ENV=$(    [ -f "${RESTORE_DIR}/.env"          ] && echo "ja" || echo "nee")
+HAS_DB=$(     [ -f "${RESTORE_DIR}/database.dump" ] && echo "ja" || echo "nee")
+HAS_PRIVATE=$([ -d "${RESTORE_DIR}/private"       ] && echo "ja" || echo "nee")
 
 echo "  Backup-datum     : ${BACKUP_TS}"
 echo "  Git commit       : ${BACKUP_GIT}"

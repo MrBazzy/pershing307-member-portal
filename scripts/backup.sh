@@ -7,7 +7,11 @@
 #   - .env bestand
 #   - private/ map (indien aanwezig)
 #   - git commit hash en timestamp
+#   - backupformaat-versie (version.txt)
 #   - README in de backupmap
+#
+# Na het aanmaken wordt een SHA256-checksum bestand gemaakt:
+#   backups/pershing307-backup-YYYYMMDD-HHMMSS.tar.gz.sha256
 #
 # Backup locatie: backups/pershing307-backup-YYYYMMDD-HHMMSS.tar.gz
 # Secrets worden nooit op het scherm getoond.
@@ -32,6 +36,10 @@ TIMESTAMP=$(date '+%Y%m%d-%H%M%S')
 BACKUP_NAME="pershing307-backup-${TIMESTAMP}"
 BACKUP_STAGE="${BACKUP_ROOT}/${BACKUP_NAME}"
 ARCHIVE="${BACKUP_ROOT}/${BACKUP_NAME}.tar.gz"
+CHECKSUM_FILE="${ARCHIVE}.sha256"
+
+# Backupformaat-versie — verhoog dit getal bij incompatibele structuurwijzigingen
+BACKUP_FORMAT_VERSION="1"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -115,13 +123,19 @@ echo "${GIT_HASH}" > "${BACKUP_STAGE}/git-commit.txt"
 date '+%Y-%m-%d %H:%M:%S' > "${BACKUP_STAGE}/timestamp.txt"
 
 # ---------------------------------------------------------------------------
-# 6. README
+# 6. Backupformaat-versie
+# ---------------------------------------------------------------------------
+echo "${BACKUP_FORMAT_VERSION}" > "${BACKUP_STAGE}/version.txt"
+
+# ---------------------------------------------------------------------------
+# 7. README
 # ---------------------------------------------------------------------------
 cat > "${BACKUP_STAGE}/README.txt" << READMEEOF
 Pershing307 TDA — Server Backup
 ================================
-Datum      : $(date '+%Y-%m-%d %H:%M:%S')
-Git commit : ${GIT_HASH}
+Datum           : $(date '+%Y-%m-%d %H:%M:%S')
+Git commit      : ${GIT_HASH}
+Backupformaat   : v${BACKUP_FORMAT_VERSION}
 
 Inhoud
 ------
@@ -130,11 +144,16 @@ Inhoud
   private/        Private bestanden (indien aanwezig)
   git-commit.txt  Git commit hash ten tijde van backup
   timestamp.txt   Tijdstip van backup
+  version.txt     Backupformaat-versie
   README.txt      Dit bestand
 
 Database herstellen
 -------------------
   pg_restore --clean --if-exists -d <DATABASENAAM> database.dump
+
+Verificatie
+-----------
+  bash scripts/restore.sh --verify backups/${BACKUP_NAME}.tar.gz
 
 WAARSCHUWING: Deze backup bevat gevoelige gegevens (.env, database-inhoud).
 Bewaar veilig en deel niet.
@@ -149,9 +168,16 @@ tar -czf "${ARCHIVE}" -C "${BACKUP_ROOT}" "${BACKUP_NAME}" \
 rm -rf "${BACKUP_STAGE}"
 
 # ---------------------------------------------------------------------------
+# SHA256 checksum
+# ---------------------------------------------------------------------------
+sha256sum "${ARCHIVE}" > "${CHECKSUM_FILE}" \
+  || fail "SHA256 checksum aanmaken mislukt"
+
+# ---------------------------------------------------------------------------
 # Klaar
 # ---------------------------------------------------------------------------
 echo
 echo "${GREEN}${BOLD}Backup successful${RESET}"
 echo "Backup file: backups/${BACKUP_NAME}.tar.gz"
+echo "Checksum  : backups/${BACKUP_NAME}.tar.gz.sha256"
 echo
